@@ -1,5 +1,15 @@
 {
   "name": "chainlink-csr",
   "version": "1.0.0",
-  "author": "Aphyla <aphyla@aphyla.com>"
+  "author": "Aphyla <aphyla@aphyla.com>",
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.8.2"
+  },
+  "scripts": {
+    "build": "yarn install && forge build",
+    "test": "forge test"
+  },
+  "dependencies": {
+    "@chainlink/contracts-ccip": "^1.4.0"
+  }
 }
