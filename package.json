@@ -10,6 +10,9 @@
     "test": "forge test"
   },
   "dependencies": {
-    "@chainlink/contracts-ccip": "^1.4.0"
+    "@chainlink/contracts-ccip": "^1.4.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "openzeppelin-contracts": "^4.0.0"
   }
 }
