@@ -33,7 +33,7 @@ contract OraclePool is Ownable2Step, IOraclePool {
         BASE_TOKEN = baseToken;
         QUOTE_TOKEN = quoteToken;
 
-        _setOracle(oracle);
+        _setOracle(IOracle(oracle));
         _setFee(fee);
     }
 
@@ -50,26 +50,30 @@ contract OraclePool is Ownable2Step, IOraclePool {
     }
 
     function setOracle(address oracle) external override onlyOwner {
-        _setOracle(oracle);
+        _setOracle(IOracle(oracle));
     }
 
     function setFee(uint96 fee) external override onlyOwner {
         _setFee(fee);
     }
 
-    function swap(address recipient, uint256 minBaseAmount) external override onlySender {
+    function swap(address recipient, uint256 minAmountOut) external override onlySender {
         uint256 quoteBalance = IERC20(QUOTE_TOKEN).balanceOf(address(this));
 
         uint256 quoteAmount = quoteBalance - _quoteReserves;
         uint256 quoteFee = quoteAmount * _fee / 1e18;
 
-        uint256 price = _oracle.getLatestAnswer();
+        IOracle oracle = _oracle;
+
+        if (address(oracle) == address(0)) revert OraclePoolNoOracle();
+
+        uint256 price = oracle.getLatestAnswer();
         uint256 baseAmount = (quoteAmount - quoteFee) * 1e18 / price;
 
-        if (baseAmount < minBaseAmount) revert OraclePoolInsufficientBaseAmount(baseAmount, minBaseAmount);
+        if (baseAmount < minAmountOut) revert OraclePoolInsufficientOutputAmount(baseAmount, minAmountOut);
 
         uint256 baseBalance = IERC20(BASE_TOKEN).balanceOf(address(this));
-        if (baseAmount > baseBalance) revert OraclePoolInsufficientBaseReserves(baseAmount, baseBalance);
+        if (baseAmount > baseBalance) revert OraclePoolInsufficientBaseBalance(baseAmount, baseBalance);
 
         _quoteReserves = quoteBalance;
 
@@ -78,11 +82,13 @@ contract OraclePool is Ownable2Step, IOraclePool {
         IERC20(BASE_TOKEN).safeTransfer(recipient, baseAmount);
     }
 
-    function sendQuoteToken() external override onlySender {
-        uint256 quoteReserves = _quoteReserves;
-        _quoteReserves = 0;
+    function transferQuoteToken(address to, uint256 amount) external override onlySender {
+        uint256 quoteBalance = IERC20(QUOTE_TOKEN).balanceOf(address(this));
 
-        IERC20(QUOTE_TOKEN).safeTransfer(SENDER, quoteReserves);
+        if (amount > quoteBalance) revert OraclePoolInsufficientQuoteBalance(amount, quoteBalance);
+        _quoteReserves = quoteBalance - amount;
+
+        IERC20(QUOTE_TOKEN).safeTransfer(to, amount);
     }
 
     function sweep(address token, address recipient, uint256 amount) external override onlyOwner {
@@ -94,15 +100,13 @@ contract OraclePool is Ownable2Step, IOraclePool {
     }
 
     function _checkSender() internal view {
-        if (msg.sender != SENDER) revert OraclePoolUnauthorizedSender(msg.sender);
+        if (msg.sender != SENDER) revert OraclePoolUnauthorizedAccount(msg.sender);
     }
 
-    function _setOracle(address oracle) internal {
-        if (oracle == address(0)) revert OraclePoolAddressZero();
+    function _setOracle(IOracle oracle) internal {
+        _oracle = oracle;
 
-        _oracle = IOracle(oracle);
-
-        emit OracleUpdated(oracle);
+        emit OracleUpdated(address(oracle));
     }
 
     function _setFee(uint96 fee) internal {

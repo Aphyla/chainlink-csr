@@ -3,9 +3,10 @@ pragma solidity ^0.8.20;
 
 interface IOraclePool {
     error OraclePoolUnauthorizedAccount(address sender);
-    error OraclePoolInsufficientBaseAmount(uint256 baseAmount, uint256 minBaseAmount);
-    error OraclePoolInsufficientBaseReserves(uint256 baseAmount, uint256 baseBalance);
-    error OraclePoolAddressZero();
+    error OraclePoolInsufficientBaseBalance(uint256 baseAmount, uint256 baseBalance);
+    error OraclePoolInsufficientQuoteBalance(uint256 quoteAmount, uint256 quoteBalance);
+    error OraclePoolInsufficientOutputAmount(uint256 baseAmount, uint256 minAmountOut);
+    error OraclePoolNoOracle();
     error OraclePoolFeeTooHigh();
 
     event Swap(address recipient, uint256 baseAmount, uint256 quoteAmount);
@@ -21,7 +22,7 @@ interface IOraclePool {
     function getQuoteReserves() external view returns (uint256);
     function setOracle(address oracle) external;
     function setFee(uint96 fee) external;
-    function swap(address recipient, uint256 minBaseAmount) external;
-    function sendQuoteToken() external;
+    function swap(address recipient, uint256 minAmountOut) external;
+    function transferQuoteToken(address to, uint256 amount) external;
     function sweep(address token, address recipient, uint256 amount) external;
 }

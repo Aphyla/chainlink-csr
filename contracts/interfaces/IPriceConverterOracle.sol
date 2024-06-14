@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 import {IOracle} from "./IOracle.sol";
 
 interface IPriceConverterOracle is IOracle {
-    error PriceConverterOracleAddressZero();
+    error PriceConverterOracleNoOracle();
+    error PriceConverterOracleInvalidPrice();
 
     event BasePriceOracleUpdated(address basePriceOracle);
     event QuotePriceOracleUpdated(address quotePriceOracle);

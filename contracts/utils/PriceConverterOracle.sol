@@ -6,6 +6,7 @@ import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step
 import {IOracle, IPriceOracle} from "../interfaces/IPriceOracle.sol";
 import {IPriceConverterOracle} from "../interfaces/IPriceConverterOracle.sol";
 
+// Only for A:B and B:C price oracles, for example: BTC:USD and USD:ETH to get BTC:ETH
 contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
     IPriceOracle private _basePriceOracle;
     IPriceOracle private _quotePriceOracle;
@@ -23,8 +24,16 @@ contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
         return address(_quotePriceOracle);
     }
 
-    function getLatestAnswer() external view override returns (uint256) {
-        return _basePriceOracle.getLatestAnswer() / _quotePriceOracle.getLatestAnswer();
+    function getLatestAnswer() external view override returns (uint256 answerScaled) {
+        (IPriceOracle basePriceOracle, IPriceOracle quotePriceOracle) = (_basePriceOracle, _quotePriceOracle);
+
+        if (address(basePriceOracle) == address(0) || address(quotePriceOracle) == address(0)) {
+            revert PriceConverterOracleNoOracle();
+        }
+
+        answerScaled = _basePriceOracle.getLatestAnswer() * _quotePriceOracle.getLatestAnswer() / 1e18;
+
+        if (answerScaled == 0) revert PriceConverterOracleInvalidPrice();
     }
 
     function setBasePriceOracle(address basePriceOracle) external override onlyOwner {
@@ -36,16 +45,12 @@ contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
     }
 
     function _setBasePriceOracle(address basePriceOracle) internal {
-        if (basePriceOracle == address(0)) revert PriceConverterOracleAddressZero();
-
         _basePriceOracle = IPriceOracle(basePriceOracle);
 
         emit BasePriceOracleUpdated(basePriceOracle);
     }
 
     function _setQuotePriceOracle(address quotePriceOracle) internal {
-        if (quotePriceOracle == address(0)) revert PriceConverterOracleAddressZero();
-
         _quotePriceOracle = IPriceOracle(quotePriceOracle);
 
         emit QuotePriceOracleUpdated(quotePriceOracle);
