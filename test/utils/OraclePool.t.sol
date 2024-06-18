@@ -12,8 +12,8 @@ contract OraclePoolTest is Test {
     OraclePool public oraclePool;
     PriceOracle public priceOracle;
     MockDataFeed public dataFeed;
-    MockERC20 public baseToken;
-    MockERC20 public quoteToken;
+    MockERC20 public tokenOut;
+    MockERC20 public tokenIn;
 
     address public sender = makeAddr("sender");
     uint96 fee = 0.1e18;
@@ -24,16 +24,27 @@ contract OraclePoolTest is Test {
     function setUp() public {
         dataFeed = new MockDataFeed(18);
         priceOracle = new PriceOracle(address(dataFeed), false, 1 hours, address(this));
-        baseToken = new MockERC20("Base Token", "BT", 18);
-        quoteToken = new MockERC20("Quote Token", "QT", 18);
+        tokenIn = new MockERC20("TokenIn", "TI", 18);
+        tokenOut = new MockERC20("TokenOut", "TO", 18);
         oraclePool =
-            new OraclePool(sender, address(baseToken), address(quoteToken), address(priceOracle), fee, address(this));
+            new OraclePool(sender, address(tokenIn), address(tokenOut), address(priceOracle), fee, address(this));
 
         vm.label(address(dataFeed), "dataFeed");
         vm.label(address(priceOracle), "priceOracle");
-        vm.label(address(baseToken), "baseToken");
-        vm.label(address(quoteToken), "quoteToken");
+        vm.label(address(tokenOut), "tokenOut");
+        vm.label(address(tokenIn), "tokenIn");
         vm.label(address(oraclePool), "oraclePool");
+    }
+
+    function test_Constructor() public {
+        oraclePool =
+            new OraclePool(sender, address(tokenIn), address(tokenOut), address(priceOracle), fee, address(this)); // to fix coverage
+
+        assertEq(oraclePool.SENDER(), sender, "test_Constructor::1");
+        assertEq(oraclePool.TOKEN_IN(), address(tokenIn), "test_Constructor::2");
+        assertEq(oraclePool.TOKEN_OUT(), address(tokenOut), "test_Constructor::3");
+        assertEq(oraclePool.getOracle(), address(priceOracle), "test_Constructor::4");
+        assertEq(oraclePool.getFee(), fee, "test_Constructor::5");
     }
 
     function test_Fuzz_GetOracle(address oracleB) public {
@@ -70,58 +81,69 @@ contract OraclePoolTest is Test {
         assertEq(oraclePool.getFee(), fee, "test_Fuzz_GetFee::4");
     }
 
+    function test_Fuzz_Revert_GetFee(uint96 newFee) public {
+        newFee = uint96(bound(newFee, 1e18 + 1, type(uint96).max));
+
+        vm.expectRevert(IOraclePool.OraclePoolFeeTooHigh.selector);
+        oraclePool.setFee(newFee);
+    }
+
     function test_Fuzz_Swap(uint256 price, uint256 amountA, uint256 amountB) public {
         price = bound(price, 0.01e18, 100e18);
         amountA = bound(amountA, 0.01e18, 100e18);
         amountB = bound(amountB, 0.01e18, 100e18);
 
-        baseToken.mint(address(oraclePool), ((amountA + amountB) * 1e18) / price);
+        tokenOut.mint(address(oraclePool), ((amountA + amountB) * 1e18) / price);
 
         dataFeed.set(int256(price), 1, 0, block.timestamp, 1);
 
-        quoteToken.mint(alice, amountA);
-        quoteToken.mint(bob, amountB);
+        tokenIn.mint(alice, amountA);
+        tokenIn.mint(bob, amountB);
 
         vm.prank(alice);
-        quoteToken.transfer(address(oraclePool), amountA);
+        tokenIn.transfer(address(oraclePool), amountA);
 
         vm.prank(sender);
-        oraclePool.swap(alice, amountA * (1e18 - fee) / price);
+        oraclePool.swap(alice, amountA, amountA * (1e18 - fee) / price);
 
-        assertEq(quoteToken.balanceOf(address(oraclePool)), amountA, "test_Fuzz_Swap::1");
-        assertEq(oraclePool.getQuoteReserves(), amountA, "test_Fuzz_Swap::2");
-        assertGe(baseToken.balanceOf(alice), amountA * (1e18 - fee) / price, "test_Fuzz_Swap::3");
+        assertEq(tokenIn.balanceOf(address(oraclePool)), amountA, "test_Fuzz_Swap::1");
+        assertGe(tokenOut.balanceOf(alice), amountA * (1e18 - fee) / price, "test_Fuzz_Swap::2");
 
         vm.prank(bob);
-        quoteToken.transfer(address(oraclePool), amountB);
+        tokenIn.transfer(address(oraclePool), amountB);
 
         vm.prank(sender);
-        oraclePool.swap(bob, amountB * (1e18 - fee) / price);
+        oraclePool.swap(bob, amountB, amountB * (1e18 - fee) / price);
 
-        assertEq(quoteToken.balanceOf(address(oraclePool)), amountA + amountB, "test_Fuzz_Swap::4");
-        assertEq(oraclePool.getQuoteReserves(), amountA + amountB, "test_Fuzz_Swap::5");
-        assertGe(baseToken.balanceOf(bob), amountB * (1e18 - fee) / price, "test_Fuzz_Swap::6");
+        assertEq(tokenIn.balanceOf(address(oraclePool)), amountA + amountB, "test_Fuzz_Swap::3");
+        assertGe(tokenOut.balanceOf(bob), amountB * (1e18 - fee) / price, "test_Fuzz_Swap::4");
     }
 
-    function test_Fuzz_Revert_Swap(uint256 price, uint256 amount) public {
+    function test_Fuzz_Revert_Swap(address msgSender, uint256 price, uint256 amountIn) public {
+        vm.assume(msgSender != sender);
+
         price = bound(price, 0.01e18, 100e18);
-        amount = bound(amount, 0.01e18, 100e18);
+        amountIn = bound(amountIn, 0.01e18, 100e18);
 
         dataFeed.set(int256(price), 1, 0, block.timestamp, 1);
-        quoteToken.mint(address(oraclePool), amount);
+        tokenIn.mint(address(oraclePool), amountIn);
 
-        uint256 quoteFeeAmount = amount * oraclePool.getFee() / 1e18;
-        uint256 baseAmount = (amount - quoteFeeAmount) * 1e18 / price;
+        uint256 feeAmount = amountIn * oraclePool.getFee() / 1e18;
+        uint256 amountOut = (amountIn - feeAmount) * 1e18 / price;
 
         vm.startPrank(sender);
         vm.expectRevert(
-            abi.encodeWithSelector(IOraclePool.OraclePoolInsufficientOutputAmount.selector, baseAmount, baseAmount + 1)
+            abi.encodeWithSelector(IOraclePool.OraclePoolInsufficientAmountOut.selector, amountOut, amountOut + 1)
         );
-        oraclePool.swap(alice, baseAmount + 1);
+        oraclePool.swap(alice, amountIn, amountOut + 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolInsufficientBaseBalance.selector, baseAmount, 0));
-        oraclePool.swap(alice, baseAmount);
+        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolInsufficientTokenOut.selector, amountOut, 0));
+        oraclePool.swap(alice, amountIn, amountOut);
         vm.stopPrank();
+
+        vm.prank(msgSender);
+        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolUnauthorizedAccount.selector, msgSender));
+        oraclePool.swap(address(0), 0, 0);
     }
 
     function test_Revert_Swap() public {
@@ -129,69 +151,81 @@ contract OraclePoolTest is Test {
 
         vm.expectRevert(IOraclePool.OraclePoolNoOracle.selector);
         vm.prank(sender);
-        oraclePool.swap(address(0), 0);
+        oraclePool.swap(address(0), 0, 0);
     }
 
-    function test_Fuzz_TransferQuoteReserve(uint256 amount) public {
+    function test_Fuzz_Pull(uint256 amount) public {
         amount = bound(amount, 0.01e18, 100e18);
 
-        quoteToken.mint(address(oraclePool), amount);
-        baseToken.mint(address(oraclePool), amount);
+        tokenIn.mint(address(oraclePool), amount);
+        tokenOut.mint(address(oraclePool), amount);
 
         dataFeed.set(1e18, 1, 0, block.timestamp, 1);
         oraclePool.setFee(0);
 
         vm.prank(sender);
-        oraclePool.swap(alice, amount);
+        oraclePool.swap(alice, amount, amount);
 
-        assertEq(quoteToken.balanceOf(address(oraclePool)), amount, "test_Fuzz_TransferQuoteReserve::1");
-        assertEq(oraclePool.getQuoteReserves(), amount, "test_Fuzz_TransferQuoteReserve::2");
+        assertEq(tokenIn.balanceOf(address(oraclePool)), amount, "test_Fuzz_Pull::1");
 
         vm.prank(sender);
-        oraclePool.transferQuoteToken(sender, amount);
+        oraclePool.pull(address(tokenIn), amount);
 
-        assertEq(quoteToken.balanceOf(address(oraclePool)), 0, "test_Fuzz_TransferQuoteReserve::3");
-        assertEq(quoteToken.balanceOf(sender), amount, "test_Fuzz_TransferQuoteReserve::4");
-        assertEq(oraclePool.getQuoteReserves(), 0, "test_Fuzz_TransferQuoteReserve::5");
+        assertEq(tokenIn.balanceOf(address(oraclePool)), 0, "test_Fuzz_Pull::2");
+        assertEq(tokenIn.balanceOf(sender), amount, "test_Fuzz_Pull::3");
     }
 
-    function test_Fuzz_Revert_TransferQuoteReserve(uint256 amount) public {
+    function test_Fuzz_Revert_Pull(address msgSender, uint256 amount) public {
+        vm.assume(msgSender != sender);
+
         amount = bound(amount, 0, type(uint256).max - 1);
 
-        quoteToken.mint(address(oraclePool), amount);
+        tokenIn.mint(address(oraclePool), amount);
 
         vm.prank(sender);
         vm.expectRevert(
-            abi.encodeWithSelector(IOraclePool.OraclePoolInsufficientQuoteBalance.selector, amount + 1, amount)
+            abi.encodeWithSelector(IOraclePool.OraclePoolInsufficientToken.selector, tokenIn, amount + 1, amount)
         );
-        oraclePool.transferQuoteToken(sender, amount + 1);
+        oraclePool.pull(address(tokenIn), amount + 1);
+
+        vm.prank(sender);
+        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolPullNotAllowed.selector, tokenOut));
+        oraclePool.pull(address(tokenOut), amount + 1);
+
+        vm.prank(msgSender);
+        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolUnauthorizedAccount.selector, msgSender));
+        oraclePool.pull(address(0), 0);
     }
 
     function test_Sweep() public {
-        baseToken.mint(address(oraclePool), 1e18);
+        tokenOut.mint(address(oraclePool), 1e18);
 
-        oraclePool.sweep(address(baseToken), address(this), 1e18);
+        assertEq(tokenOut.balanceOf(address(oraclePool)), 1e18, "test_Sweep::1");
+        assertEq(tokenOut.balanceOf(address(this)), 0, "test_Sweep::2");
 
-        assertEq(baseToken.balanceOf(address(oraclePool)), 0, "test_Sweep::1");
-        assertEq(baseToken.balanceOf(address(this)), 1e18, "test_Sweep::2");
-        assertEq(oraclePool.getQuoteReserves(), 0, "test_Sweep::3");
+        oraclePool.sweep(address(tokenOut), address(this), 1e18);
 
-        quoteToken.mint(address(oraclePool), 1e18);
-        baseToken.mint(address(oraclePool), 1e18);
+        assertEq(tokenOut.balanceOf(address(oraclePool)), 0, "test_Sweep::3");
+        assertEq(tokenOut.balanceOf(address(this)), 1e18, "test_Sweep::4");
+
+        tokenIn.mint(address(oraclePool), 1e18);
+        tokenOut.mint(address(oraclePool), 1e18);
 
         dataFeed.set(1e18, 1, 0, block.timestamp, 1);
         oraclePool.setFee(0);
 
         vm.prank(sender);
-        oraclePool.swap(alice, 1e18);
+        oraclePool.swap(alice, 1e18, 1e18);
 
-        assertEq(quoteToken.balanceOf(address(oraclePool)), 1e18, "test_Sweep::4");
-        assertEq(oraclePool.getQuoteReserves(), 1e18, "test_Sweep::5");
+        assertEq(tokenIn.balanceOf(address(oraclePool)), 1e18, "test_Sweep::5");
+        assertEq(tokenIn.balanceOf(address(this)), 0, "test_Sweep::6");
 
-        oraclePool.sweep(address(quoteToken), address(this), 1e18);
+        oraclePool.sweep(address(tokenIn), address(this), 1e18);
 
-        assertEq(quoteToken.balanceOf(address(oraclePool)), 0, "test_Sweep::6");
-        assertEq(quoteToken.balanceOf(address(this)), 1e18, "test_Sweep::7");
-        assertEq(oraclePool.getQuoteReserves(), 0, "test_Sweep::8");
+        assertEq(tokenIn.balanceOf(address(oraclePool)), 0, "test_Sweep::7");
+        assertEq(tokenIn.balanceOf(address(this)), 1e18, "test_Sweep::8");
+
+        oraclePool.sweep(address(tokenOut), address(this), 0);
+        oraclePool.sweep(address(tokenIn), address(this), 0);
     }
 }
