@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import "../../contracts/ccip/CCIPSenderUpgradeable.sol";
 import "../Mocks/MockERC20.sol";
+import "../Mocks/MockCCIPRouter.sol";
 
 contract CCIPSenderUpgradeableTest is Test {
     MockCCIPSender public sender;
@@ -84,7 +85,7 @@ contract CCIPSenderUpgradeableTest is Test {
     function test_Fuzz_CCIPSend(
         bytes memory receiver,
         uint64 destChainSelector,
-        address token,
+        bytes32 tokenSalt,
         uint256 amount,
         bool payInLink,
         uint256 gasLimit,
@@ -103,6 +104,13 @@ contract CCIPSenderUpgradeableTest is Test {
         } else {
             nativeFee = NATIVE_FEE;
         }
+
+        address token = address(new MockERC20{salt: tokenSalt}("TOKEN", "TOKEN", 18));
+
+        MockERC20(token).mint(address(sender), amount);
+
+        vm.prank(address(sender));
+        MockERC20(token).approve(address(ccipRouter), amount);
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: token, amount: amount});
@@ -173,47 +181,6 @@ contract MockCCIPSender is CCIPSenderUpgradeable {
         bytes calldata data
     ) external payable returns (bytes32) {
         return _ccipSend(destChainSelector, token, amount, payInLink, maxFee, gasLimit, data);
-    }
-
-    // Force foundry to ignore this contract from coverage
-    function test() public pure {}
-}
-
-contract MockCCIPRouter {
-    IERC20 public immutable LINK_TOKEN;
-
-    bytes public data;
-    uint256 public value;
-    uint256 private _linkFee;
-    uint256 private _nativeFee;
-
-    constructor(address linkToken, uint256 linkFee, uint256 nativeFee) {
-        LINK_TOKEN = IERC20(linkToken);
-        _linkFee = linkFee;
-        _nativeFee = nativeFee;
-    }
-
-    function getFee(uint64, Client.EVM2AnyMessage calldata message) public view returns (uint256) {
-        return message.feeToken == address(LINK_TOKEN) ? _linkFee : _nativeFee;
-    }
-
-    function ccipSend(uint64 destChainSelector, Client.EVM2AnyMessage calldata message)
-        external
-        payable
-        returns (bytes32)
-    {
-        uint256 fee = getFee(destChainSelector, message);
-
-        if (message.feeToken == address(LINK_TOKEN)) {
-            LINK_TOKEN.transferFrom(msg.sender, address(this), fee);
-        } else {
-            require(msg.value == fee, "CCIPRouter: insufficient fee");
-        }
-
-        value = msg.value;
-        data = abi.encode(destChainSelector, message);
-
-        return keccak256("test");
     }
 
     // Force foundry to ignore this contract from coverage
