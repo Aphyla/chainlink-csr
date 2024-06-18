@@ -28,4 +28,7 @@ contract MockDataFeed {
     {
         return (_roundId, _price, _startedAt, _updatedAt, _answeredInRound);
     }
+
+    // Force foundry to ignore this contract from coverage
+    function test() public pure {}
 }

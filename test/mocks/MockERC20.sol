@@ -17,4 +17,7 @@ contract MockERC20 is ERC20 {
     function decimals() public view override returns (uint8) {
         return _decimals;
     }
+
+    // Force foundry to ignore this contract from coverage
+    function test() public pure {}
 }
