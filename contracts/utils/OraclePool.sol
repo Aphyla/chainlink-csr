@@ -34,24 +34,25 @@ contract OraclePool is Ownable2Step, IOraclePool {
         _setFee(fee);
     }
 
-    function getOracle() external view override returns (address) {
+    function getOracle() public view virtual override returns (address) {
         return address(_oracle);
     }
 
-    function getFee() external view override returns (uint96) {
+    function getFee() public view virtual override returns (uint96) {
         return _fee;
     }
 
-    function setOracle(address oracle) external override onlyOwner {
+    function setOracle(address oracle) public virtual override onlyOwner {
         _setOracle(IOracle(oracle));
     }
 
-    function setFee(uint96 fee) external override onlyOwner {
+    function setFee(uint96 fee) public virtual override onlyOwner {
         _setFee(fee);
     }
 
     function swap(address recipient, uint256 amountIn, uint256 minAmountOut)
-        external
+        public
+        virtual
         override
         onlySender
         returns (uint256)
@@ -76,7 +77,7 @@ contract OraclePool is Ownable2Step, IOraclePool {
         return amountOut;
     }
 
-    function pull(address token, uint256 amount) external override onlySender {
+    function pull(address token, uint256 amount) public virtual override onlySender {
         if (token != TOKEN_IN) revert OraclePoolPullNotAllowed(token);
 
         uint256 available = IERC20(token).balanceOf(address(this));
@@ -87,23 +88,23 @@ contract OraclePool is Ownable2Step, IOraclePool {
         IERC20(token).safeTransfer(msg.sender, amount);
     }
 
-    function sweep(address token, address recipient, uint256 amount) external override onlyOwner {
+    function sweep(address token, address recipient, uint256 amount) public virtual override onlyOwner {
         emit Sweep(token, recipient, amount);
 
         IERC20(token).safeTransfer(recipient, amount);
     }
 
-    function _checkSender() internal view {
+    function _checkSender() internal view virtual {
         if (msg.sender != SENDER) revert OraclePoolUnauthorizedAccount(msg.sender);
     }
 
-    function _setOracle(IOracle oracle) internal {
+    function _setOracle(IOracle oracle) internal virtual {
         _oracle = oracle;
 
         emit OracleUpdated(address(oracle));
     }
 
-    function _setFee(uint96 fee) internal {
+    function _setFee(uint96 fee) internal virtual {
         if (fee > 1e18) revert OraclePoolFeeTooHigh();
 
         _fee = fee;

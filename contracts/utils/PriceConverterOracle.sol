@@ -16,15 +16,15 @@ contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
         _setQuotePriceOracle(quotePriceOracle);
     }
 
-    function getBasePriceOracle() external view override returns (address) {
+    function getBasePriceOracle() public view virtual override returns (address) {
         return address(_basePriceOracle);
     }
 
-    function getQuotePriceOracle() external view override returns (address) {
+    function getQuotePriceOracle() public view virtual override returns (address) {
         return address(_quotePriceOracle);
     }
 
-    function getLatestAnswer() external view override returns (uint256 answerScaled) {
+    function getLatestAnswer() public view virtual override returns (uint256 answerScaled) {
         (IPriceOracle basePriceOracle, IPriceOracle quotePriceOracle) = (_basePriceOracle, _quotePriceOracle);
 
         if (address(basePriceOracle) == address(0) || address(quotePriceOracle) == address(0)) {
@@ -36,21 +36,21 @@ contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
         if (answerScaled == 0) revert PriceConverterOracleInvalidPrice();
     }
 
-    function setBasePriceOracle(address basePriceOracle) external override onlyOwner {
+    function setBasePriceOracle(address basePriceOracle) public virtual override onlyOwner {
         _setBasePriceOracle(basePriceOracle);
     }
 
-    function setQuotePriceOracle(address quotePriceOracle) external override onlyOwner {
+    function setQuotePriceOracle(address quotePriceOracle) public virtual override onlyOwner {
         _setQuotePriceOracle(quotePriceOracle);
     }
 
-    function _setBasePriceOracle(address basePriceOracle) internal {
+    function _setBasePriceOracle(address basePriceOracle) internal virtual {
         _basePriceOracle = IPriceOracle(basePriceOracle);
 
         emit BasePriceOracleUpdated(basePriceOracle);
     }
 
-    function _setQuotePriceOracle(address quotePriceOracle) internal {
+    function _setQuotePriceOracle(address quotePriceOracle) internal virtual {
         _quotePriceOracle = IPriceOracle(quotePriceOracle);
 
         emit QuotePriceOracleUpdated(quotePriceOracle);

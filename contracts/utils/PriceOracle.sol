@@ -17,11 +17,11 @@ contract PriceOracle is Ownable2Step, IPriceOracle {
         _setHeartbeat(heartbeat);
     }
 
-    function getOracleParameters() external view override returns (address, bool, uint32, uint8) {
+    function getOracleParameters() public view virtual override returns (address, bool, uint32, uint8) {
         return (address(_aggregator), _isInverse, _heartbeat, _decimals);
     }
 
-    function getLatestAnswer() external view override returns (uint256 answerScaled) {
+    function getLatestAnswer() public view virtual override returns (uint256 answerScaled) {
         AggregatorV3Interface aggregator = _aggregator;
         if (address(aggregator) == address(0)) revert PriceOracleNoAggregator();
 
@@ -35,15 +35,15 @@ contract PriceOracle is Ownable2Step, IPriceOracle {
         if (answerScaled == 0) revert PriceOracleInvalidPrice();
     }
 
-    function setAggregator(address aggregator, bool isInverse) external override onlyOwner {
+    function setAggregator(address aggregator, bool isInverse) public virtual override onlyOwner {
         _setAggregator(AggregatorV3Interface(aggregator), isInverse);
     }
 
-    function setHeartbeat(uint32 heartbeat) external override onlyOwner {
+    function setHeartbeat(uint32 heartbeat) public virtual override onlyOwner {
         _setHeartbeat(heartbeat);
     }
 
-    function _setAggregator(AggregatorV3Interface aggregator, bool isInverse) internal {
+    function _setAggregator(AggregatorV3Interface aggregator, bool isInverse) internal virtual {
         _aggregator = aggregator;
         _isInverse = isInverse;
         _decimals = address(aggregator) == address(0) ? 0 : aggregator.decimals();
@@ -51,7 +51,7 @@ contract PriceOracle is Ownable2Step, IPriceOracle {
         emit AggregatorUpdated(address(aggregator), isInverse);
     }
 
-    function _setHeartbeat(uint32 heartbeat) internal {
+    function _setHeartbeat(uint32 heartbeat) internal virtual {
         _heartbeat = heartbeat;
 
         emit HeartbeatUpdated(heartbeat);
