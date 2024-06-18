@@ -21,6 +21,17 @@ contract PriceOracleTest is Test {
         vm.label(address(priceOracle), "priceOracle");
     }
 
+    function test_Constructor() public {
+        priceOracle = new PriceOracle(address(dataFeed8), false, 1 hours, address(this)); // to fix coverage
+
+        (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
+
+        assertEq(dataFeed, address(dataFeed8), "test_Constructor::1");
+        assertEq(isInverse, false, "test_Constructor::2");
+        assertEq(heartbeat, 1 hours, "test_Constructor::3");
+        assertEq(decimals, 8, "test_Constructor::4");
+    }
+
     function test_GetParameters() public {
         (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
 

@@ -32,6 +32,13 @@ contract PriceConverterOracleTest is Test {
         vm.label(address(priceConverterOracle), "priceConverterOracle");
     }
 
+    function test_Constructor() public {
+        priceConverterOracle = new PriceConverterOracle(address(0), address(0), address(this)); // to fix coverage
+
+        assertEq(priceConverterOracle.getBasePriceOracle(), address(0), "test_Constructor::1");
+        assertEq(priceConverterOracle.getQuotePriceOracle(), address(0), "test_Constructor::2");
+    }
+
     function test_Fuzz_GetPriceOracles(address oracleA, address oracleB) public {
         address baseOracle = priceConverterOracle.getBasePriceOracle();
         address quoteOracle = priceConverterOracle.getQuotePriceOracle();
