@@ -7,17 +7,35 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import "../../contracts/ccip/CCIPDefensiveReceiverUpgradeable.sol";
 
-contract TestCCIPDefensiveReceiverUpgradeable is Test {
+import "../mocks/MockERC20.sol";
+
+contract CCIPDefensiveReceiverUpgradeableTest is Test {
     MockCCIPReceiver receiver;
+    MockERC20 mockToken;
 
     address ccipRouter = makeAddr("ccipRouter");
 
     function setUp() public {
         receiver = new MockCCIPReceiver(ccipRouter);
+        mockToken = new MockERC20("Token", "TKN", 18);
     }
 
     function test_Constructor() public view {
         assertEq(receiver.CCIP_ROUTER(), ccipRouter, "test_Constructor::1");
+    }
+
+    function test_Initialize() public {
+        receiver.initialize();
+
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        receiver.initializeUnchained();
+    }
+
+    function test_InitializeUnchained() public {
+        receiver.initializeUnchained();
+
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        receiver.initialize();
     }
 
     function test_Fuzz_SetSender(
@@ -249,6 +267,83 @@ contract TestCCIPDefensiveReceiverUpgradeable is Test {
         receiver.retryFailedMessage(message);
     }
 
+    function test_Fuzz_RecoverFailedMessage(
+        uint64 destChainSelector,
+        bytes32 messageId,
+        bytes memory sender,
+        bytes memory data,
+        uint256 amount
+    ) public {
+        vm.assume(sender.length > 0);
+
+        receiver.setSender(destChainSelector, sender);
+
+        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(mockToken), amount: amount});
+
+        mockToken.mint(address(receiver), amount);
+
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: messageId,
+            sourceChainSelector: destChainSelector,
+            sender: sender,
+            data: data,
+            destTokenAmounts: tokenAmounts
+        });
+
+        receiver.setPaused(true);
+
+        vm.prank(ccipRouter);
+        receiver.ccipReceive(message);
+
+        assertEq(receiver.data().length, 0, "test_Fuzz_RecoverFailedMessage::1");
+
+        bytes32 hash = keccak256(abi.encode(message));
+
+        assertEq(receiver.getFailedMessageHash(messageId), hash, "test_Fuzz_RecoverFailedMessage::2");
+
+        vm.expectRevert("Paused");
+        receiver.retryFailedMessage(message);
+
+        receiver.recoverTokens(message, address(this));
+    }
+
+    function test_Fuzz_Revert_RecoverFailedMessage(
+        address msgSender,
+        uint64 destChainSelector,
+        bytes32 messageId,
+        bytes memory sender,
+        bytes memory data,
+        uint256 amount
+    ) public {
+        vm.assume(msgSender != address(this));
+        vm.assume(sender.length > 0);
+
+        receiver.setSender(destChainSelector, sender);
+
+        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(mockToken), amount: amount});
+
+        mockToken.mint(address(receiver), amount);
+
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: messageId,
+            sourceChainSelector: destChainSelector,
+            sender: sender,
+            data: data,
+            destTokenAmounts: tokenAmounts
+        });
+
+        receiver.setPaused(true);
+
+        vm.prank(ccipRouter);
+        receiver.ccipReceive(message);
+
+        vm.prank(msgSender);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, msgSender, 0));
+        receiver.recoverTokens(message, address(this));
+    }
+
     function test_Fuzz_Revert_ProcessMessage(address sender) public {
         vm.assume(sender != address(receiver));
 
@@ -285,13 +380,24 @@ contract MockCCIPReceiver is CCIPDefensiveReceiverUpgradeable {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    function initializeUnchained() public initializer {
+        __CCIPDefensiveReceiver_init_unchained();
+    }
+
+    function initialize() public initializer {
+        __CCIPDefensiveReceiver_init();
+    }
+
     function setPaused(bool _paused) public {
         paused = _paused;
     }
 
-    function _processMessage(Client.Any2EVMMessage memory message) internal override {
+    function _processMessage(Client.Any2EVMMessage calldata message) internal override {
         if (paused) revert("Paused");
 
         data = abi.encode(message);
     }
+
+    // Force foundry to ignore this contract from coverage
+    function test() public pure {}
 }

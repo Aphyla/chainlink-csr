@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "../../contracts/ccip/CCIPSenderUpgradeable.sol";
 import "../Mocks/MockERC20.sol";
 
-contract TestCCIPSenderUpgradeable is Test {
+contract CCIPSenderUpgradeableTest is Test {
     MockCCIPSender public sender;
     MockCCIPRouter ccipRouter;
     MockERC20 public linkToken;
@@ -174,6 +174,9 @@ contract MockCCIPSender is CCIPSenderUpgradeable {
     ) external payable returns (bytes32) {
         return _ccipSend(destChainSelector, token, amount, payInLink, maxFee, gasLimit, data);
     }
+
+    // Force foundry to ignore this contract from coverage
+    function test() public pure {}
 }
 
 contract MockCCIPRouter {
@@ -212,4 +215,7 @@ contract MockCCIPRouter {
 
         return keccak256("test");
     }
+
+    // Force foundry to ignore this contract from coverage
+    function test() public pure {}
 }
