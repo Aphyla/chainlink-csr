@@ -1,0 +1,402 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+
+import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
+import "../../contracts/automations/SyncAutomation.sol";
+import "../mocks/MockERC20.sol";
+import "../mocks/MockWNative.sol";
+
+contract SyncAutomationTest is Test {
+    SyncAutomation public syncAutomation;
+    MockSender public sender;
+    MockERC20 public link;
+    MockWNative public wnative;
+
+    address public immutable ORACLE_POOL = makeAddr("OraclePool");
+    address public immutable FORWARDER = makeAddr("Forwarder");
+    uint64 public immutable DEST_CHAIN_SELECTOR = 123456789;
+
+    function setUp() public {
+        wnative = new MockWNative();
+        link = new MockERC20("Link", "LINK", 18);
+        sender = new MockSender(address(wnative), address(link), ORACLE_POOL);
+
+        syncAutomation = new SyncAutomation(address(sender), DEST_CHAIN_SELECTOR, address(this));
+    }
+
+    function test_Constructor() public {
+        syncAutomation = new SyncAutomation(address(sender), DEST_CHAIN_SELECTOR, address(this)); // to fix coverage
+
+        assertEq(syncAutomation.SENDER(), address(sender), "test_Constructor::1");
+        assertEq(syncAutomation.DEST_CHAIN_SELECTOR(), DEST_CHAIN_SELECTOR, "test_Constructor::2");
+        assertEq(syncAutomation.WNATIVE(), address(wnative), "test_Constructor::3");
+        assertEq(syncAutomation.getDelay(), type(uint48).max, "test_Constructor::4");
+        assertEq(syncAutomation.getLastExecution(), uint48(block.timestamp), "test_Constructor::5");
+        assertEq(link.allowance(address(syncAutomation), address(sender)), type(uint256).max, "test_Constructor::4");
+    }
+
+    function test_Fuzz_SetForwarder(address forwarder) public {
+        assertEq(syncAutomation.getForwarder(), address(0), "test_SetForwarder::1");
+
+        syncAutomation.setForwarder(forwarder);
+
+        assertEq(syncAutomation.getForwarder(), forwarder, "test_SetForwarder::1");
+
+        syncAutomation.setForwarder(address(0));
+
+        assertEq(syncAutomation.getForwarder(), address(0), "test_SetForwarder::1");
+
+        syncAutomation.setForwarder(forwarder);
+
+        assertEq(syncAutomation.getForwarder(), forwarder, "test_SetForwarder::1");
+    }
+
+    function test_Fuzz_SetDelay(uint48 delay) public {
+        assertEq(syncAutomation.getDelay(), type(uint48).max, "test_SetDelay::1");
+
+        syncAutomation.setDelay(delay);
+
+        assertEq(syncAutomation.getDelay(), delay, "test_SetDelay::1");
+
+        syncAutomation.setDelay(0);
+
+        assertEq(syncAutomation.getDelay(), 0, "test_SetDelay::1");
+
+        syncAutomation.setDelay(delay);
+
+        assertEq(syncAutomation.getDelay(), delay, "test_SetDelay::1");
+    }
+
+    function test_Fuzz_SetAmounts(uint128 minAmount, uint128 maxAmount) public {
+        minAmount = uint128(bound(minAmount, 1, type(uint128).max));
+        maxAmount = uint128(bound(maxAmount, minAmount, type(uint128).max));
+
+        (uint128 minAmount_, uint128 maxAmount_) = syncAutomation.getAmounts();
+
+        assertEq(minAmount_, 0, "test_SetAmounts::1");
+        assertEq(maxAmount_, 0, "test_SetAmounts::2");
+
+        syncAutomation.setAmounts(minAmount, maxAmount);
+
+        (minAmount_, maxAmount_) = syncAutomation.getAmounts();
+
+        assertEq(minAmount_, minAmount, "test_SetAmounts::3");
+        assertEq(maxAmount_, maxAmount, "test_SetAmounts::4");
+
+        syncAutomation.setAmounts(1, minAmount);
+
+        (minAmount_, maxAmount_) = syncAutomation.getAmounts();
+
+        assertEq(minAmount_, 1, "test_SetAmounts::5");
+        assertEq(maxAmount_, minAmount, "test_SetAmounts::6");
+
+        syncAutomation.setAmounts(minAmount, type(uint128).max);
+
+        (minAmount_, maxAmount_) = syncAutomation.getAmounts();
+
+        assertEq(minAmount_, minAmount, "test_SetAmounts::7");
+        assertEq(maxAmount_, type(uint128).max, "test_SetAmounts::8");
+
+        syncAutomation.setAmounts(minAmount, maxAmount);
+
+        (minAmount_, maxAmount_) = syncAutomation.getAmounts();
+
+        assertEq(minAmount_, minAmount, "test_SetAmounts::9");
+        assertEq(maxAmount_, maxAmount, "test_SetAmounts::10");
+    }
+
+    function test_Fuzz_Revert_SetAmounts(uint128 minAmount, uint128 maxAmount) public {
+        minAmount = uint128(bound(minAmount, 1, type(uint128).max));
+        maxAmount = uint128(bound(maxAmount, 0, minAmount - 1));
+
+        vm.expectRevert(abi.encodeWithSelector(SyncAutomation.SyncAutomationInvalidAmounts.selector, 0, 1));
+        syncAutomation.setAmounts(0, 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(SyncAutomation.SyncAutomationInvalidAmounts.selector, minAmount, maxAmount)
+        );
+        syncAutomation.setAmounts(minAmount, maxAmount);
+    }
+
+    function test_Fuzz_SetFeeOtoD(bytes memory fee) public {
+        assertEq(syncAutomation.getFeeOtoD(), new bytes(0), "test_SetFeeOtoD::1");
+
+        syncAutomation.setFeeOtoD(fee);
+
+        assertEq(syncAutomation.getFeeOtoD(), fee, "test_SetFeeOtoD::1");
+
+        syncAutomation.setFeeOtoD(new bytes(0));
+
+        assertEq(syncAutomation.getFeeOtoD(), new bytes(0), "test_SetFeeOtoD::1");
+
+        syncAutomation.setFeeOtoD(fee);
+
+        assertEq(syncAutomation.getFeeOtoD(), fee, "test_SetFeeOtoD::1");
+    }
+
+    function test_Fuzz_SetFeeDtoO(bytes memory fee) public {
+        assertEq(syncAutomation.getFeeDtoO(), new bytes(0), "test_SetFeeDtoO::1");
+
+        syncAutomation.setFeeDtoO(fee);
+
+        assertEq(syncAutomation.getFeeDtoO(), fee, "test_SetFeeDtoO::1");
+
+        syncAutomation.setFeeDtoO(new bytes(0));
+
+        assertEq(syncAutomation.getFeeDtoO(), new bytes(0), "test_SetFeeDtoO::1");
+
+        syncAutomation.setFeeDtoO(fee);
+
+        assertEq(syncAutomation.getFeeDtoO(), fee, "test_SetFeeDtoO::1");
+    }
+
+    function test_Fuzz_Revert_OnlyOwner(address msgSender) public {
+        vm.assume(msgSender != address(this));
+
+        vm.startPrank(msgSender);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, msgSender));
+        syncAutomation.setForwarder(address(0));
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, msgSender));
+        syncAutomation.setDelay(0);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, msgSender));
+        syncAutomation.setAmounts(0, 0);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, msgSender));
+        syncAutomation.setFeeOtoD(new bytes(0));
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, msgSender));
+        syncAutomation.setFeeDtoO(new bytes(0));
+
+        vm.stopPrank();
+    }
+
+    function test_Fuzz_CheckUpkeep(uint128 minAmount, uint128 maxAmount, uint48 delay) public {
+        minAmount = uint128(bound(minAmount, 1, 100e18));
+        maxAmount = uint128(bound(maxAmount, minAmount, 100e18));
+        delay = uint48(bound(delay, 1, type(uint32).max));
+
+        uint256 timestamp = block.timestamp;
+
+        syncAutomation.setAmounts(minAmount, maxAmount);
+        syncAutomation.setDelay(delay);
+
+        {
+            uint256 amount = syncAutomation.getAmountToSync();
+            vm.prank(address(0), address(0));
+            (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+            assertEq(amount, 0, "test_PerformUpkeep::1");
+            assertEq(upkeepNeeded, false, "test_PerformUpkeep::2");
+            assertEq(performData, new bytes(0), "test_PerformUpkeep::3");
+        }
+
+        wnative.deposit{value: 2 * maxAmount}();
+        wnative.transfer(address(ORACLE_POOL), minAmount - 1);
+
+        {
+            uint256 amount = syncAutomation.getAmountToSync();
+            vm.prank(
+                address(0x1111111111111111111111111111111111111111), address(0x1111111111111111111111111111111111111111)
+            );
+            (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+            assertEq(amount, 0, "test_PerformUpkeep::4");
+            assertEq(upkeepNeeded, false, "test_PerformUpkeep::5");
+            assertEq(performData, new bytes(0), "test_PerformUpkeep::6");
+        }
+
+        wnative.transfer(address(ORACLE_POOL), 1);
+
+        {
+            uint256 amount = syncAutomation.getAmountToSync();
+            vm.prank(address(0), address(0));
+            (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+            assertEq(amount, 0, "test_PerformUpkeep::4");
+            assertEq(upkeepNeeded, false, "test_PerformUpkeep::5");
+            assertEq(performData, new bytes(0), "test_PerformUpkeep::6");
+        }
+
+        vm.warp(timestamp + delay);
+
+        {
+            uint256 amount = syncAutomation.getAmountToSync();
+            vm.prank(
+                address(0x1111111111111111111111111111111111111111), address(0x1111111111111111111111111111111111111111)
+            );
+            (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+            assertEq(amount, minAmount, "test_PerformUpkeep::7");
+            assertEq(upkeepNeeded, true, "test_PerformUpkeep::8");
+            assertEq(performData, abi.encode(amount), "test_PerformUpkeep::9");
+        }
+
+        wnative.transfer(address(ORACLE_POOL), maxAmount - minAmount);
+
+        {
+            uint256 amount = syncAutomation.getAmountToSync();
+            vm.prank(address(0), address(0));
+            (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+            assertEq(amount, maxAmount, "test_PerformUpkeep::10");
+            assertEq(upkeepNeeded, true, "test_PerformUpkeep::11");
+            assertEq(performData, abi.encode(amount), "test_PerformUpkeep::12");
+        }
+
+        wnative.transfer(address(ORACLE_POOL), 1);
+
+        {
+            uint256 amount = syncAutomation.getAmountToSync();
+            vm.prank(
+                address(0x1111111111111111111111111111111111111111), address(0x1111111111111111111111111111111111111111)
+            );
+            (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+            assertEq(amount, maxAmount, "test_PerformUpkeep::13");
+            assertEq(upkeepNeeded, true, "test_PerformUpkeep::14");
+            assertEq(performData, abi.encode(amount), "test_PerformUpkeep::15");
+        }
+
+        vm.warp(timestamp + delay - 1);
+
+        {
+            uint256 amount = syncAutomation.getAmountToSync();
+            vm.prank(address(0), address(0));
+            (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+            assertEq(amount, 0, "test_PerformUpkeep::16");
+            assertEq(upkeepNeeded, false, "test_PerformUpkeep::17");
+            assertEq(performData, new bytes(0), "test_PerformUpkeep::18");
+        }
+    }
+
+    function test_Fuzz_Revert_CheckUpkeep(address msgSender) public {
+        vm.assume(msgSender != address(0) && msgSender != address(0x1111111111111111111111111111111111111111));
+
+        vm.prank(msgSender);
+        vm.expectRevert(AutomationBase.OnlySimulatedBackend.selector);
+        syncAutomation.checkUpkeep(new bytes(0));
+    }
+
+    function test_Fuzz_PerformUpKeep(
+        uint128 amount,
+        uint48 delay,
+        uint256 maxFeeOtoD,
+        bool payInLink,
+        uint256 maxGas,
+        uint256 maxFeeDtoO
+    ) public {
+        amount = uint128(bound(amount, 1, 100e18));
+        delay = uint48(bound(delay, 1, type(uint32).max));
+        maxFeeOtoD = bound(maxFeeOtoD, 0, 10e18);
+        maxFeeDtoO = bound(maxFeeDtoO, 0, 10e18);
+
+        syncAutomation.setAmounts(amount, amount);
+        syncAutomation.setDelay(delay);
+        syncAutomation.setFeeOtoD(FeeCodec.encodeCCIP(maxFeeOtoD, payInLink, maxGas));
+        syncAutomation.setFeeDtoO(abi.encode(maxFeeDtoO, msg.data));
+        syncAutomation.setForwarder(FORWARDER);
+
+        vm.warp(block.timestamp + delay);
+        vm.deal(address(syncAutomation), amount + maxFeeDtoO + (payInLink ? 0 : maxFeeOtoD));
+
+        wnative.deposit{value: amount}();
+        wnative.transfer(address(ORACLE_POOL), amount);
+
+        vm.prank(address(0), address(0));
+        (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+        assertEq(upkeepNeeded, true, "test_PerformUpkeep::1");
+        assertEq(performData, abi.encode(amount), "test_PerformUpkeep::2");
+
+        vm.prank(FORWARDER);
+        syncAutomation.performUpkeep(performData);
+
+        assertEq(sender.value(), maxFeeDtoO + (payInLink ? 0 : maxFeeOtoD), "test_PerformUpkeep::3");
+        assertEq(
+            sender.data(),
+            abi.encodeWithSelector(
+                ISender.sync.selector,
+                DEST_CHAIN_SELECTOR,
+                amount,
+                syncAutomation.getFeeOtoD(),
+                syncAutomation.getFeeDtoO()
+            ),
+            "test_PerformUpkeep::4"
+        );
+    }
+
+    function test_Fuzz_Revert_PerformUpKeep(
+        address msgSender,
+        uint128 amount,
+        uint48 delay,
+        uint256 maxFeeOtoD,
+        bool payInLink,
+        uint256 maxGas,
+        uint256 maxFeeDtoO
+    ) public {
+        vm.assume(msgSender != FORWARDER);
+
+        amount = uint128(bound(amount, 1, 100e18));
+        delay = uint48(bound(delay, 1, type(uint32).max));
+        maxFeeOtoD = bound(maxFeeOtoD, 0, 10e18);
+        maxFeeDtoO = bound(maxFeeDtoO, 0, 10e18);
+
+        syncAutomation.setAmounts(amount, amount);
+        syncAutomation.setDelay(delay);
+        syncAutomation.setFeeOtoD(FeeCodec.encodeCCIP(maxFeeOtoD, payInLink, maxGas));
+        syncAutomation.setFeeDtoO(abi.encode(maxFeeDtoO, msg.data));
+        syncAutomation.setForwarder(FORWARDER);
+
+        vm.warp(block.timestamp + delay);
+        vm.deal(address(syncAutomation), amount + maxFeeDtoO + (payInLink ? 0 : maxFeeOtoD));
+
+        wnative.deposit{value: amount}();
+        wnative.transfer(address(ORACLE_POOL), amount);
+
+        vm.prank(address(0), address(0));
+        (bool upkeepNeeded, bytes memory performData) = syncAutomation.checkUpkeep(new bytes(0));
+
+        assertEq(upkeepNeeded, true, "test_PerformUpkeep::1");
+        assertEq(performData, abi.encode(amount), "test_PerformUpkeep::2");
+
+        vm.prank(msgSender);
+        vm.expectRevert(SyncAutomation.SyncAutomationOnlyForwarder.selector);
+        syncAutomation.performUpkeep(performData);
+
+        syncAutomation.setDelay(delay + 1);
+
+        vm.prank(FORWARDER);
+        vm.expectRevert(SyncAutomation.SyncAutomationNoUpkeepNeeded.selector);
+        syncAutomation.performUpkeep(performData);
+    }
+}
+
+contract MockSender {
+    address public immutable WNATIVE;
+    address public immutable LINK_TOKEN;
+    address public immutable getOraclePool;
+
+    uint256 public value;
+    bytes public data;
+
+    constructor(address wnative, address linkToken, address oraclePool) {
+        WNATIVE = wnative;
+        LINK_TOKEN = linkToken;
+        getOraclePool = oraclePool;
+    }
+
+    function sync(uint64, uint256, bytes calldata, bytes calldata) external payable {
+        value = msg.value;
+        data = msg.data;
+    }
+
+    // Force foundry to ignore this contract from coverage
+    function test() public pure {}
+}
