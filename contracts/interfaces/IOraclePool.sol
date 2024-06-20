@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
 interface IOraclePool {
     error OraclePoolUnauthorizedAccount(address sender);
@@ -7,8 +7,9 @@ interface IOraclePool {
     error OraclePoolInsufficientToken(address token, uint256 amountOut, uint256 availableOut);
     error OraclePoolInsufficientAmountOut(uint256 amountOut, uint256 minAmountOut);
     error OraclePoolPullNotAllowed(address token);
-    error OraclePoolNoOracle();
+    error OraclePoolOracleNotSet();
     error OraclePoolFeeTooHigh();
+    error OraclePoolZeroAmountIn();
 
     event Swap(address recipient, uint256 amountIn, uint256 amountOut);
     event Pull(address token, address recipient, uint256 amount);

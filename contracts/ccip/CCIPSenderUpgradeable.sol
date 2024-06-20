@@ -6,19 +6,20 @@ import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 
 import {CCIPBaseUpgradeable} from "./CCIPBaseUpgradeable.sol";
+import {ICCIPSenderUpgradeable} from "../interfaces/ICCIPSenderUpgradeable.sol";
 
-abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable {
+/**
+ * @title CCIPSenderUpgradeable Contract
+ * @dev The base contract for all CCIP sender contracts.
+ * It provides the ability to send messages to the CCIP router using the `ccipSend` function.
+ * Each message can contain exactly one (token, amount) pair.
+ */
+abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgradeable {
     using SafeERC20 for IERC20;
 
-    error CCIPSenderUnsupportedChain(uint64 destChainSelector);
-    error CCIPSenderZeroAmount();
-    error CCIPSenderZeroAddress();
-    error CCIPSenderExceedsMaxFee(uint256 fee, uint256 maxFee);
+    address public immutable override LINK_TOKEN;
 
-    event ReceiverSet(uint64 indexed destChainSelector, bytes receiver);
-
-    address public immutable LINK_TOKEN;
-
+    /* @custom:storage-location erc72101:ccip-csr.storage.CCIPSender */
     struct CCIPSenderStorage {
         mapping(uint64 destChainSelector => bytes receiver) receivers;
     }
@@ -33,26 +34,59 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable {
         }
     }
 
+    /**
+     * @dev Sets the immutable value for {LINK_TOKEN}.
+     */
     constructor(address linkToken) {
         LINK_TOKEN = linkToken;
     }
 
+    /**
+     * @dev Initializes the contract.
+     */
     function __CCIPSender_init() internal onlyInitializing {
         __CCIPSender_init_unchained();
     }
 
+    /**
+     * @dev Initializes the contract by approving the maximum amount of LINK tokens to the CCIP router.
+     */
     function __CCIPSender_init_unchained() internal onlyInitializing {
         IERC20(LINK_TOKEN).forceApprove(CCIP_ROUTER, type(uint256).max);
     }
 
-    function getReceiver(uint64 destChainSelector) public view virtual returns (bytes memory) {
+    /**
+     * @dev Returns the receiver for the destination chain selector.
+     */
+    function getReceiver(uint64 destChainSelector) public view virtual override returns (bytes memory) {
         return _getCCIPSenderStorage().receivers[destChainSelector];
     }
 
-    function setReceiver(uint64 destChainSelector, bytes memory receiver) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+    /**
+     * @dev Sets the receiver for the destination chain selector.
+     * If the destination chain is an EVM chain, the receiver should be encoded using `abi.encode(address)`.
+     *
+     * Requirements:
+     *
+     * - `msg.sender` must have the `DEFAULT_ADMIN_ROLE`.
+     *
+     * Emits a {ReceiverSet} event.
+     */
+    function setReceiver(uint64 destChainSelector, bytes memory receiver)
+        public
+        virtual
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _setReceiver(destChainSelector, receiver);
     }
 
+    /**
+     * @dev Sets the receiver for the destination chain selector.
+     * If the destination chain is an EVM chain, the receiver should be encoded using `abi.encode(address)`.
+     *
+     * Emits a {ReceiverSet} event.
+     */
     function _setReceiver(uint64 destChainSelector, bytes memory receiver) internal virtual {
         CCIPSenderStorage storage $ = _getCCIPSenderStorage();
 
@@ -61,6 +95,21 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable {
         emit ReceiverSet(destChainSelector, receiver);
     }
 
+    /**
+     * @dev Sends a message to the CCIP router.
+     * The message will contain exactly one (token, amount) pair.
+     * This function will calculate the exact fee required for the message and send it to the router.
+     * The fee can be paid in LINK or native token.
+     *
+     * Requirements:
+     *
+     * - `amount` must be greater than 0.
+     * - `destChainSelector` must be a supported chain.
+     * - `maxFee` must be greater than or equal to the fee for the message.
+     * - if `payInLink` is `true`, `msg.sender` must have approved the contract to transfer `maxFee` of LINK. Else,
+     *   `msg.value` must be greater than or equal to the fee for the message.
+     * - `msg.sender` must have approved the contract to transfer `amount` of `token`.
+     */
     function _ccipSend(
         uint64 destChainSelector,
         address token,

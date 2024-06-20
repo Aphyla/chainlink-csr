@@ -6,7 +6,7 @@ import {IOracle} from "./IOracle.sol";
 interface IPriceOracle is IOracle {
     error PriceOracleInvalidPrice();
     error PriceOracleStalePrice();
-    error PriceOracleNoAggregator();
+    error PriceOracleAggregatorNotSet();
 
     event AggregatorUpdated(address indexed aggregator, bool isInverse);
     event HeartbeatUpdated(uint32 heartbeat);

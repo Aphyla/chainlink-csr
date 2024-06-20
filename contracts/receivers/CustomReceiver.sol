@@ -9,19 +9,20 @@ import {TokenHelper} from "../libraries/TokenHelper.sol";
 import {FeeCodec} from "../libraries/FeeCodec.sol";
 import {IWNative} from "../interfaces/IWNative.sol";
 import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
+import {ICustomReceiver} from "../interfaces/ICustomReceiver.sol";
 
-abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable {
+/**
+ * @title CustomReceiver Contract
+ * @dev A contract that receives native tokens, deposits them in the staking contract, and initiates the token cross-chain transfer.
+ * The cross-chain token transfer is initiated using the adapter on the source chain for the destination chain.
+ * This contract can be deployed directly or using as an implementation for a proxy contract (upgradable or not).
+ */
+abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomReceiver {
     using SafeERC20 for IERC20;
-
-    error CustomReceiverOnlyWNative();
-    error CustomReceiverInvalidTokenAmounts();
-    error CustomReceiverInvalidNativeAmount(uint256 wnativeAmount, uint256 amount, uint256 feeAmount);
-    error CustomReceiverNoAdapter(uint64 destChainSelector);
-
-    event AdapterSet(uint64 indexed destChainSelector, address adapter);
 
     address public immutable WNATIVE;
 
+    /* @custom:storage-location erc72101:ccip-csr.storage.CustomReceiver */
     struct CustomReceiverStorage {
         mapping(uint64 destChainSelector => address adapter) adapters;
     }
@@ -36,28 +37,58 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable {
         }
     }
 
+    /**
+     * @dev Set the immutable value for {WNATIVE}.
+     */
     constructor(address wnative) {
         WNATIVE = wnative;
     }
 
+    /**
+     * @dev Initializes the CCIPDefensiveReceiverUpgradeable contract dependency.
+     */
     function __CustomReceiver_init() internal initializer {
         __CCIPDefensiveReceiver_init();
     }
 
     function __CustomReceiver_init_unchained() internal initializer {}
 
+    /**
+     * @dev Allows the contract to receive native tokens.
+     *
+     * Requirements:
+     *
+     * - The caller must be the WNative contract.
+     */
     receive() external payable virtual {
         if (msg.sender != WNATIVE) revert CustomReceiverOnlyWNative();
     }
 
-    function getAdapter(uint64 destChainSelector) public view virtual returns (address) {
+    /**
+     * @dev Returns the adapter for the destination chain selector.
+     */
+    function getAdapter(uint64 destChainSelector) public view virtual override returns (address) {
         return _getCustomReceiverStorage().adapters[destChainSelector];
     }
 
-    function setAdapter(uint64 destChainSelector, address adapter) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    /**
+     * @dev Sets the adapter for the destination chain selector.
+     *
+     * Requirements:
+     *
+     * - `msg.sender` must have the `DEFAULT_ADMIN_ROLE`.
+     *
+     * Emits a {AdapterSet} event.
+     */
+    function setAdapter(uint64 destChainSelector, address adapter) public override onlyRole(DEFAULT_ADMIN_ROLE) {
         _setAdapter(destChainSelector, adapter);
     }
 
+    /**
+     * @dev Sets the adapter for the destination chain selector.
+     *
+     * Emits a {AdapterSet} event.
+     */
     function _setAdapter(uint64 destChainSelector, address adapter) internal virtual {
         CustomReceiverStorage storage $ = _getCustomReceiverStorage();
 
@@ -66,6 +97,16 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable {
         emit AdapterSet(destChainSelector, adapter);
     }
 
+    /**
+     * @dev Processes the CCIP message.
+     * Withdraws the native token, deposits the native token, and initiates the token cross-chain transfer using the adapter.
+     *
+     * Requirements:
+     *
+     * - The message must contain exactly one destination token amount.
+     * - The destination token amount must be the native token.
+     * - The native token amount must be equal to the amount plus the fee amount.
+     */
     function _processMessage(Client.Any2EVMMessage calldata message) internal override {
         if (message.destTokenAmounts.length != 1 || message.destTokenAmounts[0].token != WNATIVE) {
             revert CustomReceiverInvalidTokenAmounts();
@@ -86,6 +127,14 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable {
         _sendToken(message.sourceChainSelector, recipient, toSend, feeData);
     }
 
+    /**
+     * @dev Sends the token to the recipient using the adapter on the source chain.
+     * Delegates the call to the adapter, which will handle the cross-chain token transfer.
+     *
+     * Requirements:
+     *
+     * - The adapter for the source chain selector must be set.
+     */
     function _sendToken(uint64 sourceChainSelector, address recipient, uint256 amount, bytes memory feeData)
         internal
         virtual
@@ -98,5 +147,9 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable {
         );
     }
 
+    /**
+     * @dev Deposits the native token into the staking contract.
+     * Must return the amount received after depositing the native token.
+     */
     function _depositNative(uint256 amount) internal virtual returns (uint256);
 }

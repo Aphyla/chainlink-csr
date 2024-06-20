@@ -3,13 +3,22 @@ pragma solidity ^0.8.20;
 
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-abstract contract CCIPBaseUpgradeable is AccessControlUpgradeable {
-    address public immutable CCIP_ROUTER;
+import {ICCIPBaseUpgradeable} from "../interfaces/ICCIPBaseUpgradeable.sol";
+
+/**
+ * @title CCIPBaseUpgradeable Contract
+ * @dev The base contract for all CCIP contracts.
+ */
+abstract contract CCIPBaseUpgradeable is AccessControlUpgradeable, ICCIPBaseUpgradeable {
+    address public immutable override CCIP_ROUTER;
 
     function __CCIPBase_init() internal onlyInitializing {}
 
     function __CCIPBase_init_unchained() internal onlyInitializing {}
 
+    /**
+     * @dev Sets the immutable values for the {CCIP_ROUTER} address.
+     */
     constructor(address ccipRouter) {
         CCIP_ROUTER = ccipRouter;
     }
