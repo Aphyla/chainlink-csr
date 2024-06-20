@@ -143,7 +143,7 @@ contract PriceOracleTest is Test {
     function test_Revert_GetLatestAnswer() public {
         priceOracle.setAggregator(address(0), false);
 
-        vm.expectRevert(IPriceOracle.PriceOracleNoAggregator.selector);
+        vm.expectRevert(IPriceOracle.PriceOracleAggregatorNotSet.selector);
         priceOracle.getLatestAnswer();
     }
 }

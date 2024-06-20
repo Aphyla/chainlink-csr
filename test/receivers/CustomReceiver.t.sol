@@ -10,6 +10,7 @@ import "../mocks/MockWNative.sol";
 
 import "../../contracts/receivers/CustomReceiver.sol";
 import "../../contracts/ccip/CCIPBaseUpgradeable.sol";
+import "../../contracts/interfaces/ICCIPDefensiveReceiverUpgradeable.sol";
 
 contract CustomReceiverTest is Test {
     MockReceiver receiver;
@@ -18,7 +19,7 @@ contract CustomReceiverTest is Test {
     MockWNative wnative;
     MockAdapter adapter;
 
-    address router = makeAddr("CCIP Router");
+    address ccipRouter = makeAddr("CCIP Router");
     address l2Sender = makeAddr("L2 Sender");
 
     function setUp() public {
@@ -26,7 +27,7 @@ contract CustomReceiverTest is Test {
         link = new MockERC20("Link", "LINK", 18);
         wnative = new MockWNative();
         vault = new MockVault(address(wnative));
-        receiver = new MockReceiver(address(vault), address(wnative), address(router), address(this));
+        receiver = new MockReceiver(address(vault), address(wnative), address(ccipRouter), address(this));
 
         vault.depositNative{value: 1e18}(address(1));
 
@@ -37,11 +38,11 @@ contract CustomReceiverTest is Test {
     }
 
     function test_Constructor() public {
-        receiver = new MockReceiver(address(vault), address(wnative), address(router), address(this)); // to fix coverage
+        receiver = new MockReceiver(address(vault), address(wnative), address(ccipRouter), address(this)); // to fix coverage
 
         assertEq(receiver.VAULT_TOKEN(), address(vault), "test_Constructor::1");
         assertEq(receiver.WNATIVE(), address(wnative), "test_Constructor::2");
-        assertEq(receiver.CCIP_ROUTER(), address(router), "test_Constructor::3");
+        assertEq(receiver.CCIP_ROUTER(), address(ccipRouter), "test_Constructor::3");
         assertEq(receiver.hasRole(receiver.DEFAULT_ADMIN_ROLE(), address(this)), true, "test_Constructor::4");
     }
 
@@ -119,7 +120,7 @@ contract CustomReceiverTest is Test {
 
         uint256 shares = vault.previewDeposit(amountIn);
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(receiver.getFailedMessageHash(messageId), 0, "test_Fuzz_CCIPReceive::1");
@@ -160,13 +161,13 @@ contract CustomReceiverTest is Test {
             destTokenAmounts: tokenAmounts
         });
 
-        vm.expectRevert(CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverOnlyCCIPRouter.selector);
+        vm.expectRevert(ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverOnlyCCIPRouter.selector);
         receiver.ccipReceive(message);
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverUnsupportedChain.selector, sourceChainSelector
+                ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverUnsupportedChain.selector, sourceChainSelector
             )
         );
         receiver.ccipReceive(message);
@@ -175,33 +176,33 @@ contract CustomReceiverTest is Test {
 
         message.destTokenAmounts = new Client.EVMTokenAmount[](0);
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(
             receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::1"
         );
 
-        vm.expectRevert(CustomReceiver.CustomReceiverInvalidTokenAmounts.selector);
+        vm.expectRevert(ICustomReceiver.CustomReceiverInvalidTokenAmounts.selector);
         receiver.retryFailedMessage(message);
 
         message.destTokenAmounts = new Client.EVMTokenAmount[](1);
         message.destTokenAmounts[0] = Client.EVMTokenAmount({token: address(1), amount: 0});
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(
             receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::2"
         );
 
-        vm.expectRevert(CustomReceiver.CustomReceiverInvalidTokenAmounts.selector);
+        vm.expectRevert(ICustomReceiver.CustomReceiverInvalidTokenAmounts.selector);
         receiver.retryFailedMessage(message);
 
         message.destTokenAmounts = tokenAmounts;
         message.data = FeeCodec.encodePackedData(l2Sender, amountIn + 1, abi.encode(feeDtoO));
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(
@@ -210,14 +211,14 @@ contract CustomReceiverTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CustomReceiver.CustomReceiverInvalidNativeAmount.selector, amountIn + feeDtoO, amountIn + 1, feeDtoO
+                ICustomReceiver.CustomReceiverInvalidNativeAmount.selector, amountIn + feeDtoO, amountIn + 1, feeDtoO
             )
         );
         receiver.retryFailedMessage(message);
 
         message.data = FeeCodec.encodePackedData(l2Sender, amountIn, abi.encode(feeDtoO + 1));
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(
@@ -226,14 +227,14 @@ contract CustomReceiverTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CustomReceiver.CustomReceiverInvalidNativeAmount.selector, amountIn + feeDtoO, amountIn, feeDtoO + 1
+                ICustomReceiver.CustomReceiverInvalidNativeAmount.selector, amountIn + feeDtoO, amountIn, feeDtoO + 1
             )
         );
         receiver.retryFailedMessage(message);
 
         message.data = FeeCodec.encodePackedData(l2Sender, amountIn, abi.encode(feeDtoO));
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(
@@ -250,14 +251,14 @@ contract CustomReceiverTest is Test {
         wnative.deposit{value: amountIn + feeDtoO}();
         wnative.transfer(address(receiver), amountIn + feeDtoO);
 
-        vm.prank(router);
+        vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(
             receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::6"
         );
 
-        vm.expectRevert(abi.encodeWithSelector(CustomReceiver.CustomReceiverNoAdapter.selector, sourceChainSelector));
+        vm.expectRevert(abi.encodeWithSelector(ICustomReceiver.CustomReceiverNoAdapter.selector, sourceChainSelector));
         receiver.retryFailedMessage(message);
     }
 }
@@ -317,9 +318,9 @@ contract MockVault is ERC4626 {
 contract MockReceiver is CustomReceiver {
     address public immutable VAULT_TOKEN;
 
-    constructor(address vaultToken, address wnative, address router, address initialAdmin)
+    constructor(address vaultToken, address wnative, address ccipRouter, address initialAdmin)
         CustomReceiver(wnative)
-        CCIPBaseUpgradeable(router)
+        CCIPBaseUpgradeable(ccipRouter)
     {
         VAULT_TOKEN = vaultToken;
 

@@ -79,7 +79,7 @@ contract CustomSenderTest is Test {
 
     function test_Fuzz_FastStakeWNative(uint256 price, uint256 amountIn) public {
         price = bound(price, 0.001e18, 100e18);
-        amountIn = bound(amountIn, 0, 100e18);
+        amountIn = bound(amountIn, 1, 100e18);
 
         dataFeed.set(int256(price), 1, block.timestamp, block.timestamp, 1);
 
@@ -104,7 +104,7 @@ contract CustomSenderTest is Test {
 
     function test_Fuzz_FastStakeNative(uint256 price, uint256 amountIn) public {
         price = bound(price, 0.001e18, 100e18);
-        amountIn = bound(amountIn, 0, 100e18);
+        amountIn = bound(amountIn, 1, 100e18);
 
         dataFeed.set(int256(price), 1, block.timestamp, block.timestamp, 1);
 
@@ -131,18 +131,21 @@ contract CustomSenderTest is Test {
 
         sender.setOraclePool(address(0));
 
-        vm.expectRevert(CustomSender.CustomSenderOraclePoolNotSet.selector);
+        vm.expectRevert(ICustomSender.CustomSenderOraclePoolNotSet.selector);
         sender.fastStake(address(0), amountIn, 0);
 
         sender.setOraclePool(address(oraclePool));
 
         address badToken = address(new MockERC20("BadToken", "BAD", 18));
 
-        vm.expectRevert(CustomSender.CustomSenderInvalidToken.selector);
-        sender.fastStake(badToken, 0, 0);
+        vm.expectRevert(ICustomSender.CustomSenderInvalidToken.selector);
+        sender.fastStake(badToken, 1, 0);
+
+        vm.expectRevert(ICustomSender.CustomSenderZeroAmount.selector);
+        sender.fastStake(address(0), 0, 0);
 
         vm.expectRevert(
-            abi.encodeWithSelector(CustomSender.CustomSenderInsufficientNativeBalance.selector, amountIn, 0)
+            abi.encodeWithSelector(ICustomSender.CustomSenderInsufficientNativeBalance.selector, amountIn, 0)
         );
         sender.fastStake(address(0), amountIn, 0);
 
@@ -169,7 +172,7 @@ contract CustomSenderTest is Test {
         vm.assume(receiver.length > 0);
 
         price = bound(price, 0.001e18, 100e18);
-        amountIn = bound(amountIn, 0, 100e18);
+        amountIn = bound(amountIn, 1, 100e18);
         nativeFee = bound(nativeFee, 0.0001e18, 10e18);
 
         sender.setReceiver(destChainSelector, receiver);
@@ -227,7 +230,7 @@ contract CustomSenderTest is Test {
     ) public {
         vm.assume(receiver.length > 0);
 
-        amountIn = bound(amountIn, 0, 100e18);
+        amountIn = bound(amountIn, 1, 100e18);
         nativeFee = bound(nativeFee, 0.0001e18, 10e18);
 
         sender.setReceiver(destChainSelector, receiver);
@@ -277,11 +280,14 @@ contract CustomSenderTest is Test {
 
         address badToken = address(new MockERC20("BadToken", "BAD", 18));
 
-        vm.expectRevert(CustomSender.CustomSenderInvalidToken.selector);
-        sender.slowStake(0, badToken, 0, new bytes(0), new bytes(0));
+        vm.expectRevert(ICustomSender.CustomSenderInvalidToken.selector);
+        sender.slowStake(0, badToken, 1, new bytes(0), new bytes(0));
+
+        vm.expectRevert(ICustomSender.CustomSenderZeroAmount.selector);
+        sender.slowStake(0, address(0), 0, new bytes(0), new bytes(0));
 
         vm.expectRevert(
-            abi.encodeWithSelector(CustomSender.CustomSenderInsufficientNativeBalance.selector, amountIn, 0)
+            abi.encodeWithSelector(ICustomSender.CustomSenderInsufficientNativeBalance.selector, amountIn, 0)
         );
         sender.slowStake(0, address(0), amountIn, new bytes(0), new bytes(0));
 
@@ -379,7 +385,7 @@ contract CustomSenderTest is Test {
 
         sender.setOraclePool(address(0));
 
-        vm.expectRevert(CustomSender.CustomSenderOraclePoolNotSet.selector);
+        vm.expectRevert(ICustomSender.CustomSenderOraclePoolNotSet.selector);
         sender.sync(0, 0, new bytes(0), new bytes(0));
 
         sender.setOraclePool(address(oraclePool));
@@ -402,7 +408,7 @@ contract CustomSenderTest is Test {
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 32));
         sender.sync(0, amountToSync, new bytes(96), new bytes(0));
 
-        vm.expectRevert(abi.encodeWithSelector(CustomSender.CustomSenderInsufficientNativeBalance.selector, 1, 0));
+        vm.expectRevert(abi.encodeWithSelector(ICustomSender.CustomSenderInsufficientNativeBalance.selector, 1, 0));
         sender.sync(0, amountToSync, new bytes(96), abi.encode(uint256(1)));
     }
 

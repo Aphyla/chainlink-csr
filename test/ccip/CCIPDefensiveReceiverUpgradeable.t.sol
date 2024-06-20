@@ -134,14 +134,14 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
             destTokenAmounts: new Client.EVMTokenAmount[](1)
         });
 
-        vm.expectRevert(CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverOnlyCCIPRouter.selector);
+        vm.expectRevert(ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverOnlyCCIPRouter.selector);
         vm.prank(msgSender);
         receiver.ccipReceive(message);
 
         vm.prank(ccipRouter);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverUnsupportedChain.selector, destChainSelector
+                ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverUnsupportedChain.selector, destChainSelector
             )
         );
         receiver.ccipReceive(message);
@@ -151,7 +151,7 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
         vm.prank(ccipRouter);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverUnauthorizedSender.selector, sender1, sender2
+                ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverUnauthorizedSender.selector, sender1, sender2
             )
         );
         receiver.ccipReceive(message);
@@ -223,7 +223,7 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverMessageNotFound.selector, message.messageId
+                ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverMessageNotFound.selector, message.messageId
             )
         );
         receiver.retryFailedMessage(message);
@@ -242,7 +242,7 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverMismatchedMessage.selector,
+                ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverMismatchedMessage.selector,
                 message.messageId,
                 keccak256(abi.encode(message)),
                 expectedHash
@@ -261,7 +261,7 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverMessageNotFound.selector, message.messageId
+                ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverMessageNotFound.selector, message.messageId
             )
         );
         receiver.retryFailedMessage(message);
@@ -349,7 +349,7 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
 
         Client.Any2EVMMessage memory message;
 
-        vm.expectRevert(CCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverOnlySelf.selector);
+        vm.expectRevert(ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverOnlySelf.selector);
         vm.prank(sender);
         receiver.processMessage(message);
     }

@@ -133,7 +133,7 @@ contract CCIPSenderUpgradeableTest is Test {
     }
 
     function test_Revert_CCIPSend() public {
-        vm.expectRevert(CCIPSenderUpgradeable.CCIPSenderZeroAmount.selector);
+        vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderZeroAmount.selector);
         sender.ccipSend(0, address(0), 0, false, 0, 0, new bytes(0));
     }
 
@@ -143,7 +143,7 @@ contract CCIPSenderUpgradeableTest is Test {
         vm.assume(receiver.length > 0);
 
         vm.expectRevert(
-            abi.encodeWithSelector(CCIPSenderUpgradeable.CCIPSenderUnsupportedChain.selector, destChainSelector)
+            abi.encodeWithSelector(ICCIPSenderUpgradeable.CCIPSenderUnsupportedChain.selector, destChainSelector)
         );
         sender.ccipSend(destChainSelector, address(0), 1, false, 0, 0, new bytes(0));
 
@@ -152,7 +152,9 @@ contract CCIPSenderUpgradeableTest is Test {
         uint256 fee = payInLink ? LINK_FEE : NATIVE_FEE;
         uint256 invalidFee = bound(maxFee, 0, fee - 1);
 
-        vm.expectRevert(abi.encodeWithSelector(CCIPSenderUpgradeable.CCIPSenderExceedsMaxFee.selector, fee, invalidFee));
+        vm.expectRevert(
+            abi.encodeWithSelector(ICCIPSenderUpgradeable.CCIPSenderExceedsMaxFee.selector, fee, invalidFee)
+        );
         sender.ccipSend(destChainSelector, address(0), 1, payInLink, invalidFee, 0, new bytes(0));
     }
 }
