@@ -1,66 +1,48 @@
-## Foundry
+# ChainLink Custom Sender-Receiver
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+The ChainLink Custom Sender-Receiver is a set of smart contracts that allow users to stake a token on a L2 and receive the L1 native token directly on the L2 chain. For example, a user can stake (W)ETH on Arbitrum or Optimism and receive wstETH directly on the same chain.
 
-Foundry consists of:
+## Fast Stake
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+The `fastStake` function from the [CustomSender](contracts/senders/CustomSender.sol) contract can be used to use a [OraclePool](contracts/utils/OraclePool.sol) to swap (W)ETH for a Liquid Staked Token (LST) on the same chain using an exchange rate oracle.
+The (W)ETH that accumulates in the pool can be sent to the L1 chain to mint the LST using the `sync` function from the [CustomSender](contracts/senders/CustomSender.sol) contract. The (W)ETH will be sent to the [CustomReceiver](contracts/receivers/CustomReceiver.sol) contract on the L1 chain that will mint the LST and send it back to the pool on the L2 chain.
 
-## Documentation
+![alt text](images/fast_stake.png)
 
-https://book.getfoundry.sh/
+## Slow Stake
+
+The `slowStake` function from the [CustomSender](contracts/senders/CustomSender.sol) contract can be used to send (W)ETH to the [CustomReceiver](contracts/receivers/CustomReceiver.sol) contract on the L1 chain. The (W)ETH sent will be used to mint the LST and send it back to the user on the L2 chain.
+
+![alt text](images/slow_stake.png)
 
 ## Usage
+
+This repository uses yarn for package management and foundry for smart contract development.
+
+## Foundry Documentation
+
+https://book.getfoundry.sh/
 
 ### Build
 
 ```shell
-$ forge build
+$ yarn build
 ```
 
 ### Test
 
 ```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
+$ yarn test
 ```
 
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script --broadcast --verify --multi <path-to-script>
 ```
 
-### Cast
+If the deployment fails, you can resume the deployment from the last failed transaction by running the following command:
 
 ```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+$ forge script --broadcast --verify --multi --resume <path-to-script>
 ```
