@@ -15,7 +15,7 @@ import {ICustomReceiver} from "../interfaces/ICustomReceiver.sol";
  * @title CustomReceiver Contract
  * @dev A contract that receives native tokens, deposits them in the staking contract, and initiates the token cross-chain transfer.
  * The cross-chain token transfer is initiated using the adapter on the source chain for the destination chain.
- * This contract can be deployed directly or using as an implementation for a proxy contract (upgradable or not).
+ * This contract can be deployed directly or used as an implementation for a proxy contract (upgradable or not).
  */
 abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomReceiver {
     using SafeERC20 for IERC20;

@@ -10,7 +10,7 @@ import {CCIPBaseUpgradeable} from "../ccip/CCIPBaseUpgradeable.sol";
 /**
  * @title LidoCustomReceiver Contract
  * @dev A contract that receives native tokens, deposits them into the Lido stETH contract and initiates the token cross-chain transfer.
- * This contract can be deployed directly or using as an implementation for a proxy contract (upgradable or not).
+ * This contract can be deployed directly or used as an implementation for a proxy contract (upgradable or not).
  */
 contract LidoCustomReceiver is CustomReceiver {
     using SafeERC20 for IERC20;

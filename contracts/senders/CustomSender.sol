@@ -18,7 +18,7 @@ import {ICustomSender} from "../interfaces/ICustomSender.sol";
  * The fast staking function allows users to swap (W)Native for the native staked token using an oracle pool.
  * Then an operator can synchronize this chain by sending the native tokens to the receiver contract on the main chain,
  * mint the native staked token and send it back to the oracle pool on this chain.
- * This contract can be deployed directly or using as an implementation for a proxy contract (upgradable or not).
+ * This contract can be deployed directly or used as an implementation for a proxy contract (upgradable or not).
  */
 contract CustomSender is CCIPSenderUpgradeable, ICustomSender {
     using SafeERC20 for IERC20;
