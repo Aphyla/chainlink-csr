@@ -23,6 +23,16 @@ This repository uses yarn for package management and foundry for smart contract 
 
 https://book.getfoundry.sh/
 
+### Environment Setup
+
+First, copy the `.env.example` file to `.env`.
+
+```shell
+$ cp .env.example .env
+```
+
+Then, update the `.env` file with the appropriate values.
+
 ### Build
 
 ```shell

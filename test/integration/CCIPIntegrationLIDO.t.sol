@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 
-import "../../scripts/addresses/LidoAddresses.sol";
+import "../../script/lido/LidoParameters.sol";
 import "../../contracts/senders/CustomSender.sol";
 import "../../contracts/receivers/LidoCustomReceiver.sol";
 import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
@@ -13,7 +13,7 @@ import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
-contract CCIPIntegrationLIDOTest is Test, LidoAddresses {
+contract CCIPIntegrationLIDOTest is Test, LidoParameters {
     uint256 ethForkId;
     LidoCustomReceiver receiver;
     ArbitrumLegacyAdapterL1toL2 arbAdapter;
