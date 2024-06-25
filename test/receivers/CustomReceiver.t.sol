@@ -132,7 +132,9 @@ contract CustomReceiverTest is Test {
 
         assertEq(
             bridge.data(),
-            abi.encodeWithSelector(IBridgeAdapter.sendToken.selector, l2Sender, shares, abi.encode(feeDtoO)),
+            abi.encodeWithSelector(
+                IBridgeAdapter.sendToken.selector, sourceChainSelector, l2Sender, shares, abi.encode(feeDtoO)
+            ),
             "test_Fuzz_CCIPReceive::5"
         );
         assertEq(bridge.value(), feeDtoO, "test_Fuzz_CCIPReceive::6");
@@ -267,7 +269,7 @@ contract MockBridge {
     bytes public data;
     uint256 public value;
 
-    function sendToken(address, uint256, bytes memory) public payable {
+    function sendToken(uint64, address, uint256, bytes memory) public payable {
         data = msg.data;
         value = msg.value;
     }

@@ -38,7 +38,7 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::4");
     }
 
-    function test_Fuzz_SendToken(uint256 amount, uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid)
+    function test_Fuzz_sendToken(uint256 amount, uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid)
         public
     {
         maxGas = bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint256).max - maxSubmissionCost) / gasPriceBid);
@@ -47,7 +47,7 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         uint256 msgValue = maxSubmissionCost + gasPriceBid * maxGas;
 
         vm.deal(address(receiver), msgValue);
-        receiver.sendToken(recipient, amount, feeData);
+        receiver.sendToken(uint64(0), recipient, amount, feeData);
 
         assertEq(gatewayRouter.msgValue(), msgValue, "test_Fuzz_SendToken::1");
         assertEq(
@@ -68,7 +68,7 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         );
     }
 
-    function test_Fuzz_Revert_SendToken(
+    function test_Fuzz_Revert_sendToken(
         address msgSender,
         uint256 amount,
         uint256 maxSubmissionCost,
@@ -87,15 +87,15 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
                 ArbitrumLegacyAdapterL1toL2.ArbitrumLegacyAdapterL1toL2InvalidFeeAmount.selector, msgValue - 1, msgValue
             )
         );
-        receiver.sendToken(recipient, amount, feeData);
+        receiver.sendToken(uint64(0), recipient, amount, feeData);
 
         vm.expectRevert(BridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(msgSender);
-        adapter.sendToken(recipient, amount, feeData);
+        adapter.sendToken(uint64(0), recipient, amount, feeData);
 
         vm.expectRevert(BridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(address(receiver));
-        adapter.sendToken(recipient, amount, feeData);
+        adapter.sendToken(uint64(0), recipient, amount, feeData);
     }
 }
 
@@ -106,9 +106,9 @@ contract MockReceiver {
         adapter = adapter_;
     }
 
-    function sendToken(address to, uint256 amount, bytes memory feeData) external {
+    function sendToken(uint64 destChainSelector, address to, uint256 amount, bytes memory feeData) external {
         Address.functionDelegateCall(
-            adapter, abi.encodeWithSelector(BridgeAdapter.sendToken.selector, to, amount, feeData)
+            adapter, abi.encodeWithSelector(BridgeAdapter.sendToken.selector, destChainSelector, to, amount, feeData)
         );
     }
 

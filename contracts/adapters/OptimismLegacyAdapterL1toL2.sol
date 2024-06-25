@@ -41,7 +41,7 @@ contract OptimismLegacyAdapterL1toL2 is BridgeAdapter {
      *
      * - The fee amount must be equal to the expected fee amount (always 0).
      */
-    function _sendToken(address to, uint256 amount, bytes memory feeData) internal override {
+    function _sendToken(uint64, address to, uint256 amount, bytes memory feeData) internal override {
         (uint256 feeAmount, uint32 l2Gas) = FeeCodec.decodeOptimismL1toL2(feeData);
 
         if (feeAmount != 0) revert OptimismLegacyAdapterL1toL2InvalidFeeAmount(feeAmount, 0);

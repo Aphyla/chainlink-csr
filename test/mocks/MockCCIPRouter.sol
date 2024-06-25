@@ -12,6 +12,8 @@ contract MockCCIPRouter {
     uint256 private _linkFee;
     uint256 private _nativeFee;
 
+    event CCIPMessageSent(uint64 destChainSelector, Client.EVM2AnyMessage message);
+
     constructor(address linkToken, uint256 linkFee, uint256 nativeFee) {
         LINK_TOKEN = IERC20(linkToken);
         _linkFee = linkFee;
@@ -19,7 +21,7 @@ contract MockCCIPRouter {
     }
 
     function getFee(uint64, Client.EVM2AnyMessage calldata message) public view returns (uint256) {
-        return message.feeToken == address(LINK_TOKEN) ? _linkFee : _nativeFee;
+        return message.feeToken == address(0) ? _nativeFee : _linkFee;
     }
 
     function ccipSend(uint64 destChainSelector, Client.EVM2AnyMessage calldata message)
@@ -29,11 +31,11 @@ contract MockCCIPRouter {
     {
         uint256 fee = getFee(destChainSelector, message);
 
-        if (message.feeToken == address(LINK_TOKEN)) {
+        if (message.feeToken == address(0)) {
+            require(msg.value == fee, "CCIPRouter: insufficient fee");
+        } else {
             require(msg.value == 0, "CCIPRouter: native fee not allowed");
             LINK_TOKEN.transferFrom(msg.sender, address(this), fee);
-        } else {
-            require(msg.value == fee, "CCIPRouter: insufficient fee");
         }
 
         uint256 length = message.tokenAmounts.length;
@@ -44,6 +46,8 @@ contract MockCCIPRouter {
 
         value = msg.value;
         data = abi.encode(destChainSelector, message);
+
+        emit CCIPMessageSent(destChainSelector, message);
 
         return keccak256("test");
     }

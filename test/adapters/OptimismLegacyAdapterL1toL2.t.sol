@@ -41,7 +41,7 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
     function test_Fuzz_SendToken(uint256 amount, uint32 l2Gas) public {
         bytes memory feeData = FeeCodec.encodeOptimismL1toL2(l2Gas);
 
-        receiver.sendToken(recipient, amount, feeData);
+        receiver.sendToken(uint64(0), recipient, amount, feeData);
 
         assertEq(
             l1ERC20Bridge.msgData(),
@@ -69,15 +69,15 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
                 OptimismLegacyAdapterL1toL2.OptimismLegacyAdapterL1toL2InvalidFeeAmount.selector, amount, 0
             )
         );
-        receiver.sendToken(recipient, amount, feeData);
+        receiver.sendToken(uint64(0), recipient, amount, feeData);
 
         vm.expectRevert(BridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(msgSender);
-        adapter.sendToken(recipient, amount, feeData);
+        adapter.sendToken(uint64(0), recipient, amount, feeData);
 
         vm.expectRevert(BridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(address(receiver));
-        adapter.sendToken(recipient, amount, feeData);
+        adapter.sendToken(uint64(0), recipient, amount, feeData);
     }
 }
 
@@ -88,9 +88,9 @@ contract MockReceiver {
         adapter = adapter_;
     }
 
-    function sendToken(address to, uint256 amount, bytes memory feeData) external {
+    function sendToken(uint64 destChainSelector, address to, uint256 amount, bytes memory feeData) external {
         Address.functionDelegateCall(
-            adapter, abi.encodeWithSelector(BridgeAdapter.sendToken.selector, to, amount, feeData)
+            adapter, abi.encodeWithSelector(BridgeAdapter.sendToken.selector, destChainSelector, to, amount, feeData)
         );
     }
 

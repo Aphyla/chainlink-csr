@@ -143,7 +143,8 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
         if (adapter == address(0)) revert CustomReceiverNoAdapter(sourceChainSelector);
 
         Address.functionDelegateCall(
-            adapter, abi.encodeWithSelector(IBridgeAdapter.sendToken.selector, recipient, amount, feeData)
+            adapter,
+            abi.encodeWithSelector(IBridgeAdapter.sendToken.selector, sourceChainSelector, recipient, amount, feeData)
         );
     }
 
