@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {CCIPTrustedSenderUpgradeable} from "../ccip/CCIPTrustedSenderUpgradeable.sol";
 import {CCIPSenderUpgradeable, CCIPBaseUpgradeable} from "../ccip/CCIPSenderUpgradeable.sol";
 import {TokenHelper} from "../libraries/TokenHelper.sol";
 import {FeeCodec} from "../libraries/FeeCodec.sol";
@@ -20,7 +21,7 @@ import {ICustomSender} from "../interfaces/ICustomSender.sol";
  * mint the native staked token and send it back to the oracle pool on this chain.
  * This contract can be deployed directly or used as an implementation for a proxy contract (upgradable or not).
  */
-contract CustomSender is CCIPSenderUpgradeable, ICustomSender {
+contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
     using SafeERC20 for IERC20;
 
     bytes32 public constant override SYNC_ROLE = keccak256("SYNC_ROLE");
@@ -60,8 +61,6 @@ contract CustomSender is CCIPSenderUpgradeable, ICustomSender {
      * If this contract isn't used as the implementation for a proxy contract, this function will be called by the constructor.
      */
     function initialize(address oraclePool, address initialAdmin) public initializer {
-        __CCIPSender_init();
-
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _setOraclePool(oraclePool);
 

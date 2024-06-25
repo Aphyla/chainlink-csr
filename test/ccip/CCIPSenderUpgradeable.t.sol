@@ -5,12 +5,13 @@ import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import "../../contracts/ccip/CCIPTrustedSenderUpgradeable.sol";
 import "../../contracts/ccip/CCIPSenderUpgradeable.sol";
 import "../Mocks/MockERC20.sol";
 import "../Mocks/MockCCIPRouter.sol";
 
-contract CCIPSenderUpgradeableTest is Test {
-    MockCCIPSender public sender;
+contract CCIPTrustedSenderUpgradeableTest is Test {
+    MockCCIPTrustedSender public sender;
     MockCCIPRouter ccipRouter;
     MockERC20 public linkToken;
 
@@ -21,7 +22,7 @@ contract CCIPSenderUpgradeableTest is Test {
         linkToken = new MockERC20("LINK", "LINK", 18);
         ccipRouter = new MockCCIPRouter(address(linkToken), LINK_FEE, NATIVE_FEE);
 
-        sender = new MockCCIPSender(address(linkToken), address(ccipRouter));
+        sender = new MockCCIPTrustedSender(address(linkToken), address(ccipRouter));
 
         vm.label(address(ccipRouter), "ccipRouter");
         vm.label(address(linkToken), "linkToken");
@@ -29,11 +30,10 @@ contract CCIPSenderUpgradeableTest is Test {
     }
 
     function test_Constructor() public {
-        sender = new MockCCIPSender(address(linkToken), address(ccipRouter)); // to fix coverage
+        sender = new MockCCIPTrustedSender(address(linkToken), address(ccipRouter)); // to fix coverage
 
         assertEq(sender.CCIP_ROUTER(), address(ccipRouter), "test_Constructor::1");
         assertEq(sender.LINK_TOKEN(), address(linkToken), "test_Constructor::2");
-        assertEq(linkToken.allowance(address(sender), address(ccipRouter)), type(uint256).max, "test_Constructor::3");
     }
 
     function test_SetReceiver(
@@ -133,7 +133,7 @@ contract CCIPSenderUpgradeableTest is Test {
     }
 
     function test_Revert_CCIPSend() public {
-        vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderZeroAmount.selector);
+        vm.expectRevert(ICCIPTrustedSenderUpgradeable.CCIPTrustedSenderZeroAmount.selector);
         sender.ccipSend(0, address(0), 0, false, 0, 0, new bytes(0));
     }
 
@@ -143,7 +143,9 @@ contract CCIPSenderUpgradeableTest is Test {
         vm.assume(receiver.length > 0);
 
         vm.expectRevert(
-            abi.encodeWithSelector(ICCIPSenderUpgradeable.CCIPSenderUnsupportedChain.selector, destChainSelector)
+            abi.encodeWithSelector(
+                ICCIPTrustedSenderUpgradeable.CCIPTrustedSenderUnsupportedChain.selector, destChainSelector
+            )
         );
         sender.ccipSend(destChainSelector, address(0), 1, false, 0, 0, new bytes(0));
 
@@ -159,7 +161,7 @@ contract CCIPSenderUpgradeableTest is Test {
     }
 }
 
-contract MockCCIPSender is CCIPSenderUpgradeable {
+contract MockCCIPTrustedSender is CCIPTrustedSenderUpgradeable {
     constructor(address linkToken, address ccipRouter)
         CCIPSenderUpgradeable(linkToken)
         CCIPBaseUpgradeable(ccipRouter)
@@ -168,8 +170,6 @@ contract MockCCIPSender is CCIPSenderUpgradeable {
     }
 
     function initialize() public initializer {
-        __CCIPSender_init();
-
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 

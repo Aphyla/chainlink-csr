@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ICCIPSenderUpgradeable} from "./ICCIPSenderUpgradeable.sol";
+import {ICCIPTrustedSenderUpgradeable} from "./ICCIPTrustedSenderUpgradeable.sol";
 
-interface ICustomSender is ICCIPSenderUpgradeable {
+interface ICustomSender is ICCIPTrustedSenderUpgradeable {
     error CustomSenderInsufficientNativeBalance(uint256 amount, uint256 balance);
     error CustomSenderInvalidToken();
     error CustomSenderOraclePoolNotSet();
