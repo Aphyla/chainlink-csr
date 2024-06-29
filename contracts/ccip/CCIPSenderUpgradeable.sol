@@ -26,9 +26,9 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
         LINK_TOKEN = linkToken;
     }
 
-    function __CCIPSender_init() internal initializer {}
+    function __CCIPSender_init() internal onlyInitializing {}
 
-    function __CCIPSender_init_unchained() internal initializer {}
+    function __CCIPSender_init_unchained() internal onlyInitializing {}
 
     /**
      * @dev Sends a message to the CCIP router.
@@ -71,7 +71,7 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
             nativeFee = 0;
 
             IERC20(LINK_TOKEN).safeTransferFrom(msg.sender, address(this), fee);
-            IERC20(LINK_TOKEN).forceApprove(CCIP_ROUTER, fee);
+            IERC20(LINK_TOKEN).safeIncreaseAllowance(CCIP_ROUTER, fee);
         } else {
             nativeFee = fee;
         }

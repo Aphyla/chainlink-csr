@@ -47,11 +47,11 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
     /**
      * @dev Initializes the CCIPDefensiveReceiverUpgradeable contract dependency.
      */
-    function __CustomReceiver_init() internal initializer {
+    function __CustomReceiver_init() internal onlyInitializing {
         __CCIPDefensiveReceiver_init();
     }
 
-    function __CustomReceiver_init_unchained() internal initializer {}
+    function __CustomReceiver_init_unchained() internal onlyInitializing {}
 
     /**
      * @dev Allows the contract to receive native tokens.

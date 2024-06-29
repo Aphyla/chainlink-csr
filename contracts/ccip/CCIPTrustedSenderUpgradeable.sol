@@ -29,9 +29,9 @@ abstract contract CCIPTrustedSenderUpgradeable is CCIPSenderUpgradeable, ICCIPTr
         }
     }
 
-    function __CCIPTrustedSender_init() internal initializer {}
+    function __CCIPTrustedSender_init() internal onlyInitializing {}
 
-    function __CCIPTrustedSender_init_unchained() internal initializer {}
+    function __CCIPTrustedSender_init_unchained() internal onlyInitializing {}
 
     /**
      * @dev Returns the receiver for the destination chain selector.
