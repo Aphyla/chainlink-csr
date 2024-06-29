@@ -3,10 +3,9 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "@openzeppelin/contracts/utils/Address.sol";
-
 import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
 import "../mocks/MockERC20.sol";
+import "../mocks/MockReceiver.sol";
 
 contract OptimismLegacyAdapterL1toL2Test is Test {
     MockReceiver public receiver;
@@ -79,23 +78,6 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
         vm.prank(address(receiver));
         adapter.sendToken(uint64(0), recipient, amount, feeData);
     }
-}
-
-contract MockReceiver {
-    address public adapter;
-
-    function setAdapter(address adapter_) public {
-        adapter = adapter_;
-    }
-
-    function sendToken(uint64 destChainSelector, address to, uint256 amount, bytes memory feeData) external {
-        Address.functionDelegateCall(
-            adapter, abi.encodeWithSelector(BridgeAdapter.sendToken.selector, destChainSelector, to, amount, feeData)
-        );
-    }
-
-    // Force foundry to ignore this contract from coverage
-    function test() public pure {}
 }
 
 contract MockERC20Bridge is ERC20 {

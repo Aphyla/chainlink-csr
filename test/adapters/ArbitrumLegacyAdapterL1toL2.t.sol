@@ -3,10 +3,9 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "@openzeppelin/contracts/utils/Address.sol";
-
 import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
 import "../mocks/MockERC20.sol";
+import "../mocks/MockReceiver.sol";
 
 contract ArbitrumLegacyAdapterL1toL2Test is Test {
     MockReceiver public receiver;
@@ -49,7 +48,7 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         vm.deal(address(receiver), msgValue);
         receiver.sendToken(uint64(0), recipient, amount, feeData);
 
-        assertEq(gatewayRouter.msgValue(), msgValue, "test_Fuzz_SendToken::1");
+        assertEq(gatewayRouter.msgValue(), msgValue, "test_Fuzz_sendToken::1");
         assertEq(
             gatewayRouter.msgData(),
             abi.encodeWithSelector(
@@ -61,10 +60,10 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
                 gasPriceBid,
                 abi.encode(maxSubmissionCost, new bytes(0))
             ),
-            "test_Fuzz_SendToken::2"
+            "test_Fuzz_sendToken::2"
         );
         assertEq(
-            IERC20(l1Token).allowance(address(receiver), address(l1TokenGateway)), amount, "test_Fuzz_SendToken::3"
+            IERC20(l1Token).allowance(address(receiver), address(l1TokenGateway)), amount, "test_Fuzz_sendToken::3"
         );
     }
 
@@ -97,23 +96,6 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         vm.prank(address(receiver));
         adapter.sendToken(uint64(0), recipient, amount, feeData);
     }
-}
-
-contract MockReceiver {
-    address public adapter;
-
-    function setAdapter(address adapter_) public {
-        adapter = adapter_;
-    }
-
-    function sendToken(uint64 destChainSelector, address to, uint256 amount, bytes memory feeData) external {
-        Address.functionDelegateCall(
-            adapter, abi.encodeWithSelector(BridgeAdapter.sendToken.selector, destChainSelector, to, amount, feeData)
-        );
-    }
-
-    // Force foundry to ignore this contract from coverage
-    function test() public pure {}
 }
 
 contract MockGatewayRouter {
