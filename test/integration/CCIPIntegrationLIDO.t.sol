@@ -32,9 +32,9 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
     address alice = makeAddr("alice");
 
     function setUp() public {
-        ethForkId = vm.createFork(ETHEREUM_RPC_URL, ETHEREUM_FORK_BLOCK);
-        arbForkId = vm.createFork(ARBITRUM_RPC_URL, ARBITRUM_FORK_BLOCK);
-        opForkId = vm.createFork(OPTIMISM_RPC_URL, OPTIMISM_FORK_BLOCK);
+        ethForkId = vm.createFork(vm.rpcUrl("ethereum"), ETHEREUM_FORK_BLOCK);
+        arbForkId = vm.createFork(vm.rpcUrl("arbitrum"), ARBITRUM_FORK_BLOCK);
+        opForkId = vm.createFork(vm.rpcUrl("optimism"), OPTIMISM_FORK_BLOCK);
 
         // Deployments
         {

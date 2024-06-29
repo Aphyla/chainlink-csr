@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 contract LidoParameters {
-    string internal constant ETHEREUM_RPC_URL = "https://rpc.ankr.com/eth";
     uint64 internal constant ETHEREUM_FORK_BLOCK = 20034413;
     uint64 internal constant ETHEREUM_CCIP_CHAIN_SELECTOR = 5009297550715157269;
     address internal constant ETHEREUM_CCIP_ROUTER = 0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D;
@@ -12,7 +11,6 @@ contract LidoParameters {
     address internal constant ETHEREUM_TO_ARBITRUM_ROUTER = 0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef;
     address internal constant ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE = 0x76943C0D61395d8F2edF9060e1533529cAe05dE6;
 
-    string internal constant ARBITRUM_RPC_URL = "https://rpc.ankr.com/arbitrum";
     uint64 internal constant ARBITRUM_FORK_BLOCK = 219083410;
     uint64 internal constant ARBITRUM_CCIP_CHAIN_SELECTOR = 4949039107694359620;
     address internal constant ARBITRUM_CCIP_ROUTER = 0x141fa059441E0ca23ce184B6A78bafD2A517DdE8;
@@ -24,7 +22,6 @@ contract LidoParameters {
     uint32 internal constant ARBITRUM_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours;
     uint96 internal constant ARBITRUM_ORACLE_POOL_FEE = 0.01e18;
 
-    string internal constant OPTIMISM_RPC_URL = "https://rpc.ankr.com/optimism";
     uint64 internal constant OPTIMISM_FORK_BLOCK = 121425199;
     uint64 internal constant OPTIMISM_CCIP_CHAIN_SELECTOR = 3734403246176062136;
     address internal constant OPTIMISM_CCIP_ROUTER = 0x3206695CaE29952f4b0c22a169725a865bc8Ce0f;
