@@ -15,6 +15,23 @@ The `slowStake` function from the [CustomSender](contracts/senders/CustomSender.
 
 ![alt text](images/slow_stake.png)
 
+## How to adapt the contracts to your own LST/LRT
+
+To adapt the contracts for new use case, the following steps need to be taken:
+
+#### Custom Receiver
+
+Implement the `_depositNative` from [CustomReceiver](contracts/receivers/CustomReceiver.sol#L155) and add the logic to mint the LST/LRT from native tokens. For example, wrap the ETH to weth, and then mint the LST/LRT. Don't forget to return the amount of LST/LRT tokens minted.
+
+Note that if the contract implementing the `_depositNative` function requires some values to be set in storage, it is very important to follow the EIP-7201 to prevent storage collisions. It is therefore very important to make sure that the hash used for the storage location is unique. It is highly recommended to use the following hash function to generate the storage location: `keccak256(abi.encode(uint256(keccak256("ccip-csr.storage.<NAME_OF_THE_CONTRACT>")) - 1)) & ~bytes32(uint256(0xff))`.
+Do not forget to replace `<NAME_OF_THE_CONTRACT>` with the name of the contract, and that the name used is unique.
+
+#### Bridge Adapter
+
+If the bridge is not supported (currently, only OPTIMISM, ARBITRUM and CCIP bridges are supported), inherit the [BridgeAdapter](contracts/adapaters/BridgeAdapter.sol) contract and implement the `_sendToken` function.
+
+Note that bridge adapters should not store any data in storage, as this would lead to storage collisions.
+
 ## Usage
 
 This repository uses yarn for package management and foundry for smart contract development.
