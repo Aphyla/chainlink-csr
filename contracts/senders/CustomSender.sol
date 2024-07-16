@@ -20,6 +20,8 @@ import {ICustomSender} from "../interfaces/ICustomSender.sol";
  * Then an operator can synchronize this chain by sending the native tokens to the receiver contract on the main chain,
  * mint the native staked token and send it back to the oracle pool on this chain.
  * This contract can be deployed directly or used as an implementation for a proxy contract (upgradable or not).
+ *
+ * The contract uses the EIP-7201 to prevent storage collisions.
  */
 contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
     using SafeERC20 for IERC20;
@@ -28,7 +30,7 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
 
     address public immutable override WNATIVE;
 
-    /* @custom:storage-location erc72101:ccip-csr.storage.CustomSender */
+    /* @custom:storage-location erc7201:ccip-csr.storage.CustomSender */
     struct CustomSenderStorage {
         address oraclePool;
     }

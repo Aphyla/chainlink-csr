@@ -12,9 +12,11 @@ import {ICCIPTrustedSenderUpgradeable} from "../interfaces/ICCIPTrustedSenderUpg
  * It provides the ability to send messages to the CCIP router using the `ccipSend` function.
  * Each message can contain zero, one, or multiple (token, amount) pairs.
  * Each chain can have zero or one receiver.
+ *
+ * The contract uses the EIP-7201 to prevent storage collisions.
  */
 abstract contract CCIPTrustedSenderUpgradeable is CCIPSenderUpgradeable, ICCIPTrustedSenderUpgradeable {
-    /* @custom:storage-location erc72101:ccip-csr.storage.CCIPTrustedSender */
+    /* @custom:storage-location erc7201:ccip-csr.storage.CCIPTrustedSender */
     struct CCIPTrustedSenderStorage {
         mapping(uint64 destChainSelector => bytes receiver) receivers;
     }

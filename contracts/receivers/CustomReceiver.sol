@@ -16,13 +16,15 @@ import {ICustomReceiver} from "../interfaces/ICustomReceiver.sol";
  * @dev A contract that receives native tokens, deposits them in the staking contract, and initiates the token cross-chain transfer.
  * The cross-chain token transfer is initiated using the adapter on the source chain for the destination chain.
  * This contract can be deployed directly or used as an implementation for a proxy contract (upgradable or not).
+ *
+ * The contract uses the EIP-7201 to prevent storage collisions.
  */
 abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomReceiver {
     using SafeERC20 for IERC20;
 
     address public immutable WNATIVE;
 
-    /* @custom:storage-location erc72101:ccip-csr.storage.CustomReceiver */
+    /* @custom:storage-location erc7201:ccip-csr.storage.CustomReceiver */
     struct CustomReceiverStorage {
         mapping(uint64 destChainSelector => address adapter) adapters;
     }

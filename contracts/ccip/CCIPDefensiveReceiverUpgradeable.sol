@@ -26,7 +26,7 @@ abstract contract CCIPDefensiveReceiverUpgradeable is
 {
     using SafeERC20 for IERC20;
 
-    /* @custom:storage-location erc72101:ccip-csr.storage.CCIPDefensiveReceiver */
+    /* @custom:storage-location erc7201:ccip-csr.storage.CCIPDefensiveReceiver */
     struct CCIPDefensiveReceiverStorage {
         mapping(uint64 destChainSelector => bytes sender) senders;
         mapping(bytes32 messageId => bytes32 hash) failedHashes;
