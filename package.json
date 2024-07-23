@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "yarn install && forge build",
-    "test": "forge test"
+    "test": "forge test --no-match-contract shanghai_; forge test --match-contract shanghai_ --evm-version shanghai"
   },
   "dependencies": {
     "@chainlink/contracts": "^1.1.1",

@@ -12,7 +12,9 @@ import "../../contracts/adapters/CCIPAdapter.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
-contract CCIPIntegrationEIGEINPIETest is Test, EigenpieParameters {
+// Those tests needs to be run with the shangai evm version, orelse they will fail, use:
+// `forge test --match-contract EIGENPIE --evm-version shanghai`
+contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
     uint256 ethForkId;
     EigenpieCustomReceiver receiver;
     CCIPAdapter ccipAdapter;
@@ -22,17 +24,11 @@ contract CCIPIntegrationEIGEINPIETest is Test, EigenpieParameters {
     OraclePool arbOraclePool;
     PriceOracle arbPriceOracle;
 
-    uint256 opForkId;
-    CustomSender opSender;
-    OraclePool opOraclePool;
-    PriceOracle opPriceOracle;
-
     address alice = makeAddr("alice");
 
     function setUp() public {
         ethForkId = vm.createFork(vm.rpcUrl("ethereum"), ETHEREUM_FORK_BLOCK);
         arbForkId = vm.createFork(vm.rpcUrl("arbitrum"), ARBITRUM_FORK_BLOCK);
-        opForkId = vm.createFork(vm.rpcUrl("optimism"), OPTIMISM_FORK_BLOCK);
 
         // Deployments
         {
@@ -72,38 +68,12 @@ contract CCIPIntegrationEIGEINPIETest is Test, EigenpieParameters {
             vm.label(ARBITRUM_EGETH_ETH_DATAFEED, "ARB:EGETHEthDatafeed");
         }
 
-        {
-            vm.selectFork(opForkId);
-
-            opPriceOracle = new PriceOracle(OPTIMISM_EGETH_ETH_DATAFEED, false, 24 hours, address(this));
-            opOraclePool = new OraclePool(
-                _predictContractAddress(1),
-                OPTIMISM_WETH_TOKEN,
-                OPTIMISM_EGETH_TOKEN,
-                address(opPriceOracle),
-                0,
-                address(this)
-            );
-            opSender = new CustomSender(
-                OPTIMISM_WETH_TOKEN, OPTIMISM_LINK_TOKEN, OPTIMISM_CCIP_ROUTER, address(opOraclePool), address(this)
-            );
-
-            vm.label(OPTIMISM_CCIP_ROUTER, "OP:CCIPRouter");
-            vm.label(OPTIMISM_LINK_TOKEN, "OP:LINK");
-            vm.label(OPTIMISM_WETH_TOKEN, "OP:WETH");
-            vm.label(OPTIMISM_EGETH_TOKEN, "OP:EGETH");
-            vm.label(OPTIMISM_EGETH_ETH_DATAFEED, "OP:EGETHEthDatafeed");
-        }
-
         // Setup
         {
             vm.selectFork(ethForkId);
 
             receiver.setSender(ARBITRUM_CCIP_CHAIN_SELECTOR, abi.encode(address(arbSender)));
             receiver.setAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR, address(ccipAdapter));
-
-            receiver.setSender(OPTIMISM_CCIP_CHAIN_SELECTOR, abi.encode(address(opSender)));
-            receiver.setAdapter(OPTIMISM_CCIP_CHAIN_SELECTOR, address(ccipAdapter));
         }
 
         {
@@ -111,13 +81,6 @@ contract CCIPIntegrationEIGEINPIETest is Test, EigenpieParameters {
 
             arbSender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(receiver));
             arbSender.grantRole(arbSender.SYNC_ROLE(), address(this));
-        }
-
-        {
-            vm.selectFork(opForkId);
-
-            opSender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(receiver));
-            opSender.grantRole(opSender.SYNC_ROLE(), address(this));
         }
     }
 
@@ -137,10 +100,10 @@ contract CCIPIntegrationEIGEINPIETest is Test, EigenpieParameters {
         vm.stopPrank();
 
         bytes memory feeOtoD = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
-        bytes memory feeDtoO = FeeCodec.encodeArbitrumL1toL2(0.01e18, 100_000, 45e9);
+        bytes memory feeDtoO = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
 
         uint256 amount = IERC20(ARBITRUM_WETH_TOKEN).balanceOf(address(arbOraclePool));
-        arbSender.sync{value: 0.1e18}(ETHEREUM_CCIP_CHAIN_SELECTOR, amount, feeOtoD, feeDtoO);
+        arbSender.sync{value: 0.2e18}(ETHEREUM_CCIP_CHAIN_SELECTOR, amount, feeOtoD, feeDtoO);
 
         assertEq(IERC20(ARBITRUM_WETH_TOKEN).balanceOf(address(arbOraclePool)), 0, "test_ArbFastStake::2");
 
@@ -171,7 +134,7 @@ contract CCIPIntegrationEIGEINPIETest is Test, EigenpieParameters {
         vm.selectFork(arbForkId);
 
         bytes memory feeOtoD = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
-        bytes memory feeDtoO = FeeCodec.encodeArbitrumL1toL2(0.01e18, 100_000, 45e9);
+        bytes memory feeDtoO = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
 
         uint256 amount = 1e18;
         uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
@@ -207,93 +170,6 @@ contract CCIPIntegrationEIGEINPIETest is Test, EigenpieParameters {
         receiver.ccipReceive(message);
 
         assertEq(receiver.getFailedMessageHash(message.messageId), 0, "test_ArbSlowStake::2");
-    }
-
-    function test_OpFastStake() public {
-        vm.selectFork(opForkId);
-
-        // Fund the oracle pool
-        deal(OPTIMISM_EGETH_TOKEN, address(opOraclePool), 100e18);
-
-        vm.deal(alice, 1e18);
-
-        vm.startPrank(alice);
-        {
-            opSender.fastStake{value: 1e18}(address(0), 1e18, 0.8e18);
-            assertGt(IERC20(OPTIMISM_EGETH_TOKEN).balanceOf(alice), 0.8e18, "test_OpFastStake::1");
-        }
-        vm.stopPrank();
-
-        bytes memory feeOtoD = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
-        bytes memory feeDtoO = FeeCodec.encodeOptimismL1toL2(100_000);
-
-        uint256 amount = IERC20(OPTIMISM_WETH_TOKEN).balanceOf(address(opOraclePool));
-        opSender.sync{value: 0.1e18}(ETHEREUM_CCIP_CHAIN_SELECTOR, amount, feeOtoD, feeDtoO);
-
-        assertEq(IERC20(OPTIMISM_WETH_TOKEN).balanceOf(address(opOraclePool)), 0, "test_OpFastStake::2");
-
-        vm.selectFork(ethForkId);
-
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
-
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-        tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
-
-        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
-            messageId: keccak256("test"),
-            sourceChainSelector: OPTIMISM_CCIP_CHAIN_SELECTOR,
-            sender: abi.encode(address(opSender)),
-            data: FeeCodec.encodePackedData(address(opOraclePool), amount, feeDtoO),
-            destTokenAmounts: tokenAmounts
-        });
-
-        deal(ETHEREUM_WETH_TOKEN, address(receiver), nativeAmountBrigdged);
-
-        vm.prank(ETHEREUM_CCIP_ROUTER);
-        receiver.ccipReceive(message);
-
-        assertEq(receiver.getFailedMessageHash(message.messageId), 0, "test_OpFastStake::3");
-    }
-
-    function test_OpSlowStake() public {
-        vm.selectFork(opForkId);
-
-        bytes memory feeOtoD = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
-        bytes memory feeDtoO = FeeCodec.encodeOptimismL1toL2(100_000);
-
-        uint256 amount = 1e18;
-        uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
-
-        vm.deal(alice, nativeFee);
-
-        vm.startPrank(alice);
-        {
-            opSender.slowStake{value: nativeFee}(ETHEREUM_CCIP_CHAIN_SELECTOR, address(0), amount, feeOtoD, feeDtoO);
-        }
-        vm.stopPrank();
-
-        assertLt(alice.balance, nativeFee, "test_OpSlowStake::1");
-        vm.selectFork(ethForkId);
-
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
-
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-        tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
-
-        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
-            messageId: keccak256("test"),
-            sourceChainSelector: OPTIMISM_CCIP_CHAIN_SELECTOR,
-            sender: abi.encode(address(opSender)),
-            data: FeeCodec.encodePackedData(address(opOraclePool), amount, feeDtoO),
-            destTokenAmounts: tokenAmounts
-        });
-
-        deal(ETHEREUM_WETH_TOKEN, address(receiver), nativeAmountBrigdged);
-
-        vm.prank(ETHEREUM_CCIP_ROUTER);
-        receiver.ccipReceive(message);
-
-        assertEq(receiver.getFailedMessageHash(message.messageId), 0, "test_OpSlowStake::2");
     }
 
     function _predictContractAddress(uint256 deltaNonce) private view returns (address) {
