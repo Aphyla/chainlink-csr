@@ -53,8 +53,10 @@ contract ArbitrumLegacyAdapterL1toL2 is BridgeAdapter {
 
         IERC20(L1_TOKEN).forceApprove(L1_TOKEN_GATEWAY, amount);
 
-        IArbitrumL1GatewayRouter(L1_GATEWAY_ROUTER).outboundTransfer{value: feeAmount}(
+        bytes memory messageId = IArbitrumL1GatewayRouter(L1_GATEWAY_ROUTER).outboundTransfer{value: feeAmount}(
             L1_TOKEN, to, amount, maxGas, gasPriceBid, abi.encode(maxSubmissionCost, new bytes(0))
         );
+
+        emit ArbitrumL1toL2MessageSent(abi.decode(messageId, (bytes32)));
     }
 }

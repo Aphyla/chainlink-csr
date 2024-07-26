@@ -12,12 +12,6 @@ import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
  * They must not use storage variables to prevent any storage collisions with the delegator contract.
  */
 abstract contract BridgeAdapter is IBridgeAdapter {
-    /* @dev Error thrown when the function is not delegate called by the delegator contract */
-    error BridgeAdapterOnlyDelegatedByDelegator();
-
-    /* @dev Error thrown when the delegator address is invalid */
-    error BridgeAdapterInvalidDelegator();
-
     address public immutable DELEGATOR;
 
     /**

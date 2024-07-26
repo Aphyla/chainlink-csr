@@ -49,5 +49,7 @@ contract OptimismLegacyAdapterL1toL2 is BridgeAdapter {
         IERC20(L1_TOKEN).forceApprove(L1_ERC20_BRIDGE, amount);
 
         IOptimismL1ERC20TokenBridge(L1_ERC20_BRIDGE).depositERC20To(L1_TOKEN, L2_TOKEN, to, amount, l2Gas, new bytes(0));
+
+        emit OptimismL1toL2MessageSent();
     }
 }

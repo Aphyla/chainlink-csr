@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
+import "../../contracts/adapters/BridgeAdapter.sol";
 import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
 import "../mocks/MockERC20.sol";
 import "../mocks/MockReceiver.sol";
@@ -70,11 +71,11 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
         );
         receiver.sendToken(uint64(0), recipient, amount, feeData);
 
-        vm.expectRevert(BridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
+        vm.expectRevert(IBridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(msgSender);
         adapter.sendToken(uint64(0), recipient, amount, feeData);
 
-        vm.expectRevert(BridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
+        vm.expectRevert(IBridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(address(receiver));
         adapter.sendToken(uint64(0), recipient, amount, feeData);
     }

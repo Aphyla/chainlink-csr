@@ -53,6 +53,9 @@ contract CCIPAdapter is BridgeAdapter, CCIPSenderUpgradeable {
 
         IERC20(L1_TOKEN).forceApprove(CCIP_ROUTER, amount);
 
-        _ccipSendTo(destChainSelector, abi.encode(to), tokenAmounts, payInLink, maxFee, gasLimit, new bytes(0));
+        bytes32 messageId =
+            _ccipSendTo(destChainSelector, abi.encode(to), tokenAmounts, payInLink, maxFee, gasLimit, new bytes(0));
+
+        emit CCIPMessageSent(messageId);
     }
 }
