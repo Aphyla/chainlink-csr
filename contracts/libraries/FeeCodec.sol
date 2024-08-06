@@ -135,4 +135,27 @@ library FeeCodec {
         if (feeData.length != 64) revert FeeCodecInvalidDataLength(feeData.length, 64);
         return abi.decode(feeData, (uint256, uint32));
     }
+
+    /**
+     * @dev Encodes the fee data for a Base L1-to-L2 transfer.
+     * The `l2Gas` is the minimum amount of gas that should be used for the deposit message on L2.
+     */
+    function encodeBaseL1toL2(uint32 l2Gas) internal pure returns (bytes memory) {
+        return abi.encode(0, l2Gas);
+    }
+
+    /**
+     * @dev Decodes the fee data for a Base L1-to-L2 transfer.
+     * Returns the `feeAmount` and `l2Gas`.
+     * The `feeAmount` is always zero for a Base L1-to-L2 transfer.
+     * The `l2Gas` is the minimum amount of gas that should be used for the deposit message on L2.
+     *
+     * Requirements:
+     *
+     * - `feeData` must have a length of 64 bytes.
+     */
+    function decodeBaseL1toL2(bytes memory feeData) internal pure returns (uint256 feeAmount, uint32 l2Gas) {
+        if (feeData.length != 64) revert FeeCodecInvalidDataLength(feeData.length, 64);
+        return abi.decode(feeData, (uint256, uint32));
+    }
 }
