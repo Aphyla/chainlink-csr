@@ -158,4 +158,25 @@ library FeeCodec {
         if (feeData.length != 64) revert FeeCodecInvalidDataLength(feeData.length, 64);
         return abi.decode(feeData, (uint256, uint32));
     }
+
+    /**
+     * @dev Encodes the fee data for a Frax Ferry L1-to-L2 transfer.
+     */
+    function encodeFraxFerryL1toL2() internal pure returns (bytes memory) {
+        return abi.encode(0);
+    }
+
+    /**
+     * @dev Decodes the fee data for a Frax Ferry L1-to-L2 transfer.
+     * Returns the `feeAmount`.
+     * The `feeAmount` is always zero for a Frax Ferry L1-to-L2 transfer.
+     *
+     * Requirements:
+     *
+     * - `feeData` must have a length of 32 bytes.
+     */
+    function decodeFraxFerryL1toL2(bytes memory feeData) internal pure returns (uint256 feeAmount) {
+        if (feeData.length != 32) revert FeeCodecInvalidDataLength(feeData.length, 32);
+        return abi.decode(feeData, (uint256));
+    }
 }
