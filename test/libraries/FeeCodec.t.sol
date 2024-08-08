@@ -115,4 +115,43 @@ contract FeeCodecTest is Test {
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 64));
         FeeCodec.decodeOptimismL1toL2(feeData);
     }
+
+    function test_Fuzz_EncodeBaseL1toL2(uint32 l2Gas) public pure {
+        bytes memory feeData = FeeCodec.encodeBaseL1toL2(l2Gas);
+
+        (uint256 decodedFeeAmount, uint256 decodedL2Gas) = FeeCodec.decodeBaseL1toL2(feeData);
+
+        assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeBaseL1toL2::1");
+        assertEq(l2Gas, decodedL2Gas, "test_Fuzz_EncodeBaseL1toL2::2");
+    }
+
+    function test_Fuzz_Revert_DecodeBaseL1toL2(bytes memory feeData) public {
+        uint256 length = feeData.length > 63 ? 63 : feeData.length;
+
+        assembly {
+            mstore(feeData, length)
+        }
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 64));
+        FeeCodec.decodeBaseL1toL2(feeData);
+    }
+
+    function test_EncodeFraxFerryL1toL2() public pure {
+        bytes memory feeData = FeeCodec.encodeFraxFerryL1toL2();
+
+        uint256 decodedFeeAmount = FeeCodec.decodeFraxFerryL1toL2(feeData);
+
+        assertEq(0, decodedFeeAmount, "test_EncodeFraxFerryL1toL2::1");
+    }
+
+    function test_Revert_DecodeFraxFerryL1toL2(bytes memory feeData) public {
+        uint256 length = feeData.length > 31 ? 31 : feeData.length;
+
+        assembly {
+            mstore(feeData, length)
+        }
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 32));
+        FeeCodec.decodeFraxFerryL1toL2(feeData);
+    }
 }
