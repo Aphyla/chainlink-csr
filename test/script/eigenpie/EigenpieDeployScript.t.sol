@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../../../script/Eigenpie/EigenpieDeploy.s.sol";
+import "../../../script/eigenpie/EigenpieDeploy.s.sol";
 
 contract EigenpieDeployScriptTest is Test, EigenpieParameters {
     EigenpieDeployScript public script;
