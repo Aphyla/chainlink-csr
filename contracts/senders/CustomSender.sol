@@ -265,7 +265,7 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         (uint256 maxFeeOtoD, bool payInLinkOtoD, uint256 gasLimitOtoD) = FeeCodec.decodeCCIP(feeOtoD);
         uint256 feeAmountDtoO = FeeCodec.decodeFee(feeDtoO);
 
-        _wrapNative(feeAmountDtoO);
+        if (feeAmountDtoO > 0) _wrapNative(feeAmountDtoO);
 
         bytes memory packedData = FeeCodec.encodePackedData(recipient, amount, feeDtoO);
 
