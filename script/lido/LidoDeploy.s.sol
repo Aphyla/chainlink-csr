@@ -10,6 +10,7 @@ import "../../contracts/senders/CustomSender.sol";
 import "../../contracts/receivers/LidoCustomReceiver.sol";
 import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
 import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
+import "../../contracts/adapters/BaseAdapterL1toL2.sol";
 import "../../contracts/automations/SyncAutomation.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
@@ -26,6 +27,7 @@ contract LidoDeployScript is Script, LidoParameters {
         Proxy receiver;
         address arbitrumAdapter;
         address optimismAdapter;
+        address baseAdapter;
     }
 
     struct L2Contracts {
@@ -39,6 +41,7 @@ contract LidoDeployScript is Script, LidoParameters {
     uint256 public ethereumForkId;
     uint256 public arbitrumForkId;
     uint256 public optimismForkId;
+    uint256 public baseForkId;
 
     address public deployer;
 
@@ -46,6 +49,7 @@ contract LidoDeployScript is Script, LidoParameters {
         ethereumForkId = vm.createFork(vm.rpcUrl("ethereum"));
         arbitrumForkId = vm.createFork(vm.rpcUrl("arbitrum"));
         optimismForkId = vm.createFork(vm.rpcUrl("optimism"));
+        baseForkId = vm.createFork(vm.rpcUrl("base"));
     }
 
     function run() public returns (L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) {
@@ -54,13 +58,15 @@ contract LidoDeployScript is Script, LidoParameters {
 
         l1Contracts.chainName = "Ethereum";
 
-        l2Contracts = new L2Contracts[](2);
+        l2Contracts = new L2Contracts[](3);
 
         L2Contracts memory arbContracts = l2Contracts[0];
         L2Contracts memory optContracts = l2Contracts[1];
+        L2Contracts memory baseContracts = l2Contracts[2];
 
         arbContracts.chainName = "Arbitrum";
         optContracts.chainName = "Optimism";
+        baseContracts.chainName = "Base";
 
         // Deploy contracts on Ethereum
         {
@@ -89,6 +95,15 @@ contract LidoDeployScript is Script, LidoParameters {
 
             l1Contracts.optimismAdapter = address(
                 new OptimismLegacyAdapterL1toL2(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE, l1Contracts.receiver.proxy)
+            );
+
+            l1Contracts.baseAdapter = address(
+                new BaseAdapterL1toL2(
+                    ETHEREUM_TO_BASE_STANDARD_BRIDGE,
+                    ETHEREUM_WSTETH_TOKEN,
+                    BASE_WSTETH_TOKEN,
+                    l1Contracts.receiver.proxy
+                )
             );
 
             vm.stopBroadcast();
@@ -184,6 +199,50 @@ contract LidoDeployScript is Script, LidoParameters {
             vm.stopBroadcast();
         }
 
+        // Deploy contracts on Base
+        {
+            vm.selectFork(baseForkId);
+            vm.startBroadcast(deployerPrivateKey);
+
+            baseContracts.priceOracle = address(
+                new PriceOracle(
+                    BASE_WSTETH_STETH_DATAFEED,
+                    BASE_WSTETH_STETH_DATAFEED_IS_INVERSE,
+                    BASE_WSTETH_STETH_DATAFEED_HEARTBEAT,
+                    deployer
+                )
+            );
+
+            baseContracts.oraclePool = address(
+                new OraclePool(
+                    _predictContractAddress(deployer, 2), // As we deploy this contract, the impementation and then the proxy, we need to increment the nonce by 2
+                    BASE_WETH_TOKEN,
+                    BASE_WSTETH_TOKEN,
+                    baseContracts.priceOracle,
+                    BASE_ORACLE_POOL_FEE,
+                    deployer
+                )
+            );
+
+            baseContracts.sender.implementation =
+                address(new CustomSender(BASE_WETH_TOKEN, BASE_LINK_TOKEN, BASE_CCIP_ROUTER, address(0), address(0)));
+
+            baseContracts.sender.proxy = address(
+                new TransparentUpgradeableProxy(
+                    baseContracts.sender.implementation,
+                    deployer,
+                    abi.encodeCall(CustomSender.initialize, (baseContracts.oraclePool, deployer))
+                )
+            );
+
+            baseContracts.sender.proxyAdmin = _getProxyAdmin(baseContracts.sender.proxy);
+
+            baseContracts.syncAutomation =
+                address(new SyncAutomation(baseContracts.sender.proxy, ETHEREUM_CCIP_CHAIN_SELECTOR, deployer));
+
+            vm.stopBroadcast();
+        }
+
         // Set up contracts on ethereum
         {
             vm.selectFork(ethereumForkId);
@@ -195,12 +254,18 @@ contract LidoDeployScript is Script, LidoParameters {
             LidoCustomReceiver(payable(l1Contracts.receiver.proxy)).setAdapter(
                 OPTIMISM_CCIP_CHAIN_SELECTOR, l1Contracts.optimismAdapter
             );
+            LidoCustomReceiver(payable(l1Contracts.receiver.proxy)).setAdapter(
+                BASE_CCIP_CHAIN_SELECTOR, l1Contracts.baseAdapter
+            );
 
             LidoCustomReceiver(payable(l1Contracts.receiver.proxy)).setSender(
                 ARBITRUM_CCIP_CHAIN_SELECTOR, abi.encode(arbContracts.sender.proxy)
             );
             LidoCustomReceiver(payable(l1Contracts.receiver.proxy)).setSender(
                 OPTIMISM_CCIP_CHAIN_SELECTOR, abi.encode(optContracts.sender.proxy)
+            );
+            LidoCustomReceiver(payable(l1Contracts.receiver.proxy)).setSender(
+                BASE_CCIP_CHAIN_SELECTOR, abi.encode(baseContracts.sender.proxy)
             );
 
             vm.stopBroadcast();
@@ -230,6 +295,20 @@ contract LidoDeployScript is Script, LidoParameters {
             );
 
             CustomSender(optContracts.sender.proxy).grantRole(keccak256("SYNC_ROLE"), optContracts.syncAutomation);
+
+            vm.stopBroadcast();
+        }
+
+        // Set up contracts on Base
+        {
+            vm.selectFork(baseForkId);
+            vm.startBroadcast(deployerPrivateKey);
+
+            CustomSender(baseContracts.sender.proxy).setReceiver(
+                ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy)
+            );
+
+            CustomSender(baseContracts.sender.proxy).grantRole(keccak256("SYNC_ROLE"), baseContracts.syncAutomation);
 
             vm.stopBroadcast();
         }

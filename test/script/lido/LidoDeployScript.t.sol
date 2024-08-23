@@ -30,6 +30,7 @@ contract LidoDeployScriptTest is Test, LidoParameters {
             assertEq(receiver.hasRole(receiver.DEFAULT_ADMIN_ROLE(), deployer), true, "test_Deploy::4");
             assertEq(receiver.getAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR), l1Contracts.arbitrumAdapter, "test_Deploy::5");
             assertEq(receiver.getAdapter(OPTIMISM_CCIP_CHAIN_SELECTOR), l1Contracts.optimismAdapter, "test_Deploy::6");
+            assertEq(receiver.getAdapter(BASE_CCIP_CHAIN_SELECTOR), l1Contracts.baseAdapter, "test_Deploy::7");
             assertEq(
                 receiver.getSender(ARBITRUM_CCIP_CHAIN_SELECTOR),
                 abi.encode(l2Contracts[0].sender.proxy),
@@ -39,6 +40,9 @@ contract LidoDeployScriptTest is Test, LidoParameters {
                 receiver.getSender(OPTIMISM_CCIP_CHAIN_SELECTOR),
                 abi.encode(l2Contracts[1].sender.proxy),
                 "test_Deploy::8"
+            );
+            assertEq(
+                receiver.getSender(BASE_CCIP_CHAIN_SELECTOR), abi.encode(l2Contracts[2].sender.proxy), "test_Deploy::9"
             );
             assertEq(_getProxyAdmin(l1Contracts.receiver.proxy), l1Contracts.receiver.proxyAdmin, "test_Deploy::9");
             assertEq(ProxyAdmin(l1Contracts.receiver.proxyAdmin).owner(), deployer, "test_Deploy::10");
@@ -57,6 +61,7 @@ contract LidoDeployScriptTest is Test, LidoParameters {
                 IArbitrumL1GatewayRouter(ETHEREUM_TO_ARBITRUM_ROUTER).l1TokenToGateway(ETHEREUM_WSTETH_TOKEN),
                 "test_Deploy::14"
             );
+            assertEq(arbAdapter.DELEGATOR(), l1Contracts.receiver.proxy, "test_Deploy::21");
 
             OptimismLegacyAdapterL1toL2 optAdapter = OptimismLegacyAdapterL1toL2(l1Contracts.optimismAdapter);
 
@@ -71,6 +76,14 @@ contract LidoDeployScriptTest is Test, LidoParameters {
                 IOptimismL1ERC20TokenBridge(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE).l2Token(),
                 "test_Deploy::17"
             );
+            assertEq(optAdapter.DELEGATOR(), l1Contracts.receiver.proxy, "test_Deploy::21");
+
+            BaseAdapterL1toL2 baseAdapter = BaseAdapterL1toL2(l1Contracts.baseAdapter);
+
+            assertEq(baseAdapter.L1_STANDARD_BRIDGE(), ETHEREUM_TO_BASE_STANDARD_BRIDGE, "test_Deploy::18");
+            assertEq(baseAdapter.L1_TOKEN(), ETHEREUM_WSTETH_TOKEN, "test_Deploy::19");
+            assertEq(baseAdapter.L2_TOKEN(), BASE_WSTETH_TOKEN, "test_Deploy::20");
+            assertEq(baseAdapter.DELEGATOR(), l1Contracts.receiver.proxy, "test_Deploy::21");
         }
 
         vm.selectFork(script.arbitrumForkId());
@@ -175,6 +188,58 @@ contract LidoDeployScriptTest is Test, LidoParameters {
             assertEq(syncAutomation.owner(), deployer, "test_Deploy::67");
             assertEq(syncAutomation.getLastExecution(), block.timestamp, "test_Deploy::68");
             assertEq(syncAutomation.getDelay(), type(uint48).max, "test_Deploy::69");
+        }
+
+        vm.selectFork(script.baseForkId());
+
+        {
+            PriceOracle priceOracle = PriceOracle(l2Contracts[2].priceOracle);
+
+            (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
+
+            assertEq(dataFeed, BASE_WSTETH_STETH_DATAFEED, "test_Deploy::70");
+            assertEq(isInverse, BASE_WSTETH_STETH_DATAFEED_IS_INVERSE, "test_Deploy::71");
+            assertEq(heartbeat, BASE_WSTETH_STETH_DATAFEED_HEARTBEAT, "test_Deploy::72");
+            assertEq(AggregatorV3Interface(dataFeed).decimals(), decimals, "test_Deploy::73");
+
+            OraclePool oraclePool = OraclePool(l2Contracts[2].oraclePool);
+
+            assertEq(oraclePool.SENDER(), l2Contracts[2].sender.proxy, "test_Deploy::74");
+            assertEq(oraclePool.TOKEN_IN(), BASE_WETH_TOKEN, "test_Deploy::75");
+            assertEq(oraclePool.TOKEN_OUT(), BASE_WSTETH_TOKEN, "test_Deploy::76");
+            assertEq(oraclePool.getOracle(), l2Contracts[2].priceOracle, "test_Deploy::77");
+            assertEq(oraclePool.getFee(), BASE_ORACLE_POOL_FEE, "test_Deploy::78");
+            assertEq(oraclePool.owner(), deployer, "test_Deploy::79");
+
+            CustomSender sender = CustomSender(l2Contracts[2].sender.proxy);
+
+            assertEq(sender.WNATIVE(), BASE_WETH_TOKEN, "test_Deploy::80");
+            assertEq(sender.LINK_TOKEN(), BASE_LINK_TOKEN, "test_Deploy::81");
+            assertEq(sender.CCIP_ROUTER(), BASE_CCIP_ROUTER, "test_Deploy::82");
+            assertEq(sender.getOraclePool(), l2Contracts[2].oraclePool, "test_Deploy::83");
+            assertEq(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), true, "test_Deploy::84");
+            assertEq(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[2].syncAutomation), true, "test_Deploy::85");
+            assertEq(
+                abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)),
+                l1Contracts.receiver.proxy,
+                "test_Deploy::86"
+            );
+            assertEq(_getProxyAdmin(l2Contracts[2].sender.proxy), l2Contracts[2].sender.proxyAdmin, "test_Deploy::87");
+            assertEq(ProxyAdmin(l2Contracts[2].sender.proxyAdmin).owner(), deployer, "test_Deploy::88");
+            assertEq(
+                _getProxyImplementation(l2Contracts[2].sender.proxy),
+                l2Contracts[2].sender.implementation,
+                "test_Deploy::89"
+            );
+
+            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[2].syncAutomation);
+
+            assertEq(syncAutomation.SENDER(), l2Contracts[2].sender.proxy, "test_Deploy::90");
+            assertEq(syncAutomation.DEST_CHAIN_SELECTOR(), ETHEREUM_CCIP_CHAIN_SELECTOR, "test_Deploy::91");
+            assertEq(syncAutomation.WNATIVE(), BASE_WETH_TOKEN, "test_Deploy::92");
+            assertEq(syncAutomation.owner(), deployer, "test_Deploy::93");
+            assertEq(syncAutomation.getLastExecution(), block.timestamp, "test_Deploy::94");
+            assertEq(syncAutomation.getDelay(), type(uint48).max, "test_Deploy::95");
         }
     }
 
