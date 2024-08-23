@@ -7,10 +7,12 @@ libs = ["node_modules", "lib"]
 ethereum = "${ETHEREUM_RPC_URL}"
 arbitrum = "${ARBITRUM_RPC_URL}"
 optimism = "${OPTIMISM_RPC_URL}"
+base = "${BASE_RPC_URL}"
 
 [etherscan]
 ethereum = { key = "${ETHEREUM_EXPLORER_API_KEY}", url = "${ETHEREUM_EXPLORER_URL}" }
 arbitrum = { key = "${ARBITRUM_EXPLORER_API_KEY}", url = "${ARBITRUM_EXPLORER_URL}" }
 optimism = { key = "${OPTIMISM_EXPLORER_API_KEY}", url = "${OPTIMISM_EXPLORER_URL}" }
+base = { key = "${BASE_EXPLORER_API_KEY}", url = "${BASE_EXPLORER_URL}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
