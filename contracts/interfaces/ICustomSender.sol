@@ -11,7 +11,6 @@ interface ICustomSender is ICCIPTrustedSenderUpgradeable {
     error CustomSenderInvalidParameters();
 
     event OraclePoolSet(address oraclePool);
-    event MessageSent(uint64 indexed destChainSelector, bytes32 messageId);
     event SlowStake(
         address indexed user, uint64 indexed destChainSelector, bytes32 messageId, address indexed token, uint256 amount
     );
