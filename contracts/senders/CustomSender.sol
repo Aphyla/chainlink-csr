@@ -162,6 +162,8 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
 
         _pullFrom(token, msg.sender, amount);
 
+        IERC20(TOKEN).forceApprove(oraclePool, amount);
+
         amountOut = IOraclePool(oraclePool).swap(msg.sender, amount, minAmountOut);
 
         emit FastStake(msg.sender, token, amount, amountOut);
@@ -205,18 +207,13 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
 
     /**
      * @dev Sets the address of the oracle pool.
-     * It also approves the maximum amount of WNative to the oracle pool and revokes the approval from the previous oracle pool.
      *
      * Emits a {OraclePoolSet} event.
      */
     function _setOraclePool(address oraclePool) internal virtual {
         CustomSenderStorage storage $ = _getCustomSenderStorage();
 
-        address previousOraclePool = $.oraclePool;
         $.oraclePool = oraclePool;
-
-        if (previousOraclePool != address(0)) IERC20(TOKEN).forceApprove(previousOraclePool, 0);
-        if (oraclePool != address(0)) IERC20(TOKEN).forceApprove(oraclePool, type(uint256).max);
 
         emit OraclePoolSet(oraclePool);
     }

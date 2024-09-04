@@ -21,6 +21,8 @@ contract OraclePool is Ownable2Step, IOraclePool {
     address public immutable override TOKEN_IN;
     address public immutable override TOKEN_OUT;
 
+    uint256 private constant PRECISION = 1e18;
+
     IOracle private _oracle;
     uint96 private _fee;
 
@@ -114,13 +116,13 @@ contract OraclePool is Ownable2Step, IOraclePool {
     {
         if (amountIn == 0) revert OraclePoolZeroAmountIn();
 
-        uint256 feeAmount = amountIn * _fee / 1e18;
+        uint256 feeAmount = amountIn * _fee / PRECISION;
 
         IOracle oracle = _oracle;
         if (address(oracle) == address(0)) revert OraclePoolOracleNotSet();
 
         uint256 price = oracle.getLatestAnswer();
-        uint256 amountOut = (amountIn - feeAmount) * 1e18 / price;
+        uint256 amountOut = (amountIn - feeAmount) * PRECISION / price;
 
         if (amountOut < minAmountOut) revert OraclePoolInsufficientAmountOut(amountOut, minAmountOut);
 
@@ -191,7 +193,7 @@ contract OraclePool is Ownable2Step, IOraclePool {
      * @dev Sets the fee to be applied to each swap (in 1e18 scale).
      */
     function _setFee(uint96 fee) internal virtual {
-        if (fee > 1e18) revert OraclePoolFeeTooHigh();
+        if (fee > PRECISION) revert OraclePoolFeeTooHigh();
 
         _fee = fee;
 

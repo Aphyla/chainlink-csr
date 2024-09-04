@@ -18,6 +18,8 @@ import {IPriceConverterOracle} from "../interfaces/IPriceConverterOracle.sol";
  * `price = basePriceOracle.getLatestAnswer() * quotePriceOracle.getLatestAnswer() / 1e18`
  */
 contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
+    uint256 private constant PRECISION = 1e18;
+
     IPriceOracle private _basePriceOracle;
     IPriceOracle private _quotePriceOracle;
 
@@ -62,7 +64,7 @@ contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
             revert PriceConverterOracleNoOracle();
         }
 
-        answerScaled = _basePriceOracle.getLatestAnswer() * _quotePriceOracle.getLatestAnswer() / 1e18;
+        answerScaled = _basePriceOracle.getLatestAnswer() * _quotePriceOracle.getLatestAnswer() / PRECISION;
 
         if (answerScaled == 0) revert PriceConverterOracleInvalidPrice();
     }

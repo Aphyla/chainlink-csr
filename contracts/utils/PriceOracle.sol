@@ -12,6 +12,8 @@ import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
  * It is expected that the price oracle returns the price in 1e18 scale (18 decimals).
  */
 contract PriceOracle is Ownable2Step, IPriceOracle {
+    uint256 private constant PRECISION = 1e18;
+
     AggregatorV3Interface private _aggregator;
     bool private _isInverse;
     uint32 private _heartbeat;
@@ -55,7 +57,8 @@ contract PriceOracle is Ownable2Step, IPriceOracle {
         if (answer <= 0) revert PriceOracleInvalidPrice();
         if (block.timestamp > updatedAt + _heartbeat) revert PriceOracleStalePrice();
 
-        answerScaled = _isInverse ? 10 ** (18 + _decimals) / uint256(answer) : uint256(answer) * 1e18 / 10 ** _decimals;
+        answerScaled =
+            _isInverse ? 10 ** (18 + _decimals) / uint256(answer) : uint256(answer) * PRECISION / 10 ** _decimals;
 
         if (answerScaled == 0) revert PriceOracleInvalidPrice();
     }
