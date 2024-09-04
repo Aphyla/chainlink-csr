@@ -60,7 +60,7 @@ contract SyncAutomation is AutomationCompatible, Ownable2Step {
      * CCIP messages.
      */
     constructor(address sender, uint64 destChainSelector, address initialOwner) Ownable(initialOwner) {
-        if (sender == address(0) || destChainSelector == 0 || initialOwner == address(0)) {
+        if (sender == address(0) || destChainSelector == 0) {
             revert SyncAutomationInvalidParameters();
         }
 

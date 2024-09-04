@@ -38,6 +38,17 @@ contract SyncAutomationTest is Test {
         assertEq(link.allowance(address(syncAutomation), address(sender)), type(uint256).max, "test_Constructor::6");
     }
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(SyncAutomation.SyncAutomationInvalidParameters.selector);
+        syncAutomation = new SyncAutomation(address(0), DEST_CHAIN_SELECTOR, address(this));
+
+        vm.expectRevert(SyncAutomation.SyncAutomationInvalidParameters.selector);
+        syncAutomation = new SyncAutomation(address(sender), 0, address(this));
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+        syncAutomation = new SyncAutomation(address(sender), DEST_CHAIN_SELECTOR, address(0));
+    }
+
     function test_Fuzz_SetForwarder(address forwarder) public {
         assertEq(syncAutomation.getForwarder(), address(0), "test_Fuzz_SetForwarder::1");
 
