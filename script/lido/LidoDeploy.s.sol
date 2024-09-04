@@ -135,7 +135,14 @@ contract LidoDeployScript is Script, LidoParameters {
             );
 
             arbContracts.sender.implementation = address(
-                new CustomSender(ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(0), address(0))
+                new CustomSender(
+                    ARBITRUM_WETH_TOKEN,
+                    ARBITRUM_WETH_TOKEN,
+                    ARBITRUM_LINK_TOKEN,
+                    ARBITRUM_CCIP_ROUTER,
+                    address(0),
+                    address(0)
+                )
             );
 
             arbContracts.sender.proxy = address(
@@ -180,7 +187,14 @@ contract LidoDeployScript is Script, LidoParameters {
             );
 
             optContracts.sender.implementation = address(
-                new CustomSender(OPTIMISM_WETH_TOKEN, OPTIMISM_LINK_TOKEN, OPTIMISM_CCIP_ROUTER, address(0), address(0))
+                new CustomSender(
+                    OPTIMISM_WETH_TOKEN,
+                    OPTIMISM_WETH_TOKEN,
+                    OPTIMISM_LINK_TOKEN,
+                    OPTIMISM_CCIP_ROUTER,
+                    address(0),
+                    address(0)
+                )
             );
 
             optContracts.sender.proxy = address(
@@ -224,8 +238,11 @@ contract LidoDeployScript is Script, LidoParameters {
                 )
             );
 
-            baseContracts.sender.implementation =
-                address(new CustomSender(BASE_WETH_TOKEN, BASE_LINK_TOKEN, BASE_CCIP_ROUTER, address(0), address(0)));
+            baseContracts.sender.implementation = address(
+                new CustomSender(
+                    BASE_WETH_TOKEN, BASE_WETH_TOKEN, BASE_LINK_TOKEN, BASE_CCIP_ROUTER, address(0), address(0)
+                )
+            );
 
             baseContracts.sender.proxy = address(
                 new TransparentUpgradeableProxy(

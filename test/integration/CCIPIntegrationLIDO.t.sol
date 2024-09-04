@@ -78,7 +78,12 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
                 address(this)
             );
             arbSender = new CustomSender(
-                ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(arbOraclePool), address(this)
+                ARBITRUM_WETH_TOKEN,
+                ARBITRUM_WETH_TOKEN,
+                ARBITRUM_LINK_TOKEN,
+                ARBITRUM_CCIP_ROUTER,
+                address(arbOraclePool),
+                address(this)
             );
 
             vm.label(ARBITRUM_CCIP_ROUTER, "ARB:CCIPRouter");
@@ -101,7 +106,12 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
                 address(this)
             );
             opSender = new CustomSender(
-                OPTIMISM_WETH_TOKEN, OPTIMISM_LINK_TOKEN, OPTIMISM_CCIP_ROUTER, address(opOraclePool), address(this)
+                OPTIMISM_WETH_TOKEN,
+                OPTIMISM_WETH_TOKEN,
+                OPTIMISM_LINK_TOKEN,
+                OPTIMISM_CCIP_ROUTER,
+                address(opOraclePool),
+                address(this)
             );
 
             vm.label(OPTIMISM_CCIP_ROUTER, "OP:CCIPRouter");
@@ -124,7 +134,12 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
                 address(this)
             );
             baseSender = new CustomSender(
-                BASE_WETH_TOKEN, BASE_LINK_TOKEN, BASE_CCIP_ROUTER, address(baseOraclePool), address(this)
+                BASE_WETH_TOKEN,
+                BASE_WETH_TOKEN,
+                BASE_LINK_TOKEN,
+                BASE_CCIP_ROUTER,
+                address(baseOraclePool),
+                address(this)
             );
 
             vm.label(BASE_CCIP_ROUTER, "BASE:CCIPRouter");
@@ -195,7 +210,8 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -204,7 +220,7 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
             messageId: keccak256("test"),
             sourceChainSelector: ARBITRUM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(arbSender)),
-            data: FeeCodec.encodePackedData(address(arbOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(arbOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -223,7 +239,11 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
         bytes memory feeDtoO = FeeCodec.encodeArbitrumL1toL2(0.01e18, 100_000, 45e9);
 
         uint256 amount = 1e18;
-        uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
+
+        (uint256 nativeFeeOtoD,) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 nativeFeeDtoO,) = FeeCodec.decodeFeeMemory(feeDtoO);
+
+        uint256 nativeFee = amount + nativeFeeOtoD + nativeFeeDtoO;
 
         vm.deal(alice, nativeFee);
 
@@ -237,7 +257,8 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -246,7 +267,7 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
             messageId: keccak256("test"),
             sourceChainSelector: ARBITRUM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(arbSender)),
-            data: FeeCodec.encodePackedData(address(arbOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(arbOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -283,7 +304,8 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -292,7 +314,7 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
             messageId: keccak256("test"),
             sourceChainSelector: OPTIMISM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(opSender)),
-            data: FeeCodec.encodePackedData(address(opOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(opOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -311,7 +333,11 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
         bytes memory feeDtoO = FeeCodec.encodeOptimismL1toL2(100_000);
 
         uint256 amount = 1e18;
-        uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
+
+        (uint256 nativeFeeOtoD,) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 nativeFeeDtoO,) = FeeCodec.decodeFeeMemory(feeDtoO);
+
+        uint256 nativeFee = amount + nativeFeeOtoD + nativeFeeDtoO;
 
         vm.deal(alice, nativeFee);
 
@@ -324,7 +350,8 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
         assertLt(alice.balance, nativeFee, "test_OpSlowStake::1");
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -333,7 +360,7 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
             messageId: keccak256("test"),
             sourceChainSelector: OPTIMISM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(opSender)),
-            data: FeeCodec.encodePackedData(address(opOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(opOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -370,7 +397,8 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -379,7 +407,7 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
             messageId: keccak256("test"),
             sourceChainSelector: BASE_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(baseSender)),
-            data: FeeCodec.encodePackedData(address(baseOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(baseOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -398,7 +426,11 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
         bytes memory feeDtoO = FeeCodec.encodeBaseL1toL2(100_000);
 
         uint256 amount = 1e18;
-        uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
+
+        (uint256 nativeFeeOtoD,) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 nativeFeeDtoO,) = FeeCodec.decodeFeeMemory(feeDtoO);
+
+        uint256 nativeFee = amount + nativeFeeOtoD + nativeFeeDtoO;
 
         vm.deal(alice, nativeFee);
 
@@ -411,7 +443,8 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
         assertLt(alice.balance, nativeFee, "test_BaseSlowStake::1");
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -420,7 +453,7 @@ contract CCIPIntegrationLIDOTest is Test, LidoParameters {
             messageId: keccak256("test"),
             sourceChainSelector: BASE_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(baseSender)),
-            data: FeeCodec.encodePackedData(address(baseOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(baseOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 

@@ -58,7 +58,12 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
                 address(this)
             );
             arbSender = new CustomSender(
-                ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(arbOraclePool), address(this)
+                ARBITRUM_WETH_TOKEN,
+                ARBITRUM_WETH_TOKEN,
+                ARBITRUM_LINK_TOKEN,
+                ARBITRUM_CCIP_ROUTER,
+                address(arbOraclePool),
+                address(this)
             );
 
             vm.label(ARBITRUM_CCIP_ROUTER, "ARB:CCIPRouter");
@@ -109,7 +114,8 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -118,7 +124,7 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
             messageId: keccak256("test"),
             sourceChainSelector: ARBITRUM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(arbSender)),
-            data: FeeCodec.encodePackedData(address(arbOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(arbOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -137,7 +143,11 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
         bytes memory feeDtoO = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
 
         uint256 amount = 1e18;
-        uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
+
+        (uint256 nativeFeeOtoD,) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 nativeFeeDtoO,) = FeeCodec.decodeFeeMemory(feeDtoO);
+
+        uint256 nativeFee = amount + nativeFeeOtoD + nativeFeeDtoO;
 
         vm.deal(alice, nativeFee);
 
@@ -151,7 +161,8 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+(uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -160,7 +171,7 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
             messageId: keccak256("test"),
             sourceChainSelector: ARBITRUM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(arbSender)),
-            data: FeeCodec.encodePackedData(address(arbOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(arbOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 

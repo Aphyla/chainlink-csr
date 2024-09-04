@@ -108,7 +108,7 @@ contract EigenpieDeployScript is Script, EigenpieParameters {
             );
 
             arbContracts.sender.implementation = address(
-                new CustomSender(ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(0), address(0))
+                new CustomSender(ARBITRUM_WETH_TOKEN, ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(0), address(0))
             );
 
             arbContracts.sender.proxy = address(

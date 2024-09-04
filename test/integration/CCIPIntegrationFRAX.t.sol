@@ -71,7 +71,12 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
                 address(this)
             );
             arbSender = new CustomSender(
-                ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(arbOraclePool), address(this)
+                ARBITRUM_WETH_TOKEN,
+                ARBITRUM_WETH_TOKEN,
+                ARBITRUM_LINK_TOKEN,
+                ARBITRUM_CCIP_ROUTER,
+                address(arbOraclePool),
+                address(this)
             );
 
             vm.label(ARBITRUM_CCIP_ROUTER, "ARB:CCIPRouter");
@@ -94,7 +99,12 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
                 address(this)
             );
             opSender = new CustomSender(
-                OPTIMISM_WETH_TOKEN, OPTIMISM_LINK_TOKEN, OPTIMISM_CCIP_ROUTER, address(opOraclePool), address(this)
+                OPTIMISM_WETH_TOKEN,
+                OPTIMISM_WETH_TOKEN,
+                OPTIMISM_LINK_TOKEN,
+                OPTIMISM_CCIP_ROUTER,
+                address(opOraclePool),
+                address(this)
             );
 
             vm.label(OPTIMISM_CCIP_ROUTER, "OP:CCIPRouter");
@@ -155,7 +165,8 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -164,7 +175,7 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
             messageId: keccak256("test"),
             sourceChainSelector: ARBITRUM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(arbSender)),
-            data: FeeCodec.encodePackedData(address(arbOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(arbOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -183,7 +194,11 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
         bytes memory feeDtoO = FeeCodec.encodeFraxFerryL1toL2();
 
         uint256 amount = 1e18;
-        uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
+
+        (uint256 nativeFeeOtoD,) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 nativeFeeDtoO,) = FeeCodec.decodeFeeMemory(feeDtoO);
+
+        uint256 nativeFee = amount + nativeFeeOtoD + nativeFeeDtoO;
 
         vm.deal(alice, nativeFee);
 
@@ -197,7 +212,8 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -206,7 +222,7 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
             messageId: keccak256("test"),
             sourceChainSelector: ARBITRUM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(arbSender)),
-            data: FeeCodec.encodePackedData(address(arbOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(arbOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -243,7 +259,8 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -252,7 +269,7 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
             messageId: keccak256("test"),
             sourceChainSelector: OPTIMISM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(opSender)),
-            data: FeeCodec.encodePackedData(address(opOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(opOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
@@ -271,7 +288,11 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
         bytes memory feeDtoO = FeeCodec.encodeFraxFerryL1toL2();
 
         uint256 amount = 1e18;
-        uint256 nativeFee = amount + FeeCodec.decodeFee(feeOtoD) + FeeCodec.decodeFee(feeDtoO);
+
+        (uint256 nativeFeeOtoD,) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 nativeFeeDtoO,) = FeeCodec.decodeFeeMemory(feeDtoO);
+
+        uint256 nativeFee = amount + nativeFeeOtoD + nativeFeeDtoO;
 
         vm.deal(alice, nativeFee);
 
@@ -285,7 +306,8 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
 
         vm.selectFork(ethForkId);
 
-        uint256 nativeAmountBrigdged = amount + FeeCodec.decodeFee(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
@@ -294,7 +316,7 @@ contract CCIPIntegrationFRAXTest is Test, FraxParameters {
             messageId: keccak256("test"),
             sourceChainSelector: OPTIMISM_CCIP_CHAIN_SELECTOR,
             sender: abi.encode(address(opSender)),
-            data: FeeCodec.encodePackedData(address(opOraclePool), amount, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(opOraclePool), amount, feeDtoO),
             destTokenAmounts: tokenAmounts
         });
 
