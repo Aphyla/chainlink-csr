@@ -42,9 +42,9 @@ contract FraxCustomReceiver is CustomReceiver {
     }
 
     /**
-     * @dev Deposits `amount` of native tokens into the sfrxETH contract and returns the amount of sfrxETH received.
+     * @dev Stakes `amount` of native tokens into the sfrxETH contract and returns the amount of sfrxETH received.
      */
-    function _depositNative(uint256 amount) internal override returns (uint256) {
+    function _stakeToken(uint256 amount) internal override returns (uint256) {
         return IFraxETHMinter(FRXETH_MINTER).submitAndDeposit{value: amount}(address(this));
     }
 }

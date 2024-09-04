@@ -94,29 +94,44 @@ contract CustomReceiverTest is Test {
         uint64 sourceChainSelector,
         bytes memory sender,
         uint256 amountIn,
-        uint256 feeDtoO
+        uint128 feeDtoO,
+        bool payInLinkDtoO
     ) public {
         vm.assume(sender.length > 0);
 
         amountIn = bound(amountIn, 0, 100e18);
-        feeDtoO = bound(feeDtoO, 0, 1e18);
+        feeDtoO = uint128(bound(feeDtoO, 0, 1e18));
 
         receiver.setAdapter(sourceChainSelector, address(adapter));
         receiver.setSender(sourceChainSelector, sender);
 
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-        tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amountIn + feeDtoO});
+        Client.EVMTokenAmount[] memory tokenAmounts;
+
+        if (!payInLinkDtoO || feeDtoO == 0) {
+            tokenAmounts = new Client.EVMTokenAmount[](1);
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amountIn + feeDtoO});
+
+            wnative.deposit{value: amountIn + feeDtoO}();
+            wnative.transfer(address(receiver), amountIn + feeDtoO);
+        } else {
+            tokenAmounts = new Client.EVMTokenAmount[](2);
+
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amountIn});
+            tokenAmounts[1] = Client.EVMTokenAmount({token: address(link), amount: feeDtoO});
+
+            wnative.deposit{value: amountIn}();
+            wnative.transfer(address(receiver), amountIn);
+
+            link.mint(address(receiver), feeDtoO);
+        }
 
         Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
             messageId: messageId,
             sourceChainSelector: sourceChainSelector,
             sender: sender,
-            data: FeeCodec.encodePackedData(l2Sender, amountIn, abi.encode(feeDtoO)),
+            data: FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO, payInLinkDtoO)),
             destTokenAmounts: tokenAmounts
         });
-
-        wnative.deposit{value: amountIn + feeDtoO}();
-        wnative.transfer(address(receiver), amountIn + feeDtoO);
 
         uint256 shares = vault.previewDeposit(amountIn);
 
@@ -133,11 +148,15 @@ contract CustomReceiverTest is Test {
         assertEq(
             bridge.data(),
             abi.encodeWithSelector(
-                IBridgeAdapter.sendToken.selector, sourceChainSelector, l2Sender, shares, abi.encode(feeDtoO)
+                IBridgeAdapter.sendToken.selector,
+                sourceChainSelector,
+                l2Sender,
+                shares,
+                abi.encodePacked(feeDtoO, payInLinkDtoO)
             ),
             "test_Fuzz_CCIPReceive::5"
         );
-        assertEq(bridge.value(), feeDtoO, "test_Fuzz_CCIPReceive::6");
+        assertEq(bridge.value(), payInLinkDtoO ? 0 : feeDtoO, "test_Fuzz_CCIPReceive::6");
     }
 
     function test_Fuzz_Revert_CCIPReceive(
@@ -145,12 +164,12 @@ contract CustomReceiverTest is Test {
         uint64 sourceChainSelector,
         bytes memory sender,
         uint256 amountIn,
-        uint256 feeDtoO
+        uint128 feeDtoO
     ) public {
         vm.assume(sender.length > 0);
 
         amountIn = bound(amountIn, 0, 100e18);
-        feeDtoO = bound(feeDtoO, 1, 1e18);
+        feeDtoO = uint128(bound(feeDtoO, 1, 1e18));
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amountIn + feeDtoO});
@@ -159,7 +178,7 @@ contract CustomReceiverTest is Test {
             messageId: messageId,
             sourceChainSelector: sourceChainSelector,
             sender: sender,
-            data: FeeCodec.encodePackedData(l2Sender, amountIn, abi.encode(feeDtoO)),
+            data: FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encode(feeDtoO)),
             destTokenAmounts: tokenAmounts
         });
 
@@ -188,8 +207,7 @@ contract CustomReceiverTest is Test {
         vm.expectRevert(ICustomReceiver.CustomReceiverInvalidTokenAmounts.selector);
         receiver.retryFailedMessage(message);
 
-        message.destTokenAmounts = new Client.EVMTokenAmount[](1);
-        message.destTokenAmounts[0] = Client.EVMTokenAmount({token: address(1), amount: 0});
+        message.destTokenAmounts = new Client.EVMTokenAmount[](3);
 
         vm.prank(ccipRouter);
         receiver.ccipReceive(message);
@@ -202,7 +220,7 @@ contract CustomReceiverTest is Test {
         receiver.retryFailedMessage(message);
 
         message.destTokenAmounts = tokenAmounts;
-        message.data = FeeCodec.encodePackedData(l2Sender, amountIn + 1, abi.encode(feeDtoO));
+        message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn + 1, abi.encodePacked(feeDtoO, false));
 
         vm.prank(ccipRouter);
         receiver.ccipReceive(message);
@@ -213,12 +231,12 @@ contract CustomReceiverTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICustomReceiver.CustomReceiverInvalidNativeAmount.selector, amountIn + feeDtoO, amountIn + 1, feeDtoO
+                ICustomReceiver.CustomReceiverInvalidTokenAmount.selector, amountIn + feeDtoO, amountIn + 1 + feeDtoO
             )
         );
         receiver.retryFailedMessage(message);
 
-        message.data = FeeCodec.encodePackedData(l2Sender, amountIn, abi.encode(feeDtoO + 1));
+        message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO + 1, false));
 
         vm.prank(ccipRouter);
         receiver.ccipReceive(message);
@@ -229,18 +247,51 @@ contract CustomReceiverTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICustomReceiver.CustomReceiverInvalidNativeAmount.selector, amountIn + feeDtoO, amountIn, feeDtoO + 1
+                ICustomReceiver.CustomReceiverInvalidTokenAmount.selector, amountIn + feeDtoO, amountIn + feeDtoO + 1
             )
         );
         receiver.retryFailedMessage(message);
 
-        message.data = FeeCodec.encodePackedData(l2Sender, amountIn, abi.encode(feeDtoO));
+        tokenAmounts = new Client.EVMTokenAmount[](2);
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amountIn});
+        tokenAmounts[1] = Client.EVMTokenAmount({token: address(link), amount: feeDtoO});
+
+        message.destTokenAmounts = tokenAmounts;
+        message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn + 1, abi.encodePacked(feeDtoO, true));
 
         vm.prank(ccipRouter);
         receiver.ccipReceive(message);
 
         assertEq(
             receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::5"
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICustomReceiver.CustomReceiverInvalidTokenAmount.selector, amountIn, amountIn + 1)
+        );
+        receiver.retryFailedMessage(message);
+
+        message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO + 1, true));
+
+        vm.prank(ccipRouter);
+        receiver.ccipReceive(message);
+
+        assertEq(
+            receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::6"
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICustomReceiver.CustomReceiverInvalidFeeAmount.selector, feeDtoO + 1, feeDtoO)
+        );
+        receiver.retryFailedMessage(message);
+
+        message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO, false));
+
+        vm.prank(ccipRouter);
+        receiver.ccipReceive(message);
+
+        assertEq(
+            receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::7"
         );
 
         vm.expectRevert(
@@ -257,7 +308,7 @@ contract CustomReceiverTest is Test {
         receiver.ccipReceive(message);
 
         assertEq(
-            receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::6"
+            receiver.getFailedMessageHash(messageId), keccak256(abi.encode(message)), "test_Fuzz_Revert_CCIPReceive::8"
         );
 
         vm.expectRevert(abi.encodeWithSelector(ICustomReceiver.CustomReceiverNoAdapter.selector, sourceChainSelector));
@@ -336,7 +387,7 @@ contract MockReceiver is CustomReceiver {
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
     }
 
-    function _depositNative(uint256 amount) internal override returns (uint256) {
+    function _stakeToken(uint256 amount) internal override returns (uint256) {
         return MockVault(VAULT_TOKEN).depositNative{value: amount}(address(this));
     }
 

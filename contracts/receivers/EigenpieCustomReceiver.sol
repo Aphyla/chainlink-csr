@@ -45,9 +45,9 @@ contract EigenpieCustomReceiver is CustomReceiver {
     }
 
     /**
-     * @dev Deposits `amount` of native tokens into the stETH contract and returns the amount of wstETH received.
+     * @dev Stakes `amount` of native tokens into the stETH contract and returns the amount of wstETH received.
      */
-    function _depositNative(uint256 amount) internal override returns (uint256) {
+    function _stakeToken(uint256 amount) internal override returns (uint256) {
         uint256 balance = IERC20(EGETH).balanceOf(address(this));
 
         IEigenpieStaking(EGETH_STAKING).depositAsset{value: amount}(PLATFORM_TOKEN_ADDRESS, amount, 0, address(0));

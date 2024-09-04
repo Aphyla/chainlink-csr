@@ -6,7 +6,8 @@ import {ICCIPDefensiveReceiverUpgradeable} from "./ICCIPDefensiveReceiverUpgrade
 interface ICustomReceiver is ICCIPDefensiveReceiverUpgradeable {
     error CustomReceiverOnlyWNative();
     error CustomReceiverInvalidTokenAmounts();
-    error CustomReceiverInvalidNativeAmount(uint256 wnativeAmount, uint256 amount, uint256 feeAmount);
+    error CustomReceiverInvalidTokenAmount(uint256 amount, uint256 expectedAmount);
+    error CustomReceiverInvalidFeeAmount(uint256 feeAmount, uint256 expectedFeeAmount);
     error CustomReceiverNoAdapter(uint64 destChainSelector);
 
     event AdapterSet(uint64 indexed destChainSelector, address adapter);

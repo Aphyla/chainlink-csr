@@ -110,23 +110,39 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
      * - The native token amount must be equal to the amount plus the fee amount.
      */
     function _processMessage(Client.Any2EVMMessage calldata message) internal override {
-        if (message.destTokenAmounts.length != 1 || message.destTokenAmounts[0].token != WNATIVE) {
-            revert CustomReceiverInvalidTokenAmounts();
+        uint256 length = message.destTokenAmounts.length;
+        if (length == 0 || length > 2) revert CustomReceiverInvalidTokenAmounts();
+
+        (address recipient, uint256 amount, bytes calldata feeData) = FeeCodec.decodePackedData(message.data);
+
+        uint256 tokenAmount = message.destTokenAmounts[0].amount;
+        address token = message.destTokenAmounts[0].token;
+
+        uint256 nativeAmount;
+
+        if (length == 1) {
+            (uint256 feeAmount,) = FeeCodec.decodeFee(feeData);
+            uint256 total = amount + feeAmount;
+
+            if (tokenAmount != total) revert CustomReceiverInvalidTokenAmount(tokenAmount, total);
+
+            if (token == WNATIVE) nativeAmount = total;
+        } else {
+            uint256 expectedFeeAmount = message.destTokenAmounts[1].amount;
+
+            (uint256 feeAmount, bool payInLink) = FeeCodec.decodeFee(feeData);
+
+            if (tokenAmount != amount) revert CustomReceiverInvalidTokenAmount(tokenAmount, amount);
+            if (feeAmount != expectedFeeAmount) revert CustomReceiverInvalidFeeAmount(feeAmount, expectedFeeAmount);
+
+            nativeAmount = (token == WNATIVE ? amount : 0) + (payInLink ? 0 : feeAmount);
         }
 
-        uint256 wnativeAmount = message.destTokenAmounts[0].amount;
+        if (nativeAmount > 0) _unwrap(nativeAmount);
 
-        (address recipient, uint256 amount, bytes memory feeData) = FeeCodec.decodePackedData(message.data);
-        uint256 feeAmount = FeeCodec.decodeFee(feeData);
+        uint256 staked = _stakeToken(amount);
 
-        if (wnativeAmount != amount + feeAmount) {
-            revert CustomReceiverInvalidNativeAmount(wnativeAmount, amount, feeAmount);
-        }
-
-        IWNative(WNATIVE).withdraw(wnativeAmount);
-        uint256 toSend = _depositNative(amount);
-
-        _sendToken(message.sourceChainSelector, recipient, toSend, feeData);
+        _sendToken(message.sourceChainSelector, recipient, staked, feeData);
     }
 
     /**
@@ -137,7 +153,7 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
      *
      * - The adapter for the source chain selector must be set.
      */
-    function _sendToken(uint64 sourceChainSelector, address recipient, uint256 amount, bytes memory feeData)
+    function _sendToken(uint64 sourceChainSelector, address recipient, uint256 amount, bytes calldata feeData)
         internal
         virtual
     {
@@ -151,8 +167,15 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
     }
 
     /**
-     * @dev Deposits the native token into the staking contract.
-     * Must return the amount received after depositing the native token.
+     * @dev Unwraps the native token.
      */
-    function _depositNative(uint256 amount) internal virtual returns (uint256);
+    function _unwrap(uint256 amount) internal virtual {
+        IWNative(WNATIVE).withdraw(amount);
+    }
+
+    /**
+     * @dev Stakes the token in the staking contract.
+     * Must return the amount received after depositing the token.
+     */
+    function _stakeToken(uint256 amount) internal virtual returns (uint256);
 }
