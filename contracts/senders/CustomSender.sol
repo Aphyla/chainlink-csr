@@ -26,6 +26,9 @@ import {ICustomSender} from "../interfaces/ICustomSender.sol";
 contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
     using SafeERC20 for IERC20;
 
+    /* The minimum gas to process the message. */
+    uint32 public constant override MIN_PROCESS_MESSAGE_GAS = 75_000;
+
     bytes32 public constant override SYNC_ROLE = keccak256("SYNC_ROLE");
 
     address public immutable override TOKEN;
@@ -298,6 +301,8 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         }
 
         (uint256 maxFeeOtoD, bool payInLinkOtoD, uint256 gasLimitOtoD) = FeeCodec.decodeCCIP(feeOtoD);
+        if (gasLimitOtoD < MIN_PROCESS_MESSAGE_GAS) revert CustomSenderInsufficientGas();
+
         bytes memory packedData = FeeCodec.encodePackedData(recipient, amount, feeDtoO);
 
         messageId = _ccipSend(destChainSelector, tokenAmounts, payInLinkOtoD, maxFeeOtoD, gasLimitOtoD, packedData);

@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "../../../script/frax/FraxDeploy.s.sol";
 
-contract FraxDeployScriptTest is Test, FraxParameters {
+contract fork_FraxDeployScriptTest is Test, FraxParameters {
     FraxDeployScript public script;
 
     function setUp() public {

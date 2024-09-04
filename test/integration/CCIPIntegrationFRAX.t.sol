@@ -12,7 +12,7 @@ import "../../contracts/adapters/FraxFerryAdapterL1toL2.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
-contract CCIPIntegrationFRAXTest is Test, FraxParameters {
+contract fork_CCIPIntegrationFRAXTest is Test, FraxParameters {
     uint256 ethForkId;
     FraxCustomReceiver receiver;
     FraxFerryAdapterL1toL2 arbAdapter;

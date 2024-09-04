@@ -9,6 +9,7 @@ interface ICustomSender is ICCIPTrustedSenderUpgradeable {
     error CustomSenderOraclePoolNotSet();
     error CustomSenderZeroAmount();
     error CustomSenderInvalidParameters();
+    error CustomSenderInsufficientGas();
 
     event OraclePoolSet(address oraclePool);
     event SlowStake(
@@ -20,6 +21,7 @@ interface ICustomSender is ICCIPTrustedSenderUpgradeable {
     function TOKEN() external view returns (address);
     function WNATIVE() external view returns (address);
     function SYNC_ROLE() external view returns (bytes32);
+    function MIN_PROCESS_MESSAGE_GAS() external view returns (uint32);
     function getOraclePool() external view returns (address);
     function setOraclePool(address oraclePool) external;
     function slowStake(

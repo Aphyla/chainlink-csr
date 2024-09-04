@@ -223,6 +223,7 @@ contract CustomSenderTest is Test {
 
         amountIn = bound(amountIn, 1, 100e18);
         feeAmountDtoO = uint128(bound(feeAmountDtoO, 0, 10e18));
+        gasLimitOtoD = uint32(bound(gasLimitOtoD, sender.MIN_PROCESS_MESSAGE_GAS(), type(uint32).max));
 
         sender.setReceiver(destChainSelector, receiver);
 
@@ -296,6 +297,7 @@ contract CustomSenderTest is Test {
 
         amountIn = bound(amountIn, 1, 100e18);
         feeAmountDtoO = uint128(bound(feeAmountDtoO, 1, 10e18));
+        gasLimitOtoD = uint32(bound(gasLimitOtoD, sender.MIN_PROCESS_MESSAGE_GAS(), type(uint32).max));
 
         sender.setReceiver(destChainSelector, receiver);
 
@@ -361,7 +363,7 @@ contract CustomSenderTest is Test {
 
         sender.setReceiver(0, abi.encode(address(this)));
 
-        bytes memory feeOtoD = FeeCodec.encodeCCIP(feeAmountOtoD, false, 0);
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(feeAmountOtoD, false, sender.MIN_PROCESS_MESSAGE_GAS());
         bytes memory feeDtoO = abi.encodePacked(feeAmountDtoO, payInLinkDtoO);
 
         Client.EVMTokenAmount[] memory tokenAmounts;
@@ -374,7 +376,7 @@ contract CustomSenderTest is Test {
             data: FeeCodec.encodePackedDataMemory(address(this), amountIn, feeDtoO),
             tokenAmounts: tokenAmounts,
             feeToken: address(0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 0}))
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: sender.MIN_PROCESS_MESSAGE_GAS()}))
         });
 
         uint256 balance = address(this).balance;
@@ -408,7 +410,7 @@ contract CustomSenderTest is Test {
 
         sender.setReceiver(0, abi.encode(address(this)));
 
-        bytes memory feeOtoD = FeeCodec.encodeCCIP(feeAmountOtoD, false, 0);
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(feeAmountOtoD, false, sender.MIN_PROCESS_MESSAGE_GAS());
         bytes memory feeDtoO = abi.encodePacked(feeAmountDtoO, false);
 
         Client.EVMTokenAmount[] memory tokenAmounts;
@@ -421,7 +423,7 @@ contract CustomSenderTest is Test {
             data: FeeCodec.encodePackedDataMemory(address(this), amountIn, feeDtoO),
             tokenAmounts: tokenAmounts,
             feeToken: address(0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 0}))
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: sender.MIN_PROCESS_MESSAGE_GAS()}))
         });
 
         uint256 balance = address(this).balance;
@@ -491,6 +493,9 @@ contract CustomSenderTest is Test {
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 21));
         sender.slowStake(0, address(wnative), amountIn, new bytes(0), new bytes(17));
 
+        vm.expectRevert(ICustomSender.CustomSenderInsufficientGas.selector);
+        sender.slowStake(0, address(wnative), amountIn, new bytes(21), new bytes(17));
+
         sender = new CustomSender(
             address(badToken), address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this)
         );
@@ -512,6 +517,7 @@ contract CustomSenderTest is Test {
 
         amountToSync = bound(amountToSync, 1, 100e18);
         feeAmountDtoO = uint128(bound(feeAmountDtoO, 0, 10e18));
+        gasLimitOtoD = uint32(bound(gasLimitOtoD, sender.MIN_PROCESS_MESSAGE_GAS(), type(uint32).max));
 
         sender.setReceiver(destChainSelector, receiver);
         sender.grantRole(sender.SYNC_ROLE(), address(this));
@@ -612,6 +618,9 @@ contract CustomSenderTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 21));
         sender.sync(0, amountToSync, new bytes(0), new bytes(17));
+
+        vm.expectRevert(ICustomSender.CustomSenderInsufficientGas.selector);
+        sender.sync(0, amountToSync, new bytes(21), new bytes(17));
 
         vm.expectRevert(abi.encodeWithSelector(ICustomSender.CustomSenderInsufficientNativeBalance.selector, 1, 0));
         sender.sync(0, amountToSync, new bytes(17), abi.encodePacked(uint128(1), false));

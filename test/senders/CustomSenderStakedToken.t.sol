@@ -120,6 +120,7 @@ contract CustomSenderStakedTokenTest is Test {
 
         amountIn = bound(amountIn, 1, 100e18);
         feeAmountDtoO = uint128(bound(feeAmountDtoO, 0, 10e18));
+        gasLimitOtoD = uint32(bound(gasLimitOtoD, sender.MIN_PROCESS_MESSAGE_GAS(), type(uint32).max));
 
         sender.setReceiver(destChainSelector, receiver);
 
@@ -200,6 +201,7 @@ contract CustomSenderStakedTokenTest is Test {
 
         amountToSync = bound(amountToSync, 1, 100e18);
         feeAmountDtoO = uint128(bound(feeAmountDtoO, 0, 10e18));
+        gasLimitOtoD = uint32(bound(gasLimitOtoD, sender.MIN_PROCESS_MESSAGE_GAS(), type(uint32).max));
 
         sender.setReceiver(destChainSelector, receiver);
         sender.grantRole(sender.SYNC_ROLE(), address(this));

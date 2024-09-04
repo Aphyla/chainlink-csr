@@ -14,13 +14,15 @@ interface ICCIPDefensiveReceiverUpgradeable is ICCIPBaseUpgradeable, IAny2EVMMes
     error CCIPDefensiveReceiverUnauthorizedSender(bytes sender, bytes expectedSender);
     error CCIPDefensiveReceiverUnsupportedChain(uint64 destChainSelector);
     error CCIPDefensiveReceiverZeroAddress();
+    error CCIPDefensiveReceiverInsufficientGas();
 
     event SenderSet(uint64 indexed destChainSelector, bytes sender);
     event MessageSucceeded(bytes32 indexed messageId);
-    event MessageFailed(Client.Any2EVMMessage message, bytes error);
+    event MessageFailed(bytes32 indexed messageId, Client.Any2EVMMessage message);
     event MessageRecovered(bytes32 indexed messageId);
     event TokensRecovered(bytes32 indexed messageId);
 
+    function MIN_FAILED_MESSAGE_GAS() external view returns (uint32);
     function getFailedMessageHash(bytes32 messageId) external view returns (bytes32);
     function getSender(uint64 destChainSelector) external view returns (bytes memory);
     function processMessage(Client.Any2EVMMessage memory message) external;

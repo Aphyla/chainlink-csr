@@ -26,6 +26,9 @@ abstract contract CCIPDefensiveReceiverUpgradeable is
 {
     using SafeERC20 for IERC20;
 
+    /* The minimum gas to store the failed message. */
+    uint32 public constant override MIN_FAILED_MESSAGE_GAS = 45_000;
+
     /* @custom:storage-location erc7201:ccip-csr.storage.CCIPDefensiveReceiver */
     struct CCIPDefensiveReceiverStorage {
         mapping(uint64 destChainSelector => bytes sender) senders;
@@ -185,11 +188,17 @@ abstract contract CCIPDefensiveReceiverUpgradeable is
     function ccipReceive(Client.Any2EVMMessage calldata message) external override onlyCCIPRouter nonReentrant {
         _checkSender(message.sourceChainSelector, message.sender);
 
-        try this.processMessage(message) {
+        uint256 gasLimit = gasleft();
+        unchecked {
+            if (gasLimit < MIN_FAILED_MESSAGE_GAS) revert CCIPDefensiveReceiverInsufficientGas();
+            gasLimit -= MIN_FAILED_MESSAGE_GAS;
+        }
+
+        try this.processMessage{gas: gasLimit}(message) {
             emit MessageSucceeded(message.messageId);
-        } catch (bytes memory error) {
+        } catch {
             _getCCIPDefensiveReceiverStorage().failedHashes[message.messageId] = keccak256(abi.encode(message));
-            emit MessageFailed(message, error);
+            emit MessageFailed(message.messageId, message);
         }
     }
 

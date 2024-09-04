@@ -376,6 +376,44 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
 
         assertEq(receiver.supportsInterface(interfaceId), false, "test_Fuzz_SupportsInterface::4");
     }
+
+    function test_FailedHashesNotEnoughGas() public {
+        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](2); // The max is 2 tokens
+
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(type(uint160).max), amount: type(uint256).max});
+        tokenAmounts[1] = Client.EVMTokenAmount({token: address(type(uint160).max), amount: type(uint256).max});
+
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: bytes32(type(uint256).max),
+            sourceChainSelector: type(uint64).max,
+            sender: abi.encode(type(uint256).max),
+            data: new bytes(20 + 32 + 96), // 20 bytes for receiver, 32 bytes for amount, 96 bytes for feeData (shouldn't exceed this)
+            destTokenAmounts: tokenAmounts
+        });
+
+        receiver.setSender(message.sourceChainSelector, message.sender);
+
+        this.forwardMessageWithGas(message, 40_000);
+        assertEq(receiver.getFailedMessageHash(message.messageId), 0, "test_FailedHashesNotEnoughGas::1");
+
+        vm.prank(ccipRouter);
+        vm.expectRevert(ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverInsufficientGas.selector);
+        receiver.ccipReceive{gas: 60_000}(message);
+
+        vm.prank(ccipRouter);
+        receiver.ccipReceive{gas: 75_000}(message);
+
+        assertEq(
+            receiver.getFailedMessageHash(message.messageId),
+            keccak256(abi.encode(message)),
+            "test_FailedHashesNotEnoughGas::2"
+        );
+    }
+
+    function forwardMessageWithGas(Client.Any2EVMMessage calldata message, uint256 maxGas) external {
+        vm.prank(ccipRouter);
+        try receiver.ccipReceive{gas: maxGas}(message) {} catch {}
+    }
 }
 
 contract MockCCIPReceiver is CCIPDefensiveReceiverUpgradeable {

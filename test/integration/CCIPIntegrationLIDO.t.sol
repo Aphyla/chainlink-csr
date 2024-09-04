@@ -14,7 +14,7 @@ import "../../contracts/adapters/BaseAdapterL1toL2.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
-contract CCIPIntegrationLIDOTest is Test, LidoParameters {
+contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
     uint256 ethForkId;
     LidoCustomReceiver receiver;
     ArbitrumLegacyAdapterL1toL2 arbAdapter;

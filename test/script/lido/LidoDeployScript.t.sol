@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "../../../script/lido/LidoDeploy.s.sol";
 
-contract LidoDeployScriptTest is Test, LidoParameters {
+contract fork_LidoDeployScriptTest is Test, LidoParameters {
     LidoDeployScript public script;
 
     function setUp() public {
