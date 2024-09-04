@@ -3,155 +3,299 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/libraries/FeeCodec.sol";
+import "./FeeCodecHelper.sol";
 
 contract FeeCodecTest is Test {
-    function test_Fuzz_EncodePackedData(address recipient, uint256 amount, bytes memory feeData) public pure {
-        bytes memory packedData = FeeCodec.encodePackedData(recipient, amount, feeData);
+    FeeCodecHelper feeCodecHelper;
 
-        (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
-            FeeCodec.decodePackedData(packedData);
+    function setUp() public {
+        feeCodecHelper = new FeeCodecHelper();
+    }
 
-        assertEq(recipient, decodedRecipient, "test_Fuzz_EncodePackedData::1");
-        assertEq(amount, decodedAmount, "test_Fuzz_EncodePackedData::2");
-        assertEq(feeData, decodedFeeData, "test_Fuzz_EncodePackedData::3");
+    function test_Fuzz_EncodePackedData(address recipient, uint256 amount, bytes memory feeData) public view {
+        {
+            bytes memory packedData = feeCodecHelper.encodePackedData(recipient, amount, feeData);
+
+            {
+                (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
+                    feeCodecHelper.decodePackedData(packedData);
+
+                assertEq(recipient, decodedRecipient, "test_Fuzz_EncodePackedData::1");
+                assertEq(amount, decodedAmount, "test_Fuzz_EncodePackedData::2");
+                assertEq(feeData, decodedFeeData, "test_Fuzz_EncodePackedData::3");
+            }
+
+            {
+                (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
+                    FeeCodec.decodePackedDataMemory(packedData);
+
+                assertEq(recipient, decodedRecipient, "test_Fuzz_EncodePackedData::4");
+                assertEq(amount, decodedAmount, "test_Fuzz_EncodePackedData::5");
+                assertEq(feeData, decodedFeeData, "test_Fuzz_EncodePackedData::6");
+            }
+        }
+
+        {
+            bytes memory packedData = FeeCodec.encodePackedDataMemory(recipient, amount, feeData);
+
+            {
+                (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
+                    feeCodecHelper.decodePackedData(packedData);
+
+                assertEq(recipient, decodedRecipient, "test_Fuzz_EncodePackedData::7");
+                assertEq(amount, decodedAmount, "test_Fuzz_EncodePackedData::8");
+                assertEq(feeData, decodedFeeData, "test_Fuzz_EncodePackedData::9");
+            }
+
+            {
+                (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
+                    FeeCodec.decodePackedDataMemory(packedData);
+
+                assertEq(recipient, decodedRecipient, "test_Fuzz_EncodePackedData::10");
+                assertEq(amount, decodedAmount, "test_Fuzz_EncodePackedData::11");
+                assertEq(feeData, decodedFeeData, "test_Fuzz_EncodePackedData::12");
+            }
+        }
     }
 
     function test_Fuzz_Revert_DecodePackedData(bytes memory feeData) public {
-        uint256 length = feeData.length > 127 ? 127 : feeData.length;
+        uint256 length = feeData.length > 51 ? 51 : feeData.length;
 
         assembly {
             mstore(feeData, length)
         }
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 128));
-        FeeCodec.decodePackedData(feeData);
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 52));
+        feeCodecHelper.decodePackedData(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 52));
+        FeeCodec.decodePackedDataMemory(feeData);
     }
 
-    function test_Fuzz_DecodeFee(uint256 feeAmount, bytes memory additionalData) public pure {
-        bytes memory feeData = abi.encodePacked(feeAmount, additionalData);
+    function test_Fuzz_DecodeFee(uint128 feeAmount, bool payInLink, bytes memory additionalData) public view {
+        bytes memory feeData = abi.encodePacked(feeAmount, payInLink, additionalData);
 
-        uint256 decodedFeeAmount = FeeCodec.decodeFee(feeData);
+        {
+            (uint128 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeFee(feeData);
 
-        assertEq(feeAmount, decodedFeeAmount, "test_Fuzz_DecodeFee::1");
+            assertEq(feeAmount, decodedFeeAmount, "test_Fuzz_DecodeFee::1");
+            assertEq(payInLink, decodedPayInLink, "test_Fuzz_DecodeFee::2");
+        }
+
+        {
+            (uint128 decodedFeeAmount, bool decodedPayInLink) = FeeCodec.decodeFeeMemory(feeData);
+
+            assertEq(feeAmount, decodedFeeAmount, "test_Fuzz_DecodeFee::3");
+            assertEq(payInLink, decodedPayInLink, "test_Fuzz_DecodeFee::4");
+        }
     }
 
     function test_Fuzz_Revert_DecodeFee(bytes memory feeData) public {
-        uint256 length = feeData.length > 31 ? 31 : feeData.length;
+        uint256 length = feeData.length > 16 ? 16 : feeData.length;
 
         assembly {
             mstore(feeData, length)
         }
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 32));
-        FeeCodec.decodeFee(feeData);
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        feeCodecHelper.decodeFee(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        FeeCodec.decodeFeeMemory(feeData);
     }
 
-    function test_Fuzz_EncodeCCIP(uint256 maxFee, bool payInLink, uint256 gasLimit) public pure {
-        bytes memory feeData = FeeCodec.encodeCCIP(maxFee, payInLink, gasLimit);
+    function test_Fuzz_EncodeCCIP(uint128 maxFee, bool payInLink, uint32 gasLimit) public view {
+        bytes memory feeData = feeCodecHelper.encodeCCIP(maxFee, payInLink, gasLimit);
 
-        (uint256 decodedMaxFee, bool decodedPayInLink, uint256 decodedGasLimit) = FeeCodec.decodeCCIP(feeData);
+        {
+            (uint256 decodedMaxFee, bool decodedPayInLink, uint256 decodedGasLimit) = feeCodecHelper.decodeCCIP(feeData);
 
-        assertEq(maxFee, decodedMaxFee, "test_Fuzz_EncodeCCIP::1");
-        assertEq(payInLink, decodedPayInLink, "test_Fuzz_EncodeCCIP::2");
-        assertEq(gasLimit, decodedGasLimit, "test_Fuzz_EncodeCCIP::3");
+            assertEq(maxFee, decodedMaxFee, "test_Fuzz_EncodeCCIP::1");
+            assertEq(payInLink, decodedPayInLink, "test_Fuzz_EncodeCCIP::2");
+            assertEq(gasLimit, decodedGasLimit, "test_Fuzz_EncodeCCIP::3");
+        }
+
+        {
+            (uint256 decodedMaxFee, bool decodedPayInLink, uint256 decodedGasLimit) = FeeCodec.decodeCCIPMemory(feeData);
+
+            assertEq(maxFee, decodedMaxFee, "test_Fuzz_EncodeCCIP::4");
+            assertEq(payInLink, decodedPayInLink, "test_Fuzz_EncodeCCIP::5");
+            assertEq(gasLimit, decodedGasLimit, "test_Fuzz_EncodeCCIP::6");
+        }
     }
 
     function test_Fuzz_Revert_DecodeCCIP(bytes memory feeData) public {
-        uint256 length = feeData.length > 95 ? 95 : feeData.length;
+        uint256 length = feeData.length > 20 ? 20 : feeData.length;
 
         assembly {
             mstore(feeData, length)
         }
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 96));
-        FeeCodec.decodeCCIP(feeData);
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
+        feeCodecHelper.decodeCCIP(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
+        FeeCodec.decodeCCIPMemory(feeData);
     }
 
-    function test_Fuzz_EncodeArbitrumL1toL2(uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid)
-        public
-        pure
-    {
-        maxGas = bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint256).max - maxSubmissionCost) / gasPriceBid);
+    function test_Fuzz_EncodeArbitrumL1toL2(uint128 maxSubmissionCost, uint32 maxGas, uint64 gasPriceBid) public view {
+        maxGas =
+            uint32(bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint128).max - maxSubmissionCost) / gasPriceBid));
 
-        bytes memory feeData = FeeCodec.encodeArbitrumL1toL2(maxSubmissionCost, maxGas, gasPriceBid);
+        bytes memory feeData = feeCodecHelper.encodeArbitrumL1toL2(maxSubmissionCost, maxGas, gasPriceBid);
 
-        (uint256 decodedFeeAmount, uint256 decodedMaxSubmissionCost, uint256 decodedMaxGas, uint256 decodedGasPriceBid)
-        = FeeCodec.decodeArbitrumL1toL2(feeData);
+        {
+            (
+                uint256 decodedFeeAmount,
+                bool decodedPayInLink,
+                uint256 decodedMaxSubmissionCost,
+                uint256 decodedMaxGas,
+                uint256 decodedGasPriceBid
+            ) = feeCodecHelper.decodeArbitrumL1toL2(feeData);
 
-        assertEq(maxSubmissionCost + gasPriceBid * maxGas, decodedFeeAmount, "test_Fuzz_EncodeArbitrumL1toL2::1");
-        assertEq(maxSubmissionCost, decodedMaxSubmissionCost, "test_Fuzz_EncodeArbitrumL1toL2::2");
-        assertEq(maxGas, decodedMaxGas, "test_Fuzz_EncodeArbitrumL1toL2::3");
-        assertEq(gasPriceBid, decodedGasPriceBid, "test_Fuzz_EncodeArbitrumL1toL2::4");
+            assertEq(
+                maxSubmissionCost + uint128(gasPriceBid) * maxGas, decodedFeeAmount, "test_Fuzz_EncodeArbitrumL1toL2::1"
+            );
+            assertEq(false, decodedPayInLink, "test_Fuzz_EncodeArbitrumL1toL2::2");
+            assertEq(maxSubmissionCost, decodedMaxSubmissionCost, "test_Fuzz_EncodeArbitrumL1toL2::3");
+            assertEq(maxGas, decodedMaxGas, "test_Fuzz_EncodeArbitrumL1toL2::4");
+            assertEq(gasPriceBid, decodedGasPriceBid, "test_Fuzz_EncodeArbitrumL1toL2::5");
+        }
+
+        {
+            (
+                uint256 decodedFeeAmount,
+                bool decodedPayInLink,
+                uint256 decodedMaxSubmissionCost,
+                uint256 decodedMaxGas,
+                uint256 decodedGasPriceBid
+            ) = FeeCodec.decodeArbitrumL1toL2Memory(feeData);
+
+            assertEq(
+                maxSubmissionCost + uint128(gasPriceBid) * maxGas, decodedFeeAmount, "test_Fuzz_EncodeArbitrumL1toL2::6"
+            );
+            assertEq(false, decodedPayInLink, "test_Fuzz_EncodeArbitrumL1toL2::7");
+            assertEq(maxSubmissionCost, decodedMaxSubmissionCost, "test_Fuzz_EncodeArbitrumL1toL2::8");
+            assertEq(maxGas, decodedMaxGas, "test_Fuzz_EncodeArbitrumL1toL2::9");
+            assertEq(gasPriceBid, decodedGasPriceBid, "test_Fuzz_EncodeArbitrumL1toL2::10");
+        }
     }
 
     function test_Fuzz_Revert_DecodeArbitrumL1toL2(bytes memory feeData) public {
-        uint256 length = feeData.length > 127 ? 127 : feeData.length;
+        uint256 length = feeData.length > 28 ? 28 : feeData.length;
 
         assembly {
             mstore(feeData, length)
         }
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 128));
-        FeeCodec.decodeArbitrumL1toL2(feeData);
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 29));
+        feeCodecHelper.decodeArbitrumL1toL2(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 29));
+        FeeCodec.decodeArbitrumL1toL2Memory(feeData);
     }
 
-    function test_Fuzz_EncodeOptimismL1toL2(uint32 l2Gas) public pure {
-        bytes memory feeData = FeeCodec.encodeOptimismL1toL2(l2Gas);
+    function test_Fuzz_EncodeOptimismL1toL2(uint32 l2Gas) public view {
+        bytes memory feeData = feeCodecHelper.encodeOptimismL1toL2(l2Gas);
 
-        (uint256 decodedFeeAmount, uint256 decodedL2Gas) = FeeCodec.decodeOptimismL1toL2(feeData);
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink, uint256 decodedL2Gas) =
+                feeCodecHelper.decodeOptimismL1toL2(feeData);
 
-        assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeOptimismL1toL2::1");
-        assertEq(l2Gas, decodedL2Gas, "test_Fuzz_EncodeOptimismL1toL2::2");
+            assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeOptimismL1toL2::1");
+            assertEq(false, decodedPayInLink, "test_Fuzz_EncodeOptimismL1toL2::2");
+            assertEq(l2Gas, decodedL2Gas, "test_Fuzz_EncodeOptimismL1toL2::3");
+        }
+
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink, uint256 decodedL2Gas) =
+                FeeCodec.decodeOptimismL1toL2Memory(feeData);
+
+            assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeOptimismL1toL2::4");
+            assertEq(false, decodedPayInLink, "test_Fuzz_EncodeOptimismL1toL2::5");
+            assertEq(l2Gas, decodedL2Gas, "test_Fuzz_EncodeOptimismL1toL2::6");
+        }
     }
 
     function test_Fuzz_Revert_DecodeOptimismL1toL2(bytes memory feeData) public {
-        uint256 length = feeData.length > 63 ? 63 : feeData.length;
+        uint256 length = feeData.length > 20 ? 20 : feeData.length;
 
         assembly {
             mstore(feeData, length)
         }
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 64));
-        FeeCodec.decodeOptimismL1toL2(feeData);
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
+        feeCodecHelper.decodeOptimismL1toL2(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
+        FeeCodec.decodeOptimismL1toL2Memory(feeData);
     }
 
-    function test_Fuzz_EncodeBaseL1toL2(uint32 l2Gas) public pure {
-        bytes memory feeData = FeeCodec.encodeBaseL1toL2(l2Gas);
+    function test_Fuzz_EncodeBaseL1toL2(uint32 l2Gas) public view {
+        bytes memory feeData = feeCodecHelper.encodeBaseL1toL2(l2Gas);
 
-        (uint256 decodedFeeAmount, uint256 decodedL2Gas) = FeeCodec.decodeBaseL1toL2(feeData);
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink, uint256 decodedL2Gas) =
+                feeCodecHelper.decodeBaseL1toL2(feeData);
 
-        assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeBaseL1toL2::1");
-        assertEq(l2Gas, decodedL2Gas, "test_Fuzz_EncodeBaseL1toL2::2");
+            assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeBaseL1toL2::1");
+            assertEq(false, decodedPayInLink, "test_Fuzz_EncodeBaseL1toL2::2");
+            assertEq(l2Gas, decodedL2Gas, "test_Fuzz_EncodeBaseL1toL2::3");
+        }
+
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink, uint256 decodedL2Gas) =
+                FeeCodec.decodeBaseL1toL2Memory(feeData);
+
+            assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeBaseL1toL2::4");
+            assertEq(false, decodedPayInLink, "test_Fuzz_EncodeBaseL1toL2::5");
+            assertEq(l2Gas, decodedL2Gas, "test_Fuzz_EncodeBaseL1toL2::6");
+        }
     }
 
     function test_Fuzz_Revert_DecodeBaseL1toL2(bytes memory feeData) public {
-        uint256 length = feeData.length > 63 ? 63 : feeData.length;
+        uint256 length = feeData.length > 20 ? 20 : feeData.length;
 
         assembly {
             mstore(feeData, length)
         }
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 64));
-        FeeCodec.decodeBaseL1toL2(feeData);
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
+        feeCodecHelper.decodeBaseL1toL2(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
+        FeeCodec.decodeBaseL1toL2Memory(feeData);
     }
 
-    function test_EncodeFraxFerryL1toL2() public pure {
-        bytes memory feeData = FeeCodec.encodeFraxFerryL1toL2();
+    function test_EncodeFraxFerryL1toL2() public view {
+        bytes memory feeData = feeCodecHelper.encodeFraxFerryL1toL2();
 
-        uint256 decodedFeeAmount = FeeCodec.decodeFraxFerryL1toL2(feeData);
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeFraxFerryL1toL2(feeData);
 
-        assertEq(0, decodedFeeAmount, "test_EncodeFraxFerryL1toL2::1");
+            assertEq(0, decodedFeeAmount, "test_EncodeFraxFerryL1toL2::1");
+            assertEq(false, decodedPayInLink, "test_EncodeFraxFerryL1toL2::2");
+        }
+
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink) = FeeCodec.decodeFraxFerryL1toL2Memory(feeData);
+
+            assertEq(0, decodedFeeAmount, "test_EncodeFraxFerryL1toL2::3");
+            assertEq(false, decodedPayInLink, "test_EncodeFraxFerryL1toL2::4");
+        }
     }
 
     function test_Revert_DecodeFraxFerryL1toL2(bytes memory feeData) public {
-        uint256 length = feeData.length > 31 ? 31 : feeData.length;
+        uint256 length = feeData.length > 16 ? 16 : feeData.length;
 
         assembly {
             mstore(feeData, length)
         }
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 32));
-        FeeCodec.decodeFraxFerryL1toL2(feeData);
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        feeCodecHelper.decodeFraxFerryL1toL2(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        FeeCodec.decodeFraxFerryL1toL2Memory(feeData);
     }
 }
