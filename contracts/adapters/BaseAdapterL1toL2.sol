@@ -16,6 +16,7 @@ contract BaseAdapterL1toL2 is BridgeAdapter {
 
     /* Error thrown when the fee amount is invalid */
     error BaseAdapterL1toL2InvalidFeeAmount(uint256 expectedFeeAmount, uint256 feeAmount);
+    error BaseAdapterL1toL2InvalidFeeToken();
 
     address public immutable L1_STANDARD_BRIDGE;
     address public immutable L1_TOKEN;
@@ -44,9 +45,10 @@ contract BaseAdapterL1toL2 is BridgeAdapter {
      *
      * - The fee amount must be equal to the expected fee amount (always 0).
      */
-    function _sendToken(uint64, address to, uint256 amount, bytes memory feeData) internal override {
-        (uint256 feeAmount, uint32 l2Gas) = FeeCodec.decodeBaseL1toL2(feeData);
+    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override {
+        (uint256 feeAmount, bool payInLink, uint32 l2Gas) = FeeCodec.decodeBaseL1toL2(feeData);
 
+        if (payInLink) revert BaseAdapterL1toL2InvalidFeeToken();
         if (feeAmount != 0) revert BaseAdapterL1toL2InvalidFeeAmount(feeAmount, 0);
 
         IERC20(L1_TOKEN).forceApprove(L1_STANDARD_BRIDGE, amount);

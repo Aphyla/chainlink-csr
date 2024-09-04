@@ -16,8 +16,6 @@ import {CCIPSenderUpgradeable, Client, CCIPBaseUpgradeable} from "../ccip/CCIPSe
 contract CCIPAdapter is BridgeAdapter, CCIPSenderUpgradeable {
     using SafeERC20 for IERC20;
 
-    error CCIPAdapterPayInLinkNotSupported();
-
     address public immutable L1_TOKEN;
 
     /**
@@ -43,18 +41,18 @@ contract CCIPAdapter is BridgeAdapter, CCIPSenderUpgradeable {
      *
      * - The fee must be paid in native token.
      */
-    function _sendToken(uint64 destChainSelector, address to, uint256 amount, bytes memory feeData) internal override {
+    function _sendToken(uint64 destChainSelector, address to, uint256 amount, bytes calldata feeData)
+        internal
+        override
+    {
         (uint256 maxFee, bool payInLink, uint256 gasLimit) = FeeCodec.decodeCCIP(feeData);
-
-        if (payInLink) revert CCIPAdapterPayInLinkNotSupported();
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: L1_TOKEN, amount: amount});
 
-        IERC20(L1_TOKEN).forceApprove(CCIP_ROUTER, amount);
-
-        bytes32 messageId =
-            _ccipSendTo(destChainSelector, abi.encode(to), tokenAmounts, payInLink, maxFee, gasLimit, new bytes(0));
+        bytes32 messageId = _ccipSendTo(
+            destChainSelector, address(this), abi.encode(to), tokenAmounts, payInLink, maxFee, gasLimit, new bytes(0)
+        );
 
         emit CCIPMessageSent(messageId);
     }

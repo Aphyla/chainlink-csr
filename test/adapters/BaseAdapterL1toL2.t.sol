@@ -55,13 +55,20 @@ contract BaseAdapterL1toL2Test is Test {
         );
     }
 
-    function test_Fuzz_Revert_SendToken(address msgSender, uint256 amount, uint32 l2Gas) public {
-        amount = bound(amount, 1, type(uint256).max);
+    function test_Fuzz_Revert_SendToken(address msgSender, uint128 amount, uint32 l2Gas) public {
+        amount = uint128(bound(amount, 1, type(uint128).max));
 
-        bytes memory feeData = abi.encode(amount, l2Gas);
+        bytes memory feeData = abi.encodePacked(uint128(0), true, uint32(0));
+
+        vm.expectRevert(BaseAdapterL1toL2.BaseAdapterL1toL2InvalidFeeToken.selector);
+        receiver.sendToken(uint64(0), recipient, amount, feeData);
+
+        feeData = abi.encodePacked(uint128(amount), false, uint32(0));
 
         vm.expectRevert(abi.encodeWithSelector(BaseAdapterL1toL2.BaseAdapterL1toL2InvalidFeeAmount.selector, amount, 0));
         receiver.sendToken(uint64(0), recipient, amount, feeData);
+
+        feeData = FeeCodec.encodeBaseL1toL2(l2Gas);
 
         vm.expectRevert(IBridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(msgSender);

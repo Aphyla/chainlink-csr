@@ -19,8 +19,8 @@ contract CCIPAdapterTest is Test {
     MockCCIPRouter public ccipRouter;
     MockERC20 public token;
 
-    uint256 public constant LINK_FEE = 1e18;
-    uint256 public constant NATIVE_FEE = 0.01e18;
+    uint128 public constant LINK_FEE = 1e18;
+    uint128 public constant NATIVE_FEE = 0.01e18;
 
     address public recipient = makeAddr("recipient");
 
@@ -49,8 +49,9 @@ contract CCIPAdapterTest is Test {
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::4");
     }
 
-    function test_Fuzz_sendToken(uint64 sourceChainSelector, uint256 amount, uint256 maxFee, uint256 maxGas) public {
-        maxFee = bound(maxFee, NATIVE_FEE, type(uint256).max);
+    function test_Fuzz_sendToken(uint64 sourceChainSelector, uint256 amount, uint128 maxFee, uint32 maxGas) public {
+        maxFee = uint128(bound(maxFee, NATIVE_FEE, type(uint128).max));
+        amount = bound(amount, 1, type(uint256).max);
 
         bytes memory feeData = FeeCodec.encodeCCIP(maxFee, false, maxGas);
 
@@ -74,11 +75,8 @@ contract CCIPAdapterTest is Test {
         assertEq(ccipRouter.data(), abi.encode(sourceChainSelector, message), "test_Fuzz_sendToken::2");
     }
 
-    function test_Fuzz_Revert_sendToken(uint256 maxFee, uint256 maxGas) public {
-        vm.expectRevert(CCIPAdapter.CCIPAdapterPayInLinkNotSupported.selector);
-        receiver.sendToken(0, address(0), 0, FeeCodec.encodeCCIP(0, true, 0));
-
-        maxFee = bound(maxFee, 0, NATIVE_FEE - 1);
+    function test_Fuzz_Revert_sendToken(uint128 maxFee, uint32 maxGas) public {
+        maxFee = uint128(bound(maxFee, 0, NATIVE_FEE - 1));
 
         vm.expectRevert(
             abi.encodeWithSelector(ICCIPSenderUpgradeable.CCIPSenderExceedsMaxFee.selector, NATIVE_FEE, maxFee)

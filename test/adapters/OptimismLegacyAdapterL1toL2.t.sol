@@ -59,10 +59,17 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
         assertEq(IERC20(l1Token).allowance(address(receiver), address(l1ERC20Bridge)), amount, "test_Fuzz_SendToken::2");
     }
 
-    function test_Fuzz_Revert_SendToken(address msgSender, uint256 amount, uint32 l2Gas) public {
-        amount = bound(amount, 1, type(uint256).max);
+    function test_Fuzz_Revert_SendToken(address msgSender, uint128 amount, uint32 l2Gas) public {
+        amount = uint128(bound(amount, 1, type(uint128).max));
 
-        bytes memory feeData = abi.encode(amount, l2Gas);
+        bytes memory feeData = abi.encodePacked(uint128(0), true, uint32(0));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(OptimismLegacyAdapterL1toL2.OptimismLegacyAdapterL1toL2InvalidFeeToken.selector)
+        );
+        receiver.sendToken(uint64(0), recipient, amount, feeData);
+
+        feeData = abi.encodePacked(amount, false, uint32(0));
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -70,6 +77,8 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
             )
         );
         receiver.sendToken(uint64(0), recipient, amount, feeData);
+
+        feeData = FeeCodec.encodeOptimismL1toL2(l2Gas);
 
         vm.expectRevert(IBridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(msgSender);

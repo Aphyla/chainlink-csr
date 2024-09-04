@@ -11,5 +11,5 @@ interface IBridgeAdapter {
     event ArbitrumL1toL2MessageSent(bytes32 messageId);
     event CCIPMessageSent(bytes32 messageId);
 
-    function sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes memory feeData) external;
+    function sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes calldata feeData) external;
 }

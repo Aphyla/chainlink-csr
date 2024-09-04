@@ -39,7 +39,7 @@ abstract contract BridgeAdapter is IBridgeAdapter {
      *
      * - The function must be delegate called by the delegator contract.
      */
-    function sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes memory feeData)
+    function sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes calldata feeData)
         external
         override
         onlyDelegatedByDelegator
@@ -50,7 +50,7 @@ abstract contract BridgeAdapter is IBridgeAdapter {
     /**
      * @dev Internal function to send `amount` of tokens to `recipient` with `feeData`.
      */
-    function _sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes memory feeData)
+    function _sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes calldata feeData)
         internal
         virtual;
 }

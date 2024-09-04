@@ -49,15 +49,22 @@ contract FraxFerryAdapterL1toL2Test is Test {
         assertEq(IERC20(token).allowance(address(receiver), address(fraxFerry)), amount, "test_Fuzz_SendToken::2");
     }
 
-    function test_Fuzz_Revert_SendToken(address msgSender, uint256 amount) public {
-        amount = bound(amount, 1, type(uint256).max);
+    function test_Fuzz_Revert_SendToken(address msgSender, uint128 amount) public {
+        amount = uint128(bound(amount, 1, type(uint128).max));
 
-        bytes memory feeData = abi.encode(amount);
+        bytes memory feeData = abi.encodePacked(uint128(0), true);
+
+        vm.expectRevert(abi.encodeWithSelector(FraxFerryAdapterL1toL2.FraxFerryAdapterL1toL2InvalidFeeToken.selector));
+        receiver.sendToken(uint64(0), recipient, amount, feeData);
+
+        feeData = abi.encodePacked(amount, false);
 
         vm.expectRevert(
             abi.encodeWithSelector(FraxFerryAdapterL1toL2.FraxFerryAdapterL1toL2InvalidFeeAmount.selector, amount, 0)
         );
         receiver.sendToken(uint64(0), recipient, amount, feeData);
+
+        feeData = FeeCodec.encodeFraxFerryL1toL2();
 
         vm.expectRevert(IBridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(msgSender);

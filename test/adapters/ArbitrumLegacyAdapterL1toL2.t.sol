@@ -38,13 +38,12 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::4");
     }
 
-    function test_Fuzz_sendToken(uint256 amount, uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid)
-        public
-    {
-        maxGas = bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint256).max - maxSubmissionCost) / gasPriceBid);
+    function test_Fuzz_sendToken(uint256 amount, uint128 maxSubmissionCost, uint32 maxGas, uint64 gasPriceBid) public {
+        maxGas =
+            uint32(bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint128).max - maxSubmissionCost) / gasPriceBid));
 
         bytes memory feeData = FeeCodec.encodeArbitrumL1toL2(maxSubmissionCost, maxGas, gasPriceBid);
-        uint256 msgValue = maxSubmissionCost + gasPriceBid * maxGas;
+        uint256 msgValue = maxSubmissionCost + uint128(gasPriceBid) * maxGas;
 
         vm.deal(address(receiver), msgValue);
         receiver.sendToken(uint64(0), recipient, amount, feeData);
@@ -68,26 +67,22 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         );
     }
 
-    function test_Fuzz_Revert_sendToken(
+    function test_Fuzz_Revert_SendToken(
         address msgSender,
         uint256 amount,
-        uint256 maxSubmissionCost,
-        uint256 maxGas,
-        uint256 gasPriceBid
+        uint128 maxSubmissionCost,
+        uint32 maxGas,
+        uint64 gasPriceBid
     ) public {
-        maxSubmissionCost = bound(maxSubmissionCost, 1, type(uint256).max);
-        maxGas = bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint256).max - maxSubmissionCost) / gasPriceBid);
+        maxGas =
+            uint32(bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint128).max - maxSubmissionCost) / gasPriceBid));
 
-        uint256 msgValue = maxSubmissionCost + gasPriceBid * maxGas;
+        bytes memory feeData = abi.encodePacked(uint128(0), true, uint32(0), uint64(0));
 
-        bytes memory feeData = abi.encode(msgValue - 1, maxSubmissionCost, maxGas, gasPriceBid);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ArbitrumLegacyAdapterL1toL2.ArbitrumLegacyAdapterL1toL2InvalidFeeAmount.selector, msgValue - 1, msgValue
-            )
-        );
+        vm.expectRevert(ArbitrumLegacyAdapterL1toL2.ArbitrumLegacyAdapterL1toL2InvalidFeeToken.selector);
         receiver.sendToken(uint64(0), recipient, amount, feeData);
+
+        feeData = FeeCodec.encodeArbitrumL1toL2(maxSubmissionCost, maxGas, gasPriceBid);
 
         vm.expectRevert(IBridgeAdapter.BridgeAdapterOnlyDelegatedByDelegator.selector);
         vm.prank(msgSender);

@@ -16,6 +16,7 @@ contract FraxFerryAdapterL1toL2 is BridgeAdapter {
 
     /* Error thrown when the fee amount is invalid */
     error FraxFerryAdapterL1toL2InvalidFeeAmount(uint256 expectedFeeAmount, uint256 feeAmount);
+    error FraxFerryAdapterL1toL2InvalidFeeToken();
 
     address public immutable FRAX_FERRY;
     address public immutable TOKEN;
@@ -38,9 +39,10 @@ contract FraxFerryAdapterL1toL2 is BridgeAdapter {
      *
      * - The fee amount must be equal to the expected fee amount (always 0).
      */
-    function _sendToken(uint64, address to, uint256 amount, bytes memory feeData) internal override {
-        uint256 feeAmount = FeeCodec.decodeFraxFerryL1toL2(feeData);
+    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override {
+        (uint256 feeAmount, bool payInLink) = FeeCodec.decodeFraxFerryL1toL2(feeData);
 
+        if (payInLink) revert FraxFerryAdapterL1toL2InvalidFeeToken();
         if (feeAmount != 0) revert FraxFerryAdapterL1toL2InvalidFeeAmount(feeAmount, 0);
 
         IERC20(TOKEN).forceApprove(FRAX_FERRY, amount);

@@ -15,7 +15,7 @@ contract ArbitrumLegacyAdapterL1toL2 is BridgeAdapter {
     using SafeERC20 for IERC20;
 
     /* Error thrown when the fee amount is invalid */
-    error ArbitrumLegacyAdapterL1toL2InvalidFeeAmount(uint256 feeAmount, uint256 expectedFeeAmount);
+    error ArbitrumLegacyAdapterL1toL2InvalidFeeToken();
 
     address public immutable L1_GATEWAY_ROUTER;
     address public immutable L1_TOKEN;
@@ -42,14 +42,11 @@ contract ArbitrumLegacyAdapterL1toL2 is BridgeAdapter {
      *
      * - The fee amount must be equal to the expected fee amount (maxSubmissionCost + gasPriceBid * maxGas).
      */
-    function _sendToken(uint64, address to, uint256 amount, bytes memory feeData) internal override {
-        (uint256 feeAmount, uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid) =
+    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override {
+        (uint256 feeAmount, bool payInLink, uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid) =
             FeeCodec.decodeArbitrumL1toL2(feeData);
-        uint256 expectedFeeAmount = maxSubmissionCost + gasPriceBid * maxGas;
 
-        if (feeAmount != expectedFeeAmount) {
-            revert ArbitrumLegacyAdapterL1toL2InvalidFeeAmount(feeAmount, expectedFeeAmount);
-        }
+        if (payInLink) revert ArbitrumLegacyAdapterL1toL2InvalidFeeToken();
 
         IERC20(L1_TOKEN).forceApprove(L1_TOKEN_GATEWAY, amount);
 
