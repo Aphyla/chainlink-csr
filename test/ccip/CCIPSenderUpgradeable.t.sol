@@ -15,8 +15,8 @@ contract CCIPSenderUpgradeableTest is Test {
     MockCCIPRouter ccipRouter;
     MockERC20 public linkToken;
 
-    uint256 public constant LINK_FEE = 1e18;
-    uint256 public constant NATIVE_FEE = 0.01e18;
+    uint128 public constant LINK_FEE = 1e18;
+    uint128 public constant NATIVE_FEE = 0.01e18;
 
     function setUp() public {
         linkToken = new MockERC20("LINK", "LINK", 18);
@@ -44,7 +44,7 @@ contract CCIPSenderUpgradeableTest is Test {
         Client.EVMTokenAmount[] memory tokenAmounts,
         bool payInLink,
         uint256 maxFee,
-        uint256 gasLimit,
+        uint32 gasLimit,
         bytes memory data
     ) public {
         vm.assume(receiver.length > 0);
@@ -70,7 +70,7 @@ contract CCIPSenderUpgradeableTest is Test {
 
             vm.etch(address(token), tokenCode);
 
-            amount = bound(amount, 0, type(uint256).max - _sent[token]);
+            amount = bound(amount, 1, type(uint256).max - _sent[token] - tokenAmounts.length);
 
             tokenAmounts[i] = Client.EVMTokenAmount({token: token, amount: amount});
             _sent[token] += amount;
@@ -103,9 +103,26 @@ contract CCIPSenderUpgradeableTest is Test {
         }
     }
 
-    function test_Fuzz_Revert_CCIPSend(bool payInLink, uint256 fee) public {
+    function test_Revert_CCIPSend() public {
         vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderEmptyReceiver.selector);
         sender.ccipSendTo(0, new bytes(0), new Client.EVMTokenAmount[](0), false, 0, 0, new bytes(0));
+    }
+
+    function test_Fuzz_Revert_CCIPSend(bool payInLink, uint256 fee) public {
+        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+
+        vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderInvalidTokenAmount.selector);
+        sender.ccipSendTo(0, new bytes(1), tokenAmounts, payInLink, 0, 0, new bytes(0));
+
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(linkToken), amount: 0});
+
+        vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderInvalidTokenAmount.selector);
+        sender.ccipSendTo(0, new bytes(1), tokenAmounts, payInLink, 0, 0, new bytes(0));
+
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(0), amount: 1});
+
+        vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderInvalidTokenAmount.selector);
+        sender.ccipSendTo(0, new bytes(1), tokenAmounts, payInLink, 0, 0, new bytes(0));
 
         fee = bound(fee, 0, (payInLink ? LINK_FEE : NATIVE_FEE) - 1);
 
@@ -167,18 +184,10 @@ contract MockCCIPSender is CCIPSenderUpgradeable {
         Client.EVMTokenAmount[] memory tokenAmounts,
         bool payInLink,
         uint256 maxFee,
-        uint256 gasLimit,
+        uint32 gasLimit,
         bytes memory data
     ) external payable returns (bytes32) {
-        for (uint256 i = 0; i < tokenAmounts.length; i++) {
-            address token = tokenAmounts[i].token;
-            uint256 amount = tokenAmounts[i].amount;
-
-            uint256 allowance = IERC20(token).allowance(address(this), CCIP_ROUTER);
-            IERC20(token).approve(CCIP_ROUTER, allowance + amount);
-        }
-
-        return _ccipSendTo(destChainSelector, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
+        return _ccipSendTo(destChainSelector, msg.sender, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
     }
 
     // Force foundry to ignore this contract from coverage

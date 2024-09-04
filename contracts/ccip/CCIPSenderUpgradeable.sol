@@ -42,10 +42,13 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
      * - `maxFee` must be greater than or equal to the fee for the message.
      * - if `payInLink` is `true`, `msg.sender` must have approved the contract to transfer `maxFee` of LINK. Else,
      *   `msg.value` must be greater than or equal to the fee for the message.
-     * - `msg.sender` must have approved the contract to transfer `amount` of `token`.
+     * - each token in `tokenAmounts` must have been transferred to the contract.
+     * - payer must have approved the contract to transfer the fee in LINK if `payInLink` is `true`, unless `payer` is
+     *   the contract itself, in which case the contract must have enough LINK.
      */
     function _ccipSendTo(
         uint64 destChainSelector,
+        address payer,
         bytes memory receiver,
         Client.EVMTokenAmount[] memory tokenAmounts,
         bool payInLink,
@@ -54,6 +57,16 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
         bytes memory data
     ) internal virtual returns (bytes32) {
         if (receiver.length == 0) revert CCIPSenderEmptyReceiver();
+
+        uint256 length = tokenAmounts.length;
+        for (uint256 i = 0; i < length; ++i) {
+            address token = tokenAmounts[i].token;
+            uint256 amount = tokenAmounts[i].amount;
+
+            if (amount == 0 || token == address(0)) revert CCIPSenderInvalidTokenAmount();
+
+            IERC20(token).safeIncreaseAllowance(CCIP_ROUTER, amount);
+        }
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: receiver,
@@ -70,7 +83,7 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
         if (payInLink) {
             nativeFee = 0;
 
-            IERC20(LINK_TOKEN).safeTransferFrom(msg.sender, address(this), fee);
+            if (payer != address(this)) IERC20(LINK_TOKEN).safeTransferFrom(payer, address(this), fee);
             IERC20(LINK_TOKEN).safeIncreaseAllowance(CCIP_ROUTER, fee);
         } else {
             nativeFee = fee;

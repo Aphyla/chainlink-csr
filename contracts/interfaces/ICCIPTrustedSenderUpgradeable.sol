@@ -5,7 +5,8 @@ import {ICCIPSenderUpgradeable} from "./ICCIPSenderUpgradeable.sol";
 
 interface ICCIPTrustedSenderUpgradeable is ICCIPSenderUpgradeable {
     error CCIPTrustedSenderUnsupportedChain(uint64 destChainSelector);
-    error CCIPTrustedSenderZeroAmount();
+    error CCIPTrustedSenderZeroTokenAmounts();
+    error CCIPTrustedSenderZeroAmounts();
     error CCIPTrustedSenderZeroAddress();
 
     event ReceiverSet(uint64 indexed destChainSelector, bytes receiver);

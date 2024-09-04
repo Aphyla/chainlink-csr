@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 
 import {CCIPSenderUpgradeable} from "./CCIPSenderUpgradeable.sol";
@@ -16,6 +17,8 @@ import {ICCIPTrustedSenderUpgradeable} from "../interfaces/ICCIPTrustedSenderUpg
  * The contract uses the EIP-7201 to prevent storage collisions.
  */
 abstract contract CCIPTrustedSenderUpgradeable is CCIPSenderUpgradeable, ICCIPTrustedSenderUpgradeable {
+    using SafeERC20 for IERC20;
+
     /* @custom:storage-location erc7201:ccip-csr.storage.CCIPTrustedSender */
     struct CCIPTrustedSenderStorage {
         mapping(uint64 destChainSelector => bytes receiver) receivers;
@@ -77,36 +80,30 @@ abstract contract CCIPTrustedSenderUpgradeable is CCIPSenderUpgradeable, ICCIPTr
 
     /**
      * @dev Sends a message to the CCIP router.
-     * The message will contain exactly one (token, amount) pair.
      * This function will calculate the exact fee required for the message and send it to the router.
      * The fee can be paid in LINK or native token.
+     * It is not necessary to approve the ccip router before calling this function.
      *
      * Requirements:
      *
-     * - `amount` must be greater than 0.
+     * - `tokenAmounts` must contain at least one element.
+     * - `tokenAmounts` must not contain any elements with zero amount or zero token address.
      * - `destChainSelector` must be a supported chain.
      * - `maxFee` must be greater than or equal to the fee for the message.
      * - if `payInLink` is `true`, `msg.sender` must have approved the contract to transfer `maxFee` of LINK. Else,
      *   `msg.value` must be greater than or equal to the fee for the message.
-     * - `msg.sender` must have approved the contract to transfer `amount` of `token`.
      */
     function _ccipSend(
         uint64 destChainSelector,
-        address token,
-        uint256 amount,
+        Client.EVMTokenAmount[] memory tokenAmounts,
         bool payInLink,
         uint256 maxFee,
         uint256 gasLimit,
         bytes memory data
     ) internal virtual returns (bytes32) {
-        if (amount == 0) revert CCIPTrustedSenderZeroAmount();
-
         bytes memory receiver = getReceiver(destChainSelector);
         if (receiver.length == 0) revert CCIPTrustedSenderUnsupportedChain(destChainSelector);
 
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-        tokenAmounts[0] = Client.EVMTokenAmount({token: token, amount: amount});
-
-        return _ccipSendTo(destChainSelector, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
+        return _ccipSendTo(destChainSelector, msg.sender, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
     }
 }
