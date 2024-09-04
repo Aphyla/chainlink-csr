@@ -287,24 +287,27 @@ contract SyncAutomationTest is Test {
     function test_Fuzz_PerformUpKeep(
         uint128 amount,
         uint48 delay,
-        uint256 maxFeeOtoD,
-        bool payInLink,
-        uint256 maxGas,
-        uint256 maxFeeDtoO
+        uint128 maxFeeOtoD,
+        bool payInLinkOtoD,
+        uint32 maxGasOtoD,
+        uint128 maxFeeDtoO,
+        bool payInLinkDtoO
     ) public {
         amount = uint128(bound(amount, 1, 100e18));
         delay = uint48(bound(delay, 1, type(uint32).max));
-        maxFeeOtoD = bound(maxFeeOtoD, 0, 10e18);
-        maxFeeDtoO = bound(maxFeeDtoO, 0, 10e18);
+        maxFeeOtoD = uint128(bound(maxFeeOtoD, 0, 10e18));
+        maxFeeDtoO = uint128(bound(maxFeeDtoO, 0, 10e18));
 
         syncAutomation.setAmounts(amount, amount);
         syncAutomation.setDelay(delay);
-        syncAutomation.setFeeOtoD(FeeCodec.encodeCCIP(maxFeeOtoD, payInLink, maxGas));
-        syncAutomation.setFeeDtoO(abi.encode(maxFeeDtoO, msg.data));
+        syncAutomation.setFeeOtoD(FeeCodec.encodeCCIP(maxFeeOtoD, payInLinkOtoD, maxGasOtoD));
+        syncAutomation.setFeeDtoO(abi.encodePacked(maxFeeDtoO, payInLinkDtoO, msg.data));
         syncAutomation.setForwarder(FORWARDER);
 
+        uint256 nativeFee = (payInLinkDtoO ? 0 : maxFeeDtoO) + (payInLinkOtoD ? 0 : maxFeeOtoD);
+
         vm.warp(block.timestamp + delay);
-        vm.deal(address(syncAutomation), amount + maxFeeDtoO + (payInLink ? 0 : maxFeeOtoD));
+        vm.deal(address(syncAutomation), nativeFee);
 
         wnative.deposit{value: amount}();
         wnative.transfer(address(ORACLE_POOL), amount);
@@ -318,7 +321,7 @@ contract SyncAutomationTest is Test {
         vm.prank(FORWARDER);
         syncAutomation.performUpkeep(performData);
 
-        assertEq(sender.value(), maxFeeDtoO + (payInLink ? 0 : maxFeeOtoD), "test_Fuzz_PerformUpKeep::3");
+        assertEq(sender.value(), nativeFee, "test_Fuzz_PerformUpKeep::3");
         assertEq(
             sender.data(),
             abi.encodeWithSelector(
@@ -336,26 +339,29 @@ contract SyncAutomationTest is Test {
         address msgSender,
         uint128 amount,
         uint48 delay,
-        uint256 maxFeeOtoD,
-        bool payInLink,
-        uint256 maxGas,
-        uint256 maxFeeDtoO
+        uint128 maxFeeOtoD,
+        bool payInLinkOtoD,
+        uint32 maxGasOtoD,
+        uint128 maxFeeDtoO,
+        bool payInLinkDtoO
     ) public {
         vm.assume(msgSender != FORWARDER);
 
         amount = uint128(bound(amount, 1, 100e18));
         delay = uint48(bound(delay, 1, type(uint32).max));
-        maxFeeOtoD = bound(maxFeeOtoD, 0, 10e18);
-        maxFeeDtoO = bound(maxFeeDtoO, 0, 10e18);
+        maxFeeOtoD = uint128(bound(maxFeeOtoD, 0, 10e18));
+        maxFeeDtoO = uint128(bound(maxFeeDtoO, 0, 10e18));
 
         syncAutomation.setAmounts(amount, amount);
         syncAutomation.setDelay(delay);
-        syncAutomation.setFeeOtoD(FeeCodec.encodeCCIP(maxFeeOtoD, payInLink, maxGas));
-        syncAutomation.setFeeDtoO(abi.encode(maxFeeDtoO, msg.data));
+        syncAutomation.setFeeOtoD(FeeCodec.encodeCCIP(maxFeeOtoD, payInLinkOtoD, maxGasOtoD));
+        syncAutomation.setFeeDtoO(abi.encodePacked(maxFeeDtoO, payInLinkDtoO, msg.data));
         syncAutomation.setForwarder(FORWARDER);
 
+        uint256 nativeFee = (payInLinkDtoO ? 0 : maxFeeDtoO) + (payInLinkOtoD ? 0 : maxFeeOtoD);
+
         vm.warp(block.timestamp + delay);
-        vm.deal(address(syncAutomation), amount + maxFeeDtoO + (payInLink ? 0 : maxFeeOtoD));
+        vm.deal(address(syncAutomation), nativeFee);
 
         wnative.deposit{value: amount}();
         wnative.transfer(address(ORACLE_POOL), amount);

@@ -153,10 +153,10 @@ contract SyncAutomation is AutomationCompatible, Ownable2Step {
         bytes memory feeOtoD = _feeOtoD;
         bytes memory feeDtoO = _feeDtoO;
 
-        (uint256 maxFeeOtoD, bool payInLinkOtoD,) = FeeCodec.decodeCCIP(feeOtoD);
-        uint256 feeAmountDtoO = FeeCodec.decodeFee(feeDtoO);
+        (uint256 maxFeeOtoD, bool payInLinkOtoD) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 feeAmountDtoO, bool payInLinkDtoO) = FeeCodec.decodeFeeMemory(feeDtoO);
 
-        uint256 nativeAmount = feeAmountDtoO + (payInLinkOtoD ? 0 : maxFeeOtoD);
+        uint256 nativeAmount = (payInLinkDtoO ? 0 : feeAmountDtoO) + (payInLinkOtoD ? 0 : maxFeeOtoD);
         ICustomSender(SENDER).sync{value: nativeAmount}(DEST_CHAIN_SELECTOR, amount, feeOtoD, feeDtoO);
     }
 
