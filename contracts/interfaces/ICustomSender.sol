@@ -17,6 +17,7 @@ interface ICustomSender is ICCIPTrustedSenderUpgradeable {
     event FastStake(address indexed user, address indexed token, uint256 amountIn, uint256 amountOut);
     event Sync(address indexed user, uint64 indexed destChainSelector, bytes32 messageId, uint256 amount);
 
+    function TOKEN() external view returns (address);
     function WNATIVE() external view returns (address);
     function SYNC_ROLE() external view returns (bytes32);
     function getOraclePool() external view returns (address);

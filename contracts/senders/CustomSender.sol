@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {CCIPTrustedSenderUpgradeable} from "../ccip/CCIPTrustedSenderUpgradeable.sol";
+import {CCIPTrustedSenderUpgradeable, Client} from "../ccip/CCIPTrustedSenderUpgradeable.sol";
 import {CCIPSenderUpgradeable, CCIPBaseUpgradeable} from "../ccip/CCIPSenderUpgradeable.sol";
 import {TokenHelper} from "../libraries/TokenHelper.sol";
 import {FeeCodec} from "../libraries/FeeCodec.sol";
@@ -28,6 +28,7 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
 
     bytes32 public constant override SYNC_ROLE = keccak256("SYNC_ROLE");
 
+    address public immutable override TOKEN;
     address public immutable override WNATIVE;
 
     /* @custom:storage-location erc7201:ccip-csr.storage.CustomSender */
@@ -46,13 +47,18 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
     }
 
     /**
-     * @dev Sets the immutable values for {WNATIVE}, {LINK_TOKEN}, and {CCIP_ROUTER} and the initial values for
+     * @dev Sets the immutable values for {TOKEN}, {WNATIVE}, {LINK_TOKEN}, and {CCIP_ROUTER} and the initial values for
      * the oracle pool and the admin role.
      */
-    constructor(address wnative, address linkToken, address ccipRouter, address oraclePool, address initialAdmin)
-        CCIPSenderUpgradeable(linkToken)
-        CCIPBaseUpgradeable(ccipRouter)
-    {
+    constructor(
+        address token,
+        address wnative,
+        address linkToken,
+        address ccipRouter,
+        address oraclePool,
+        address initialAdmin
+    ) CCIPSenderUpgradeable(linkToken) CCIPBaseUpgradeable(ccipRouter) {
+        TOKEN = token;
         WNATIVE = wnative;
 
         initialize(oraclePool, initialAdmin);
@@ -65,8 +71,6 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
     function initialize(address oraclePool, address initialAdmin) public initializer {
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _setOraclePool(oraclePool);
-
-        IERC20(WNATIVE).forceApprove(CCIP_ROUTER, type(uint256).max);
     }
 
     /**
@@ -112,7 +116,10 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         bytes calldata feeOtoD,
         bytes calldata feeDtoO
     ) external payable virtual returns (bytes32 messageId) {
-        if (token != address(0) && token != WNATIVE) revert CustomSenderInvalidToken();
+        if (amount == 0) revert CustomSenderZeroAmount();
+        if (token != TOKEN && (token != address(0) || TOKEN != WNATIVE)) {
+            revert CustomSenderInvalidToken();
+        }
 
         token = _pullFrom(token, msg.sender, amount);
 
@@ -141,7 +148,10 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         virtual
         returns (uint256 amountOut)
     {
-        if (token != address(0) && token != WNATIVE) revert CustomSenderInvalidToken();
+        if (amount == 0) revert CustomSenderZeroAmount();
+        if (token != TOKEN && (token != address(0) || TOKEN != WNATIVE)) {
+            revert CustomSenderInvalidToken();
+        }
 
         address oraclePool = _getCustomSenderStorage().oraclePool;
         if (oraclePool == address(0)) revert CustomSenderOraclePoolNotSet();
@@ -175,12 +185,14 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         onlyRole(SYNC_ROLE)
         returns (bytes32 messageId)
     {
+        if (amount == 0) revert CustomSenderZeroAmount();
+
         address oraclePool = _getCustomSenderStorage().oraclePool;
         if (oraclePool == address(0)) revert CustomSenderOraclePoolNotSet();
 
-        IOraclePool(oraclePool).pull(WNATIVE, amount);
+        IOraclePool(oraclePool).pull(TOKEN, amount);
 
-        messageId = _ccipBuildAndSend(destChainSelector, oraclePool, WNATIVE, amount, feeOtoD, feeDtoO);
+        messageId = _ccipBuildAndSend(destChainSelector, oraclePool, TOKEN, amount, feeOtoD, feeDtoO);
 
         emit Sync(msg.sender, destChainSelector, messageId, amount);
 
@@ -199,8 +211,8 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         address previousOraclePool = $.oraclePool;
         $.oraclePool = oraclePool;
 
-        if (previousOraclePool != address(0)) IERC20(WNATIVE).forceApprove(previousOraclePool, 0);
-        if (oraclePool != address(0)) IERC20(WNATIVE).forceApprove(oraclePool, type(uint256).max);
+        if (previousOraclePool != address(0)) IERC20(TOKEN).forceApprove(previousOraclePool, 0);
+        if (oraclePool != address(0)) IERC20(TOKEN).forceApprove(oraclePool, type(uint256).max);
 
         emit OraclePoolSet(oraclePool);
     }
@@ -216,14 +228,15 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
      * Returns the token pulled.
      */
     function _pullFrom(address token, address user, uint256 amount) internal virtual returns (address) {
-        if (amount == 0) revert CustomSenderZeroAmount();
-
-        if (token != address(0)) {
-            IERC20(token).safeTransferFrom(user, address(this), amount);
-        } else {
-            token = WNATIVE;
-            _wrapNative(amount);
+        if (amount > 0) {
+            if (token != address(0)) {
+                IERC20(token).safeTransferFrom(user, address(this), amount);
+            } else {
+                token = WNATIVE;
+                _wrapNative(amount);
+            }
         }
+
         return token;
     }
 
@@ -243,14 +256,16 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
 
     /**
      * @dev Builds and sends a CCIP message to the CCIP router.
-     * The message will contain exactly one (token, amount) pair.
+     * If the destination to origin fee is 0 or if the staked token is the wrapped native token, the
+     * message will contain exactly one (token, amount) pair.
+     * Else, the message will contain two (token, amount) pairs, one for the staked token and one for the fee.
      * This function will calculate the exact fee required for the message and send it to the router.
-     * The fee can be paid in LINK or native token.
+     * The origin to destination fee can be paid in LINK or native token.
      * Returns the message id.
      *
      * Requirements:
      *
-     * - `token` must be the wrapped native token or native token.
+     * - `token` must be the wrapped native token or staked token.
      * - `feeOtoD` must be a valid CCIP fee encoded with `FeeCodec.encodeCCIP`.
      * - `feeDtoO` must be a valid fee encoded from a function in the `FeeCodec` library.
      */
@@ -262,15 +277,28 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         bytes calldata feeOtoD,
         bytes calldata feeDtoO
     ) internal virtual returns (bytes32 messageId) {
+        Client.EVMTokenAmount[] memory tokenAmounts;
+        {
+            (uint256 feeAmountDtoO, bool payInLinkDtoO) = FeeCodec.decodeFee(feeDtoO);
+
+            address feeTokenDtoO = payInLinkDtoO ? LINK_TOKEN : address(0);
+            feeTokenDtoO = _pullFrom(feeTokenDtoO, msg.sender, feeAmountDtoO);
+
+            if (token == feeTokenDtoO || feeAmountDtoO == 0) {
+                tokenAmounts = new Client.EVMTokenAmount[](1);
+
+                tokenAmounts[0] = Client.EVMTokenAmount({token: token, amount: amount + feeAmountDtoO});
+            } else {
+                tokenAmounts = new Client.EVMTokenAmount[](2);
+
+                tokenAmounts[0] = Client.EVMTokenAmount({token: token, amount: amount});
+                tokenAmounts[1] = Client.EVMTokenAmount({token: feeTokenDtoO, amount: feeAmountDtoO});
+            }
+        }
+
         (uint256 maxFeeOtoD, bool payInLinkOtoD, uint256 gasLimitOtoD) = FeeCodec.decodeCCIP(feeOtoD);
-        uint256 feeAmountDtoO = FeeCodec.decodeFee(feeDtoO);
-
-        if (feeAmountDtoO > 0) _wrapNative(feeAmountDtoO);
-
         bytes memory packedData = FeeCodec.encodePackedData(recipient, amount, feeDtoO);
 
-        messageId = _ccipSend(
-            destChainSelector, token, amount + feeAmountDtoO, payInLinkOtoD, maxFeeOtoD, gasLimitOtoD, packedData
-        );
+        messageId = _ccipSend(destChainSelector, tokenAmounts, payInLinkOtoD, maxFeeOtoD, gasLimitOtoD, packedData);
     }
 }

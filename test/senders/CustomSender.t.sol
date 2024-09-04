@@ -24,8 +24,8 @@ contract CustomSenderTest is Test {
     MockERC20 public token;
     MockWNative public wnative;
 
-    uint256 public constant LINK_FEE = 1e18;
-    uint256 public constant NATIVE_FEE = 0.01e18;
+    uint128 public constant LINK_FEE = 1e18;
+    uint128 public constant NATIVE_FEE = 0.01e18;
 
     function setUp() public {
         link = new MockERC20("Link", "LINK", 18);
@@ -39,19 +39,22 @@ contract CustomSenderTest is Test {
         oraclePool = new OraclePool(
             _predictContractAddress(1), address(wnative), address(token), address(priceOracle), 0.05e18, address(this)
         );
-        sender =
-            new CustomSender(address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this));
+        sender = new CustomSender(
+            address(wnative), address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this)
+        );
     }
 
     function test_Constructor() public {
-        sender =
-            new CustomSender(address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this)); // to fix coverage
+        sender = new CustomSender(
+            address(wnative), address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this)
+        ); // to fix coverage
 
-        assertEq(sender.WNATIVE(), address(wnative), "test_Constructor::1");
-        assertEq(sender.LINK_TOKEN(), address(link), "test_Constructor::2");
-        assertEq(sender.CCIP_ROUTER(), address(ccipRouter), "test_Constructor::3");
-        assertEq(sender.getOraclePool(), address(oraclePool), "test_Constructor::4");
-        assertEq(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), address(this)), true, "test_Constructor::5");
+        assertEq(sender.TOKEN(), address(wnative), "test_Constructor::1");
+        assertEq(sender.WNATIVE(), address(wnative), "test_Constructor::2");
+        assertEq(sender.LINK_TOKEN(), address(link), "test_Constructor::3");
+        assertEq(sender.CCIP_ROUTER(), address(ccipRouter), "test_Constructor::4");
+        assertEq(sender.getOraclePool(), address(oraclePool), "test_Constructor::5");
+        assertEq(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), address(this)), true, "test_Constructor::6");
     }
 
     function test_Revert_Initialize() public {
@@ -158,121 +161,264 @@ contract CustomSenderTest is Test {
             abi.encodeWithSelector(IERC20Errors.ERC20InsufficientBalance.selector, address(this), 0, amountIn)
         );
         sender.fastStake(address(wnative), amountIn, 0);
+
+        sender = new CustomSender(
+            address(badToken), address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this)
+        );
+
+        vm.expectRevert(ICustomSender.CustomSenderInvalidToken.selector);
+        sender.fastStake(address(0), 1, 0);
+    }
+
+    struct Amounts {
+        uint256 native;
+        uint256 wnative;
+        uint256 link;
     }
 
     function test_Fuzz_SlowStakeWNative(
-        uint256 price,
         bytes memory receiver,
         uint64 destChainSelector,
         uint256 amountIn,
-        bool payInLink,
-        uint256 gasLimit,
-        uint256 nativeFee
+        bool payInLinkOtoD,
+        uint32 gasLimitOtoD,
+        uint128 feeAmountDtoO,
+        bool payInLinkDtoO
     ) public {
         vm.assume(receiver.length > 0);
 
-        price = bound(price, 0.001e18, 100e18);
         amountIn = bound(amountIn, 1, 100e18);
-        nativeFee = bound(nativeFee, 0.0001e18, 10e18);
+        feeAmountDtoO = uint128(bound(feeAmountDtoO, 0, 10e18));
 
         sender.setReceiver(destChainSelector, receiver);
 
         wnative.deposit{value: amountIn}();
         wnative.approve(address(sender), amountIn);
 
-        bytes memory feeOtoD = FeeCodec.encodeCCIP(payInLink ? LINK_FEE : NATIVE_FEE, payInLink, gasLimit);
-        bytes memory feeDtoO = abi.encode(nativeFee);
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(payInLinkOtoD ? LINK_FEE : NATIVE_FEE, payInLinkOtoD, gasLimitOtoD);
+        bytes memory feeDtoO = abi.encodePacked(feeAmountDtoO, payInLinkDtoO);
 
-        uint256 wnativeBridged = amountIn + nativeFee;
+        Amounts memory amounts = Amounts({
+            native: (payInLinkOtoD ? 0 : NATIVE_FEE) + (payInLinkDtoO ? 0 : feeAmountDtoO),
+            wnative: amountIn + (payInLinkDtoO ? 0 : feeAmountDtoO),
+            link: (payInLinkOtoD ? LINK_FEE : 0) + (payInLinkDtoO ? feeAmountDtoO : 0)
+        });
 
-        if (payInLink) {
-            link.mint(address(this), LINK_FEE);
-            link.approve(address(sender), LINK_FEE);
-        } else {
-            nativeFee += NATIVE_FEE;
+        if (amounts.link > 0) {
+            link.mint(address(this), amounts.link);
+            link.approve(address(sender), amounts.link);
         }
 
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-        tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: wnativeBridged});
+        Client.EVMTokenAmount[] memory tokenAmounts;
+
+        if (!payInLinkDtoO || feeAmountDtoO == 0) {
+            tokenAmounts = new Client.EVMTokenAmount[](1);
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amounts.wnative});
+        } else {
+            tokenAmounts = new Client.EVMTokenAmount[](2);
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amounts.wnative});
+            tokenAmounts[1] = Client.EVMTokenAmount({token: address(link), amount: feeAmountDtoO});
+        }
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: receiver,
-            data: FeeCodec.encodePackedData(address(this), amountIn, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(this), amountIn, feeDtoO),
             tokenAmounts: tokenAmounts,
-            feeToken: payInLink ? address(link) : address(0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: gasLimit}))
+            feeToken: payInLinkOtoD ? address(link) : address(0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: gasLimitOtoD}))
         });
 
         uint256 balance = address(this).balance;
 
-        sender.slowStake{value: 1e18 + nativeFee}(destChainSelector, address(wnative), amountIn, feeOtoD, feeDtoO);
+        sender.slowStake{value: 1e18 + amounts.native}(destChainSelector, address(wnative), amountIn, feeOtoD, feeDtoO);
 
         assertEq(wnative.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeWNative::1");
         assertEq(wnative.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeWNative::2");
-        assertEq(wnative.balanceOf(address(ccipRouter)), wnativeBridged, "test_Fuzz_SlowStakeWNative::3");
+        assertEq(wnative.balanceOf(address(ccipRouter)), amounts.wnative, "test_Fuzz_SlowStakeWNative::3");
         assertEq(token.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeWNative::4");
         assertEq(token.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeWNative::5");
         assertEq(token.balanceOf(address(ccipRouter)), 0, "test_Fuzz_SlowStakeWNative::6");
+        assertEq(link.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeWNative::7");
+        assertEq(link.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeWNative::8");
+        assertEq(link.balanceOf(address(ccipRouter)), amounts.link, "test_Fuzz_SlowStakeWNative::9");
+        assertEq(address(this).balance, balance - amounts.native, "test_Fuzz_SlowStakeWNative::10");
+        assertEq(address(oraclePool).balance, 0, "test_Fuzz_SlowStakeWNative::11");
+        assertEq(address(ccipRouter).balance, payInLinkOtoD ? 0 : NATIVE_FEE, "test_Fuzz_SlowStakeWNative::12");
 
-        assertEq(ccipRouter.value(), (payInLink ? 0 : NATIVE_FEE), "test_Fuzz_SlowStakeWNative::7");
-        assertEq(ccipRouter.data(), abi.encode(destChainSelector, message), "test_Fuzz_SlowStakeWNative::8");
-
-        assertEq(address(this).balance, balance - nativeFee, "test_Fuzz_SlowStakeWNative::9");
+        assertEq(ccipRouter.value(), (payInLinkOtoD ? 0 : NATIVE_FEE), "test_Fuzz_SlowStakeWNative::13");
+        assertEq(ccipRouter.data(), abi.encode(destChainSelector, message), "test_Fuzz_SlowStakeWNative::14");
     }
 
     function test_Fuzz_SlowStakeNative(
         bytes memory receiver,
         uint64 destChainSelector,
         uint256 amountIn,
-        bool payInLink,
-        uint256 gasLimit,
-        uint256 nativeFee
+        bool payInLinkOtoD,
+        uint32 gasLimitOtoD,
+        uint128 feeAmountDtoO,
+        bool payInLinkDtoO
     ) public {
         vm.assume(receiver.length > 0);
 
         amountIn = bound(amountIn, 1, 100e18);
-        nativeFee = bound(nativeFee, 0.0001e18, 10e18);
+        feeAmountDtoO = uint128(bound(feeAmountDtoO, 1, 10e18));
 
         sender.setReceiver(destChainSelector, receiver);
 
-        bytes memory feeOtoD = FeeCodec.encodeCCIP(payInLink ? LINK_FEE : NATIVE_FEE, payInLink, gasLimit);
-        bytes memory feeDtoO = abi.encode(nativeFee);
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(payInLinkOtoD ? LINK_FEE : NATIVE_FEE, payInLinkOtoD, gasLimitOtoD);
+        bytes memory feeDtoO = abi.encodePacked(feeAmountDtoO, payInLinkDtoO);
 
-        uint256 wnativeBridged = amountIn + nativeFee;
+        Amounts memory amounts = Amounts({
+            native: amountIn + (payInLinkOtoD ? 0 : NATIVE_FEE) + (payInLinkDtoO ? 0 : feeAmountDtoO),
+            wnative: amountIn + (payInLinkDtoO ? 0 : feeAmountDtoO),
+            link: (payInLinkOtoD ? LINK_FEE : 0) + (payInLinkDtoO ? feeAmountDtoO : 0)
+        });
 
-        if (payInLink) {
-            link.mint(address(this), LINK_FEE);
-            link.approve(address(sender), LINK_FEE);
-        } else {
-            nativeFee += NATIVE_FEE;
+        if (amounts.link > 0) {
+            link.mint(address(this), amounts.link);
+            link.approve(address(sender), amounts.link);
         }
 
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-        tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: wnativeBridged});
+        Client.EVMTokenAmount[] memory tokenAmounts;
+
+        if (!payInLinkDtoO) {
+            tokenAmounts = new Client.EVMTokenAmount[](1);
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amounts.wnative});
+        } else {
+            tokenAmounts = new Client.EVMTokenAmount[](2);
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amounts.wnative});
+            tokenAmounts[1] = Client.EVMTokenAmount({token: address(link), amount: feeAmountDtoO});
+        }
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: receiver,
-            data: FeeCodec.encodePackedData(address(this), amountIn, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(this), amountIn, feeDtoO),
             tokenAmounts: tokenAmounts,
-            feeToken: payInLink ? address(link) : address(0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: gasLimit}))
+            feeToken: payInLinkOtoD ? address(link) : address(0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: gasLimitOtoD}))
         });
 
         uint256 balance = address(this).balance;
 
-        sender.slowStake{value: 1e18 + amountIn + nativeFee}(destChainSelector, address(0), amountIn, feeOtoD, feeDtoO);
+        sender.slowStake{value: 1e18 + amounts.native}(destChainSelector, address(0), amountIn, feeOtoD, feeDtoO);
 
         assertEq(wnative.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeNative::1");
         assertEq(wnative.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeNative::2");
-        assertEq(wnative.balanceOf(address(ccipRouter)), wnativeBridged, "test_Fuzz_SlowStakeNative::3");
+        assertEq(wnative.balanceOf(address(ccipRouter)), amounts.wnative, "test_Fuzz_SlowStakeNative::3");
         assertEq(token.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeNative::4");
         assertEq(token.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeNative::5");
         assertEq(token.balanceOf(address(ccipRouter)), 0, "test_Fuzz_SlowStakeNative::6");
+        assertEq(link.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeNative::7");
+        assertEq(link.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeNative::8");
+        assertEq(link.balanceOf(address(ccipRouter)), amounts.link, "test_Fuzz_SlowStakeNative::9");
+        assertEq(address(this).balance, balance - amounts.native, "test_Fuzz_SlowStakeNative::10");
+        assertEq(address(oraclePool).balance, 0, "test_Fuzz_SlowStakeNative::11");
+        assertEq(address(ccipRouter).balance, payInLinkOtoD ? 0 : NATIVE_FEE, "test_Fuzz_SlowStakeNative::12");
 
-        assertEq(ccipRouter.value(), (payInLink ? 0 : NATIVE_FEE), "test_Fuzz_SlowStakeNative::7");
-        assertEq(ccipRouter.data(), abi.encode(destChainSelector, message), "test_Fuzz_SlowStakeNative::8");
+        assertEq(ccipRouter.value(), (payInLinkOtoD ? 0 : NATIVE_FEE), "test_Fuzz_SlowStakeNative::13");
+        assertEq(ccipRouter.data(), abi.encode(destChainSelector, message), "test_Fuzz_SlowStakeNative::14");
+    }
 
-        assertEq(address(this).balance, balance - (amountIn + nativeFee), "test_Fuzz_SlowStakeNative::9");
+    function test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO(bool payInLinkDtoO) public {
+        uint256 amountIn = 10e18;
+
+        uint128 feeAmountOtoD = NATIVE_FEE;
+        uint128 feeAmountDtoO = 0;
+
+        sender.setReceiver(0, abi.encode(address(this)));
+
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(feeAmountOtoD, false, 0);
+        bytes memory feeDtoO = abi.encodePacked(feeAmountDtoO, payInLinkDtoO);
+
+        Client.EVMTokenAmount[] memory tokenAmounts;
+
+        tokenAmounts = new Client.EVMTokenAmount[](1);
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amountIn});
+
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(address(this)),
+            data: FeeCodec.encodePackedDataMemory(address(this), amountIn, feeDtoO),
+            tokenAmounts: tokenAmounts,
+            feeToken: address(0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 0}))
+        });
+
+        uint256 balance = address(this).balance;
+
+        sender.slowStake{value: 1e18 + amountIn + feeAmountOtoD}(0, address(0), amountIn, feeOtoD, feeDtoO);
+
+        assertEq(wnative.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::1");
+        assertEq(wnative.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::2");
+        assertEq(wnative.balanceOf(address(ccipRouter)), amountIn, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::3");
+        assertEq(token.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::4");
+        assertEq(token.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::5");
+        assertEq(token.balanceOf(address(ccipRouter)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::6");
+        assertEq(link.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::7");
+        assertEq(link.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::8");
+        assertEq(link.balanceOf(address(ccipRouter)), 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::9");
+        assertEq(
+            address(this).balance, balance - amountIn - feeAmountOtoD, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::10"
+        );
+        assertEq(address(oraclePool).balance, 0, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::11");
+        assertEq(address(ccipRouter).balance, feeAmountOtoD, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::12");
+
+        assertEq(ccipRouter.value(), feeAmountOtoD, "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::13");
+        assertEq(ccipRouter.data(), abi.encode(uint64(0), message), "test_Fuzz_SlowStakeFeeNativeZeroFeeDtoO::14");
+    }
+
+    function test_Fuzz_SlowStakeFeeNativeFeeIsToken() public {
+        uint256 amountIn = 10e18;
+
+        uint128 feeAmountOtoD = NATIVE_FEE;
+        uint128 feeAmountDtoO = NATIVE_FEE;
+
+        sender.setReceiver(0, abi.encode(address(this)));
+
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(feeAmountOtoD, false, 0);
+        bytes memory feeDtoO = abi.encodePacked(feeAmountDtoO, false);
+
+        Client.EVMTokenAmount[] memory tokenAmounts;
+
+        tokenAmounts = new Client.EVMTokenAmount[](1);
+        tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amountIn + feeAmountDtoO});
+
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(address(this)),
+            data: FeeCodec.encodePackedDataMemory(address(this), amountIn, feeDtoO),
+            tokenAmounts: tokenAmounts,
+            feeToken: address(0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 0}))
+        });
+
+        uint256 balance = address(this).balance;
+
+        sender.slowStake{value: 1e18 + amountIn + feeAmountOtoD + feeAmountDtoO}(
+            0, address(0), amountIn, feeOtoD, feeDtoO
+        );
+
+        assertEq(wnative.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::1");
+        assertEq(wnative.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::2");
+        assertEq(
+            wnative.balanceOf(address(ccipRouter)),
+            amountIn + feeAmountDtoO,
+            "test_Fuzz_SlowStakeFeeNativeFeeIsToken::3"
+        );
+        assertEq(token.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::4");
+        assertEq(token.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::5");
+        assertEq(token.balanceOf(address(ccipRouter)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::6");
+        assertEq(link.balanceOf(address(this)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::7");
+        assertEq(link.balanceOf(address(oraclePool)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::8");
+        assertEq(link.balanceOf(address(ccipRouter)), 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::9");
+        assertEq(
+            address(this).balance,
+            balance - amountIn - feeAmountOtoD - feeAmountDtoO,
+            "test_Fuzz_SlowStakeFeeNativeFeeIsToken::10"
+        );
+        assertEq(address(oraclePool).balance, 0, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::11");
+        assertEq(address(ccipRouter).balance, feeAmountOtoD, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::12");
+
+        assertEq(ccipRouter.value(), feeAmountOtoD, "test_Fuzz_SlowStakeFeeNativeFeeIsToken::13");
+        assertEq(ccipRouter.data(), abi.encode(uint64(0), message), "test_Fuzz_SlowStakeFeeNativeFeeIsToken::14");
     }
 
     function test_Fuzz_Revert_SlowStake(uint256 amountIn) public {
@@ -289,7 +435,7 @@ contract CustomSenderTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(ICustomSender.CustomSenderInsufficientNativeBalance.selector, amountIn, 0)
         );
-        sender.slowStake(0, address(0), amountIn, new bytes(0), new bytes(0));
+        sender.slowStake(0, address(0), amountIn, new bytes(21), new bytes(17));
 
         vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, sender, 0, amountIn));
         sender.slowStake(0, address(wnative), amountIn, new bytes(0), new bytes(0));
@@ -305,50 +451,68 @@ contract CustomSenderTest is Test {
 
         wnative.deposit{value: amountIn}();
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 96));
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 17));
         sender.slowStake(0, address(wnative), amountIn, new bytes(0), new bytes(0));
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 32));
-        sender.slowStake(0, address(wnative), amountIn, new bytes(96), new bytes(0));
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 21));
+        sender.slowStake(0, address(wnative), amountIn, new bytes(0), new bytes(17));
+
+        sender = new CustomSender(
+            address(badToken), address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this)
+        );
+
+        vm.expectRevert(ICustomSender.CustomSenderInvalidToken.selector);
+        sender.slowStake(0, address(0), 1, new bytes(0), new bytes(0));
     }
 
     function test_Fuzz_Sync(
         bytes memory receiver,
         uint64 destChainSelector,
         uint256 amountToSync,
-        bool payInLink,
-        uint256 gasLimit,
-        uint256 nativeFee
+        bool payInLinkOtoD,
+        uint32 gasLimitOtoD,
+        uint128 feeAmountDtoO,
+        bool payInLinkDtoO
     ) public {
         vm.assume(receiver.length > 0);
 
-        amountToSync = bound(amountToSync, 0, 100e18);
-        nativeFee = bound(nativeFee, 0.0001e18, 10e18);
+        amountToSync = bound(amountToSync, 1, 100e18);
+        feeAmountDtoO = uint128(bound(feeAmountDtoO, 0, 10e18));
 
         sender.setReceiver(destChainSelector, receiver);
         sender.grantRole(sender.SYNC_ROLE(), address(this));
 
-        bytes memory feeOtoD = FeeCodec.encodeCCIP(payInLink ? LINK_FEE : NATIVE_FEE, payInLink, gasLimit);
-        bytes memory feeDtoO = abi.encode(nativeFee);
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(payInLinkOtoD ? LINK_FEE : NATIVE_FEE, payInLinkOtoD, gasLimitOtoD);
+        bytes memory feeDtoO = abi.encodePacked(feeAmountDtoO, payInLinkDtoO);
 
-        uint256 wnativeBridged = amountToSync + nativeFee;
+        Amounts memory amounts = Amounts({
+            native: (payInLinkOtoD ? 0 : NATIVE_FEE) + (payInLinkDtoO ? 0 : feeAmountDtoO),
+            wnative: amountToSync + (payInLinkDtoO ? 0 : feeAmountDtoO),
+            link: (payInLinkOtoD ? LINK_FEE : 0) + (payInLinkDtoO ? feeAmountDtoO : 0)
+        });
 
-        if (payInLink) {
-            link.mint(address(this), LINK_FEE);
-            link.approve(address(sender), LINK_FEE);
-        } else {
-            nativeFee += NATIVE_FEE;
+        if (amounts.link > 0) {
+            link.mint(address(this), amounts.link);
+            link.approve(address(sender), amounts.link);
         }
 
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-        tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: wnativeBridged});
+        Client.EVMTokenAmount[] memory tokenAmounts;
+
+        if (!payInLinkDtoO || feeAmountDtoO == 0) {
+            tokenAmounts = new Client.EVMTokenAmount[](1);
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amounts.wnative});
+        } else {
+            tokenAmounts = new Client.EVMTokenAmount[](2);
+            tokenAmounts[0] = Client.EVMTokenAmount({token: address(wnative), amount: amounts.wnative});
+            tokenAmounts[1] = Client.EVMTokenAmount({token: address(link), amount: feeAmountDtoO});
+        }
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: receiver,
-            data: FeeCodec.encodePackedData(address(oraclePool), amountToSync, feeDtoO),
+            data: FeeCodec.encodePackedDataMemory(address(oraclePool), amountToSync, feeDtoO),
             tokenAmounts: tokenAmounts,
-            feeToken: payInLink ? address(link) : address(0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: gasLimit}))
+            feeToken: payInLinkOtoD ? address(link) : address(0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: gasLimitOtoD}))
         });
 
         wnative.deposit{value: amountToSync}();
@@ -356,19 +520,23 @@ contract CustomSenderTest is Test {
 
         uint256 balance = address(this).balance;
 
-        sender.sync{value: 1e18 + nativeFee}(destChainSelector, amountToSync, feeOtoD, feeDtoO);
+        sender.sync{value: 1e18 + amounts.native}(destChainSelector, amountToSync, feeOtoD, feeDtoO);
 
         assertEq(wnative.balanceOf(address(this)), 0, "test_Fuzz_Sync::1");
         assertEq(wnative.balanceOf(address(oraclePool)), 0, "test_Fuzz_Sync::2");
-        assertEq(wnative.balanceOf(address(ccipRouter)), wnativeBridged, "test_Fuzz_Sync::3");
+        assertEq(wnative.balanceOf(address(ccipRouter)), amounts.wnative, "test_Fuzz_Sync::3");
         assertEq(token.balanceOf(address(this)), 0, "test_Fuzz_Sync::4");
         assertEq(token.balanceOf(address(oraclePool)), 0, "test_Fuzz_Sync::5");
         assertEq(token.balanceOf(address(ccipRouter)), 0, "test_Fuzz_Sync::6");
+        assertEq(link.balanceOf(address(this)), 0, "test_Fuzz_Sync::7");
+        assertEq(link.balanceOf(address(oraclePool)), 0, "test_Fuzz_Sync::8");
+        assertEq(link.balanceOf(address(ccipRouter)), amounts.link, "test_Fuzz_Sync::9");
+        assertEq(address(this).balance, balance - amounts.native, "test_Fuzz_Sync::10");
+        assertEq(address(oraclePool).balance, 0, "test_Fuzz_Sync::11");
+        assertEq(address(ccipRouter).balance, payInLinkOtoD ? 0 : NATIVE_FEE, "test_Fuzz_Sync::12");
 
-        assertEq(ccipRouter.value(), (payInLink ? 0 : NATIVE_FEE), "test_Fuzz_Sync::7");
-        assertEq(ccipRouter.data(), abi.encode(destChainSelector, message), "test_Fuzz_Sync::8");
-
-        assertEq(address(this).balance, balance - nativeFee, "test_Fuzz_Sync::9");
+        assertEq(ccipRouter.value(), (payInLinkOtoD ? 0 : NATIVE_FEE), "test_Fuzz_Sync::13");
+        assertEq(ccipRouter.data(), abi.encode(destChainSelector, message), "test_Fuzz_Sync::14");
     }
 
     function test_Fuzz_Revert_Sync(uint256 amountToSync) public {
@@ -385,8 +553,11 @@ contract CustomSenderTest is Test {
 
         sender.setOraclePool(address(0));
 
-        vm.expectRevert(ICustomSender.CustomSenderOraclePoolNotSet.selector);
+        vm.expectRevert(ICustomSender.CustomSenderZeroAmount.selector);
         sender.sync(0, 0, new bytes(0), new bytes(0));
+
+        vm.expectRevert(ICustomSender.CustomSenderOraclePoolNotSet.selector);
+        sender.sync(0, 1, new bytes(0), new bytes(0));
 
         sender.setOraclePool(address(oraclePool));
 
@@ -402,14 +573,14 @@ contract CustomSenderTest is Test {
 
         wnative.deposit{value: amountToSync}();
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 96));
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 17));
         sender.sync(0, amountToSync, new bytes(0), new bytes(0));
 
-        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 32));
-        sender.sync(0, amountToSync, new bytes(96), new bytes(0));
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, 0, 21));
+        sender.sync(0, amountToSync, new bytes(0), new bytes(17));
 
         vm.expectRevert(abi.encodeWithSelector(ICustomSender.CustomSenderInsufficientNativeBalance.selector, 1, 0));
-        sender.sync(0, amountToSync, new bytes(96), abi.encode(uint256(1)));
+        sender.sync(0, amountToSync, new bytes(17), abi.encodePacked(uint128(1), false));
     }
 
     receive() external payable {}
