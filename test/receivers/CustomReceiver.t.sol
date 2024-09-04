@@ -46,6 +46,14 @@ contract CustomReceiverTest is Test {
         assertEq(receiver.hasRole(receiver.DEFAULT_ADMIN_ROLE(), address(this)), true, "test_Constructor::4");
     }
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(ICustomReceiver.CustomReceiverInvalidParameters.selector);
+        receiver = new MockReceiver(address(vault), address(0), address(ccipRouter), address(this));
+
+        vm.expectRevert(ICCIPBaseUpgradeable.CCIPBaseInvalidParameters.selector);
+        receiver = new MockReceiver(address(vault), address(wnative), address(0), address(this));
+    }
+
     function test_Initialize() public {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
         receiver.initialize(address(this));

@@ -37,7 +37,8 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
                 ETHEREUM_EGETH_TOKEN, ETHEREUM_EGETH_STAKING, ETHEREUM_WETH_TOKEN, ETHEREUM_CCIP_ROUTER, address(this)
             );
 
-            ccipAdapter = new CCIPAdapter(ETHEREUM_EGETH_TOKEN, ETHEREUM_CCIP_ROUTER, address(receiver));
+            ccipAdapter =
+                new CCIPAdapter(ETHEREUM_EGETH_TOKEN, ETHEREUM_CCIP_ROUTER, ETHEREUM_LINK_TOKEN, address(receiver));
 
             vm.label(ETHEREUM_CCIP_ROUTER, "ETH:CCIPRouter");
             vm.label(ETHEREUM_LINK_TOKEN, "ETH:LINK");
@@ -161,7 +162,7 @@ contract shanghai_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
 
         vm.selectFork(ethForkId);
 
-(uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
         nativeAmountBrigdged += amount;
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);

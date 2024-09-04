@@ -17,6 +17,7 @@ contract OptimismLegacyAdapterL1toL2 is BridgeAdapter {
     /* Error thrown when the fee amount is invalid */
     error OptimismLegacyAdapterL1toL2InvalidFeeAmount(uint256 expectedFeeAmount, uint256 feeAmount);
     error OptimismLegacyAdapterL1toL2InvalidFeeToken();
+    error OptimismLegacyAdapterL1toL2InvalidParameters();
 
     address public immutable L1_ERC20_BRIDGE;
     address public immutable L1_TOKEN;
@@ -30,6 +31,8 @@ contract OptimismLegacyAdapterL1toL2 is BridgeAdapter {
      * The `delegator` address is the address of the delegator contract.
      */
     constructor(address l1ERC20Bridge, address delegator) BridgeAdapter(delegator) {
+        if (l1ERC20Bridge == address(0)) revert OptimismLegacyAdapterL1toL2InvalidParameters();
+
         L1_ERC20_BRIDGE = l1ERC20Bridge;
         L1_TOKEN = IOptimismL1ERC20TokenBridge(l1ERC20Bridge).l1Token();
         L2_TOKEN = IOptimismL1ERC20TokenBridge(l1ERC20Bridge).l2Token();

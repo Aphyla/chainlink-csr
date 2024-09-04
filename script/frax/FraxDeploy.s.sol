@@ -72,7 +72,7 @@ contract FraxDeployScript is Script, FraxParameters {
                     ETHEREUM_FRXETH_MINTER,
                     ETHEREUM_WETH_TOKEN,
                     ETHEREUM_CCIP_ROUTER,
-                    address(0)
+                    address(0xdead)
                 )
             );
 
@@ -127,7 +127,14 @@ contract FraxDeployScript is Script, FraxParameters {
             );
 
             arbContracts.sender.implementation = address(
-                new CustomSender(ARBITRUM_WETH_TOKEN,ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(0), address(0))
+                new CustomSender(
+                    ARBITRUM_WETH_TOKEN,
+                    ARBITRUM_WETH_TOKEN,
+                    ARBITRUM_LINK_TOKEN,
+                    ARBITRUM_CCIP_ROUTER,
+                    address(0xdead),
+                    address(0xdead)
+                )
             );
 
             arbContracts.sender.proxy = address(
@@ -172,7 +179,14 @@ contract FraxDeployScript is Script, FraxParameters {
             );
 
             optContracts.sender.implementation = address(
-                new CustomSender(OPTIMISM_WETH_TOKEN,OPTIMISM_WETH_TOKEN, OPTIMISM_LINK_TOKEN, OPTIMISM_CCIP_ROUTER, address(0), address(0))
+                new CustomSender(
+                    OPTIMISM_WETH_TOKEN,
+                    OPTIMISM_WETH_TOKEN,
+                    OPTIMISM_LINK_TOKEN,
+                    OPTIMISM_CCIP_ROUTER,
+                    address(0xdead),
+                    address(0xdead)
+                )
             );
 
             optContracts.sender.proxy = address(

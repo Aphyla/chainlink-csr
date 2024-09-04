@@ -16,21 +16,26 @@ import {CCIPSenderUpgradeable, Client, CCIPBaseUpgradeable} from "../ccip/CCIPSe
 contract CCIPAdapter is BridgeAdapter, CCIPSenderUpgradeable {
     using SafeERC20 for IERC20;
 
+    error CCIPAdapterInvalidParameters();
+
     address public immutable L1_TOKEN;
 
     /**
-     * @dev Sets the immutable values for {L1_TOKEN}, {CCIP_ROUTER}, and {DELEGATOR}.
+     * @dev Sets the immutable values for {L1_TOKEN}, {LINK_TOKEN}, {CCIP_ROUTER}, and {DELEGATOR}.
      * The {L1_TOKEN} is set to address(0) as this adapter only supports fees paid in native token.
      *
      * The `l1Token` address is the address of the L1 token contract.
+     * The `linkToken` address is the address of the LINK token contract.
      * The `ccipRouter` address is the address of the CCIP router contract.
      * The `delegator` address is the address of the delegator contract.
      */
-    constructor(address l1Token, address ccipRouter, address delegator)
+    constructor(address l1Token, address ccipRouter, address linkToken, address delegator)
         BridgeAdapter(delegator)
-        CCIPSenderUpgradeable(address(0))
+        CCIPSenderUpgradeable(linkToken)
         CCIPBaseUpgradeable(ccipRouter)
     {
+        if (l1Token == address(0)) revert CCIPAdapterInvalidParameters();
+
         L1_TOKEN = l1Token;
     }
 

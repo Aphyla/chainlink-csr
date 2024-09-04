@@ -145,6 +145,8 @@ abstract contract CCIPDefensiveReceiverUpgradeable is
      * Emits a {TokensRecovered} event.
      */
     function recoverTokens(Client.Any2EVMMessage calldata message, address to) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (to == address(0)) revert CCIPDefensiveReceiverZeroAddress();
+
         _verifyAndMarkFailedMessage(message);
 
         uint256 length = message.destTokenAmounts.length;

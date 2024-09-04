@@ -15,6 +15,8 @@ import {CCIPBaseUpgradeable} from "../ccip/CCIPBaseUpgradeable.sol";
 contract LidoCustomReceiver is CustomReceiver {
     using SafeERC20 for IERC20;
 
+    error LidoCustomReceiverInvalidParameters();
+
     address public immutable WSTETH;
 
     /**
@@ -24,6 +26,10 @@ contract LidoCustomReceiver is CustomReceiver {
         CustomReceiver(wnative)
         CCIPBaseUpgradeable(ccipRouter)
     {
+        if (wstEth == address(0) || initialAdmin == address(0)) {
+            revert LidoCustomReceiverInvalidParameters();
+        }
+
         WSTETH = wstEth;
 
         initialize(initialAdmin);

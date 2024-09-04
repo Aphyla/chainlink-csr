@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 interface IBridgeAdapter {
     error BridgeAdapterOnlyDelegatedByDelegator();
-    error BridgeAdapterInvalidDelegator();
+    error BridgeAdapterInvalidParameters();
 
     event BaseL1toL2MessageSent();
     event OptimismL1toL2MessageSent();

@@ -21,6 +21,7 @@ contract SyncAutomation is AutomationCompatible, Ownable2Step {
     error SyncAutomationOnlyForwarder();
     error SyncAutomationNoUpkeepNeeded();
     error SyncAutomationInvalidAmounts(uint128 minAmount, uint128 maxAmount);
+    error SyncAutomationInvalidParameters();
 
     event ForwarderSet(address forwarder);
     event DelaySet(uint48 delay);
@@ -59,6 +60,10 @@ contract SyncAutomation is AutomationCompatible, Ownable2Step {
      * CCIP messages.
      */
     constructor(address sender, uint64 destChainSelector, address initialOwner) Ownable(initialOwner) {
+        if (sender == address(0) || destChainSelector == 0 || initialOwner == address(0)) {
+            revert SyncAutomationInvalidParameters();
+        }
+
         SENDER = sender;
         DEST_CHAIN_SELECTOR = destChainSelector;
         WNATIVE = ICustomSender(sender).WNATIVE();

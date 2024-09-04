@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
+import "../../contracts/adapters/BridgeAdapter.sol";
 import "../../contracts/adapters/CCIPAdapter.sol";
 import "../../contracts/interfaces/ICCIPSenderUpgradeable.sol";
 import "../mocks/MockERC20.sol";
@@ -16,6 +17,7 @@ contract CCIPAdapterTest is Test {
     CCIPAdapter public adapter;
 
     MockERC20 public l1Token;
+    MockERC20 public linkToken;
     MockCCIPRouter public ccipRouter;
     MockERC20 public token;
 
@@ -28,9 +30,11 @@ contract CCIPAdapterTest is Test {
         receiver = new MockReceiver();
 
         l1Token = new MockERC20("L1 Token", "L1T", 18);
-        ccipRouter = new MockCCIPRouter(address(0), LINK_FEE, NATIVE_FEE);
+        linkToken = new MockERC20("LINK", "LINK", 18);
 
-        adapter = new CCIPAdapter(address(l1Token), address(ccipRouter), address(receiver));
+        ccipRouter = new MockCCIPRouter(address(linkToken), LINK_FEE, NATIVE_FEE);
+
+        adapter = new CCIPAdapter(address(l1Token), address(ccipRouter), address(linkToken), address(receiver));
 
         receiver.setAdapter(address(adapter));
 
@@ -41,12 +45,26 @@ contract CCIPAdapterTest is Test {
     }
 
     function test_Constructor() public {
-        adapter = new CCIPAdapter(address(l1Token), address(ccipRouter), address(receiver)); // to fix coverage
+        adapter = new CCIPAdapter(address(l1Token), address(ccipRouter), address(linkToken), address(receiver)); // to fix coverage
 
         assertEq(address(adapter.CCIP_ROUTER()), address(ccipRouter), "test_Constructor::1");
-        assertEq(address(adapter.LINK_TOKEN()), address(0), "test_Constructor::2");
+        assertEq(address(adapter.LINK_TOKEN()), address(linkToken), "test_Constructor::2");
         assertEq(address(adapter.L1_TOKEN()), address(l1Token), "test_Constructor::3");
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::4");
+    }
+
+    function test_Revert_Constructor() public {
+        vm.expectRevert(CCIPAdapter.CCIPAdapterInvalidParameters.selector);
+        adapter = new CCIPAdapter(address(0), address(ccipRouter), address(linkToken), address(receiver));
+
+        vm.expectRevert(ICCIPBaseUpgradeable.CCIPBaseInvalidParameters.selector);
+        adapter = new CCIPAdapter(address(l1Token), address(0), address(linkToken), address(receiver));
+
+        vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderInvalidParameters.selector);
+        adapter = new CCIPAdapter(address(l1Token), address(ccipRouter), address(0), address(receiver));
+
+        vm.expectRevert(IBridgeAdapter.BridgeAdapterInvalidParameters.selector);
+        adapter = new CCIPAdapter(address(l1Token), address(ccipRouter), address(linkToken), address(0));
     }
 
     function test_Fuzz_sendToken(uint64 sourceChainSelector, uint256 amount, uint128 maxFee, uint32 maxGas) public {

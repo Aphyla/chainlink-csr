@@ -47,6 +47,21 @@ contract OraclePoolTest is Test {
         assertEq(oraclePool.getFee(), fee, "test_Constructor::5");
     }
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(IOraclePool.OraclePoolInvalidParameters.selector);
+        oraclePool =
+            new OraclePool(address(0), address(tokenIn), address(tokenOut), address(priceOracle), fee, address(this));
+
+        vm.expectRevert(IOraclePool.OraclePoolInvalidParameters.selector);
+        oraclePool = new OraclePool(sender, address(0), address(tokenOut), address(priceOracle), fee, address(this));
+
+        vm.expectRevert(IOraclePool.OraclePoolInvalidParameters.selector);
+        oraclePool = new OraclePool(sender, address(tokenIn), address(0), address(priceOracle), fee, address(this));
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+        oraclePool = new OraclePool(sender, address(tokenIn), address(tokenOut), address(priceOracle), fee, address(0));
+    }
+
     function test_Fuzz_GetOracle(address oracleB) public {
         assertEq(oraclePool.getOracle(), address(priceOracle), "test_Fuzz_GetOracle::1");
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {ICCIPDefensiveReceiverUpgradeable} from "./ICCIPDefensiveReceiverUpgradeable.sol";
 
 interface ICustomReceiver is ICCIPDefensiveReceiverUpgradeable {
+    error CustomReceiverInvalidParameters();
     error CustomReceiverOnlyWNative();
     error CustomReceiverInvalidTokenAmounts();
     error CustomReceiverInvalidTokenAmount(uint256 amount, uint256 expectedAmount);

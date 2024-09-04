@@ -8,6 +8,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "../../contracts/senders/CustomSender.sol";
 import "../../contracts/utils/PriceOracle.sol";
 import "../../contracts/utils/OraclePool.sol";
+import "../../contracts/ccip/CCIPSenderUpgradeable.sol";
+import "../../contracts/ccip/CCIPBaseUpgradeable.sol";
 import "../mocks/MockERC20.sol";
 import "../mocks/MockWNative.sol";
 import "../mocks/MockCCIPRouter.sol";
@@ -55,6 +57,38 @@ contract CustomSenderTest is Test {
         assertEq(sender.CCIP_ROUTER(), address(ccipRouter), "test_Constructor::4");
         assertEq(sender.getOraclePool(), address(oraclePool), "test_Constructor::5");
         assertEq(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), address(this)), true, "test_Constructor::6");
+    }
+
+    function test_Revert_Constructor() public {
+        vm.expectRevert(ICustomSender.CustomSenderInvalidParameters.selector);
+        sender = new CustomSender(
+            address(0), address(wnative), address(link), address(ccipRouter), address(oraclePool), address(this)
+        );
+
+        vm.expectRevert(ICustomSender.CustomSenderInvalidParameters.selector);
+        sender = new CustomSender(
+            address(wnative), address(0), address(link), address(ccipRouter), address(oraclePool), address(this)
+        );
+
+        vm.expectRevert(ICCIPSenderUpgradeable.CCIPSenderInvalidParameters.selector);
+        sender = new CustomSender(
+            address(wnative), address(wnative), address(0), address(ccipRouter), address(oraclePool), address(this)
+        );
+
+        vm.expectRevert(ICCIPBaseUpgradeable.CCIPBaseInvalidParameters.selector);
+        sender = new CustomSender(
+            address(wnative), address(wnative), address(link), address(0), address(oraclePool), address(this)
+        );
+
+        vm.expectRevert(ICustomSender.CustomSenderInvalidParameters.selector);
+        sender = new CustomSender(
+            address(wnative), address(wnative), address(link), address(ccipRouter), address(0), address(this)
+        );
+
+        vm.expectRevert(ICustomSender.CustomSenderInvalidParameters.selector);
+        sender = new CustomSender(
+            address(wnative), address(wnative), address(link), address(ccipRouter), address(oraclePool), address(0)
+        );
     }
 
     function test_Revert_Initialize() public {

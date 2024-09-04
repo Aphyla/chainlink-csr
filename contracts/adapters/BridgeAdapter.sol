@@ -27,7 +27,7 @@ abstract contract BridgeAdapter is IBridgeAdapter {
      * @param delegator The address of the delegator contract.
      */
     constructor(address delegator) {
-        if (delegator == address(this)) revert BridgeAdapterInvalidDelegator();
+        if (delegator == address(0) || delegator == address(this)) revert BridgeAdapterInvalidParameters();
 
         DELEGATOR = delegator;
     }

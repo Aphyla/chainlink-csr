@@ -44,7 +44,7 @@ contract EigenpieDeployScriptTest is Test, EigenpieParameters {
 
             CCIPAdapter ccipAdapter = CCIPAdapter(l1Contracts.arbitrumAdapter);
 
-            assertEq(ccipAdapter.LINK_TOKEN(), address(0), "test_Deploy::10");
+            assertEq(ccipAdapter.LINK_TOKEN(), ETHEREUM_LINK_TOKEN, "test_Deploy::10");
             assertEq(ccipAdapter.CCIP_ROUTER(), ETHEREUM_CCIP_ROUTER, "test_Deploy::11");
             assertEq(ccipAdapter.L1_TOKEN(), ETHEREUM_EGETH_TOKEN, "test_Deploy::12");
         }

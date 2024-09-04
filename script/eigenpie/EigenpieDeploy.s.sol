@@ -63,7 +63,11 @@ contract EigenpieDeployScript is Script, EigenpieParameters {
 
             l1Contracts.receiver.implementation = address(
                 new EigenpieCustomReceiver(
-                    ETHEREUM_EGETH_TOKEN, ETHEREUM_EGETH_STAKING, ETHEREUM_WETH_TOKEN, ETHEREUM_CCIP_ROUTER, address(0)
+                    ETHEREUM_EGETH_TOKEN,
+                    ETHEREUM_EGETH_STAKING,
+                    ETHEREUM_WETH_TOKEN,
+                    ETHEREUM_CCIP_ROUTER,
+                    address(0xdead)
                 )
             );
 
@@ -77,8 +81,11 @@ contract EigenpieDeployScript is Script, EigenpieParameters {
 
             l1Contracts.receiver.proxyAdmin = _getProxyAdmin(l1Contracts.receiver.proxy);
 
-            l1Contracts.arbitrumAdapter =
-                address(new CCIPAdapter(ETHEREUM_EGETH_TOKEN, ETHEREUM_CCIP_ROUTER, l1Contracts.receiver.proxy));
+            l1Contracts.arbitrumAdapter = address(
+                new CCIPAdapter(
+                    ETHEREUM_EGETH_TOKEN, ETHEREUM_CCIP_ROUTER, ETHEREUM_LINK_TOKEN, l1Contracts.receiver.proxy
+                )
+            );
             vm.stopBroadcast();
         }
 
@@ -108,7 +115,14 @@ contract EigenpieDeployScript is Script, EigenpieParameters {
             );
 
             arbContracts.sender.implementation = address(
-                new CustomSender(ARBITRUM_WETH_TOKEN, ARBITRUM_WETH_TOKEN, ARBITRUM_LINK_TOKEN, ARBITRUM_CCIP_ROUTER, address(0), address(0))
+                new CustomSender(
+                    ARBITRUM_WETH_TOKEN,
+                    ARBITRUM_WETH_TOKEN,
+                    ARBITRUM_LINK_TOKEN,
+                    ARBITRUM_CCIP_ROUTER,
+                    address(0xdead),
+                    address(0xdead)
+                )
             );
 
             arbContracts.sender.proxy = address(

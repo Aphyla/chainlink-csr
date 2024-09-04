@@ -17,6 +17,7 @@ contract BaseAdapterL1toL2 is BridgeAdapter {
     /* Error thrown when the fee amount is invalid */
     error BaseAdapterL1toL2InvalidFeeAmount(uint256 expectedFeeAmount, uint256 feeAmount);
     error BaseAdapterL1toL2InvalidFeeToken();
+    error BaseAdapterL1toL2InvalidParameters();
 
     address public immutable L1_STANDARD_BRIDGE;
     address public immutable L1_TOKEN;
@@ -33,6 +34,10 @@ contract BaseAdapterL1toL2 is BridgeAdapter {
     constructor(address l1StandardBridge, address l1Token, address l2Token, address delegator)
         BridgeAdapter(delegator)
     {
+        if (l1StandardBridge == address(0) || l1Token == address(0) || l2Token == address(0)) {
+            revert BaseAdapterL1toL2InvalidParameters();
+        }
+
         L1_STANDARD_BRIDGE = l1StandardBridge;
         L1_TOKEN = l1Token;
         L2_TOKEN = l2Token;

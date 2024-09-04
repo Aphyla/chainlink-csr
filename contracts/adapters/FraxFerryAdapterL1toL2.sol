@@ -17,6 +17,7 @@ contract FraxFerryAdapterL1toL2 is BridgeAdapter {
     /* Error thrown when the fee amount is invalid */
     error FraxFerryAdapterL1toL2InvalidFeeAmount(uint256 expectedFeeAmount, uint256 feeAmount);
     error FraxFerryAdapterL1toL2InvalidFeeToken();
+    error FraxFerryAdapterL1toL2InvalidParameters();
 
     address public immutable FRAX_FERRY;
     address public immutable TOKEN;
@@ -28,6 +29,8 @@ contract FraxFerryAdapterL1toL2 is BridgeAdapter {
      * The `delegator` address is the address of the delegator contract.
      */
     constructor(address fraxFerry, address token, address delegator) BridgeAdapter(delegator) {
+        if (fraxFerry == address(0) || token == address(0)) revert FraxFerryAdapterL1toL2InvalidParameters();
+
         FRAX_FERRY = fraxFerry;
         TOKEN = token;
     }

@@ -16,6 +16,8 @@ import {IFraxETHMinter} from "../interfaces/IFraxETHMinter.sol";
 contract FraxCustomReceiver is CustomReceiver {
     using SafeERC20 for IERC20;
 
+    error FraxCustomReceiverInvalidParameters();
+
     address public immutable SFRXETH;
     address public immutable FRXETH_MINTER;
 
@@ -26,6 +28,10 @@ contract FraxCustomReceiver is CustomReceiver {
         CustomReceiver(wnative)
         CCIPBaseUpgradeable(ccipRouter)
     {
+        if (sfrxEth == address(0) || frxETHMinter == address(0) || initialAdmin == address(0)) {
+            revert CustomReceiverInvalidParameters();
+        }
+
         SFRXETH = sfrxEth;
         FRXETH_MINTER = frxETHMinter;
 

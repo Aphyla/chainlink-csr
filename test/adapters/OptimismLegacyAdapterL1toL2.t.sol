@@ -38,6 +38,14 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::4");
     }
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(OptimismLegacyAdapterL1toL2.OptimismLegacyAdapterL1toL2InvalidParameters.selector);
+        adapter = new OptimismLegacyAdapterL1toL2(address(0), address(receiver));
+
+        vm.expectRevert(IBridgeAdapter.BridgeAdapterInvalidParameters.selector);
+        adapter = new OptimismLegacyAdapterL1toL2(address(l1ERC20Bridge), address(0));
+    }
+
     function test_Fuzz_SendToken(uint256 amount, uint32 l2Gas) public {
         bytes memory feeData = FeeCodec.encodeOptimismL1toL2(l2Gas);
 

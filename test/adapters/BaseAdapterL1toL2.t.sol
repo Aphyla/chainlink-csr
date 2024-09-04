@@ -38,6 +38,20 @@ contract BaseAdapterL1toL2Test is Test {
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::4");
     }
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(BaseAdapterL1toL2.BaseAdapterL1toL2InvalidParameters.selector);
+        adapter = new BaseAdapterL1toL2(address(0), address(l1Token), l2Token, address(receiver));
+
+        vm.expectRevert(BaseAdapterL1toL2.BaseAdapterL1toL2InvalidParameters.selector);
+        adapter = new BaseAdapterL1toL2(address(l1StandardBridge), address(0), l2Token, address(receiver));
+
+        vm.expectRevert(BaseAdapterL1toL2.BaseAdapterL1toL2InvalidParameters.selector);
+        adapter = new BaseAdapterL1toL2(address(l1StandardBridge), address(l1Token), address(0), address(receiver));
+
+        vm.expectRevert(IBridgeAdapter.BridgeAdapterInvalidParameters.selector);
+        adapter = new BaseAdapterL1toL2(address(l1StandardBridge), address(l1Token), l2Token, address(0));
+    }
+
     function test_Fuzz_SendToken(uint256 amount, uint32 l2Gas) public {
         bytes memory feeData = FeeCodec.encodeBaseL1toL2(l2Gas);
 

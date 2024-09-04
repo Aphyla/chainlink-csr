@@ -9,7 +9,14 @@ import "../../contracts/ccip/CCIPBaseUpgradeable.sol";
 contract CCIPBaseUpgradeableTest is Test {
     MockCCIPUpgradeable public ccip;
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(ICCIPBaseUpgradeable.CCIPBaseInvalidParameters.selector);
+        ccip = new MockCCIPUpgradeable(address(0));
+    }
+
     function test_Fuzz_Initialize(address ccipRouter) public {
+        vm.assume(ccipRouter != address(0));
+
         ccip = new MockCCIPUpgradeable(ccipRouter);
 
         assertEq(ccip.CCIP_ROUTER(), ccipRouter, "test_Fuzz_Initialize::1");
@@ -21,6 +28,8 @@ contract CCIPBaseUpgradeableTest is Test {
     }
 
     function test_Fuzz_InitializeUnchained(address ccipRouter) public {
+        vm.assume(ccipRouter != address(0));
+
         ccip = new MockCCIPUpgradeable(ccipRouter);
 
         assertEq(ccip.CCIP_ROUTER(), ccipRouter, "test_Fuzz_InitializeUnchained::1");
@@ -32,6 +41,8 @@ contract CCIPBaseUpgradeableTest is Test {
     }
 
     function test_Fuzz_BadInitialize(address ccipRouter) public {
+        vm.assume(ccipRouter != address(0));
+
         ccip = new MockCCIPUpgradeable(ccipRouter);
 
         assertEq(ccip.CCIP_ROUTER(), ccipRouter, "test_Fuzz_BadInitialize::1");

@@ -74,7 +74,9 @@ contract LidoDeployScript is Script, LidoParameters {
             vm.startBroadcast(deployerPrivateKey);
 
             l1Contracts.receiver.implementation = address(
-                new LidoCustomReceiver(ETHEREUM_WSTETH_TOKEN, ETHEREUM_WETH_TOKEN, ETHEREUM_CCIP_ROUTER, address(0))
+                new LidoCustomReceiver(
+                    ETHEREUM_WSTETH_TOKEN, ETHEREUM_WETH_TOKEN, ETHEREUM_CCIP_ROUTER, address(0xdead)
+                )
             );
 
             l1Contracts.receiver.proxy = address(
@@ -140,8 +142,8 @@ contract LidoDeployScript is Script, LidoParameters {
                     ARBITRUM_WETH_TOKEN,
                     ARBITRUM_LINK_TOKEN,
                     ARBITRUM_CCIP_ROUTER,
-                    address(0),
-                    address(0)
+                    address(0xdead),
+                    address(0xdead)
                 )
             );
 
@@ -192,8 +194,8 @@ contract LidoDeployScript is Script, LidoParameters {
                     OPTIMISM_WETH_TOKEN,
                     OPTIMISM_LINK_TOKEN,
                     OPTIMISM_CCIP_ROUTER,
-                    address(0),
-                    address(0)
+                    address(0xdead),
+                    address(0xdead)
                 )
             );
 
@@ -240,7 +242,12 @@ contract LidoDeployScript is Script, LidoParameters {
 
             baseContracts.sender.implementation = address(
                 new CustomSender(
-                    BASE_WETH_TOKEN, BASE_WETH_TOKEN, BASE_LINK_TOKEN, BASE_CCIP_ROUTER, address(0), address(0)
+                    BASE_WETH_TOKEN,
+                    BASE_WETH_TOKEN,
+                    BASE_LINK_TOKEN,
+                    BASE_CCIP_ROUTER,
+                    address(0xdead),
+                    address(0xdead)
                 )
             );
 

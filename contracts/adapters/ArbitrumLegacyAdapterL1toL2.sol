@@ -16,6 +16,7 @@ contract ArbitrumLegacyAdapterL1toL2 is BridgeAdapter {
 
     /* Error thrown when the fee amount is invalid */
     error ArbitrumLegacyAdapterL1toL2InvalidFeeToken();
+    error ArbitrumLegacyAdapterInvalidParameters();
 
     address public immutable L1_GATEWAY_ROUTER;
     address public immutable L1_TOKEN;
@@ -30,6 +31,8 @@ contract ArbitrumLegacyAdapterL1toL2 is BridgeAdapter {
      * The `delegator` address is the address of the delegator contract.
      */
     constructor(address l1GatewayRouter, address l1Token, address delegator) BridgeAdapter(delegator) {
+        if (l1GatewayRouter == address(0) || l1Token == address(0)) revert ArbitrumLegacyAdapterInvalidParameters();
+
         L1_GATEWAY_ROUTER = l1GatewayRouter;
         L1_TOKEN = l1Token;
         L1_TOKEN_GATEWAY = IArbitrumL1GatewayRouter(l1GatewayRouter).l1TokenToGateway(l1Token);

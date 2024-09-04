@@ -13,6 +13,7 @@ interface ICCIPDefensiveReceiverUpgradeable is ICCIPBaseUpgradeable, IAny2EVMMes
     error CCIPDefensiveReceiverMismatchedMessage(bytes32 messageId, bytes32 hash, bytes32 expectedHash);
     error CCIPDefensiveReceiverUnauthorizedSender(bytes sender, bytes expectedSender);
     error CCIPDefensiveReceiverUnsupportedChain(uint64 destChainSelector);
+    error CCIPDefensiveReceiverZeroAddress();
 
     event SenderSet(uint64 indexed destChainSelector, bytes sender);
     event MessageSucceeded(bytes32 indexed messageId);

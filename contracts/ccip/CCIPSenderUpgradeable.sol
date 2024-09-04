@@ -23,6 +23,8 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
      * @dev Sets the immutable value for {LINK_TOKEN}.
      */
     constructor(address linkToken) {
+        if (linkToken == address(0)) revert CCIPSenderInvalidParameters();
+
         LINK_TOKEN = linkToken;
     }
 

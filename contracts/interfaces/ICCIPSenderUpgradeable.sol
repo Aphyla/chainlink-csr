@@ -7,6 +7,7 @@ interface ICCIPSenderUpgradeable is ICCIPBaseUpgradeable {
     error CCIPSenderEmptyReceiver();
     error CCIPSenderInvalidTokenAmount();
     error CCIPSenderExceedsMaxFee(uint256 fee, uint256 maxFee);
+    error CCIPSenderInvalidParameters();
 
     function LINK_TOKEN() external view returns (address);
 }

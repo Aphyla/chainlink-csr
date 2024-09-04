@@ -8,6 +8,7 @@ interface ICustomSender is ICCIPTrustedSenderUpgradeable {
     error CustomSenderInvalidToken();
     error CustomSenderOraclePoolNotSet();
     error CustomSenderZeroAmount();
+    error CustomSenderInvalidParameters();
 
     event OraclePoolSet(address oraclePool);
     event MessageSent(uint64 indexed destChainSelector, bytes32 messageId);

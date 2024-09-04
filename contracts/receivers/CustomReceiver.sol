@@ -43,6 +43,8 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
      * @dev Set the immutable value for {WNATIVE}.
      */
     constructor(address wnative) {
+        if (wnative == address(0)) revert CustomReceiverInvalidParameters();
+
         WNATIVE = wnative;
     }
 

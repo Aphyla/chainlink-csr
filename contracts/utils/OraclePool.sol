@@ -44,6 +44,10 @@ contract OraclePool is Ownable2Step, IOraclePool {
     constructor(address sender, address tokenIn, address tokenOut, address oracle, uint96 fee, address initialOwner)
         Ownable(initialOwner)
     {
+        if (sender == address(0) || tokenIn == address(0) || tokenOut == address(0)) {
+            revert OraclePoolInvalidParameters();
+        }
+
         SENDER = sender;
 
         TOKEN_IN = tokenIn;

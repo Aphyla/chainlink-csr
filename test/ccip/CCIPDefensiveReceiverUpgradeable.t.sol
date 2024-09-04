@@ -308,6 +308,12 @@ contract CCIPDefensiveReceiverUpgradeableTest is Test {
         receiver.recoverTokens(message, address(this));
     }
 
+    function test_Revert_RecoverFailedMessage() public {
+        Client.Any2EVMMessage memory message;
+        vm.expectRevert(ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverZeroAddress.selector);
+        receiver.recoverTokens(message, address(0));
+    }
+
     function test_Fuzz_Revert_RecoverFailedMessage(
         address msgSender,
         uint64 destChainSelector,

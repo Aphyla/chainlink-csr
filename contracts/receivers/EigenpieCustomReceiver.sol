@@ -16,6 +16,8 @@ import {IEigenpieStaking} from "../interfaces/IEigenpieStaking.sol";
 contract EigenpieCustomReceiver is CustomReceiver {
     using SafeERC20 for IERC20;
 
+    error EigenpieCustomReceiverInvalidParameters();
+
     address public constant PLATFORM_TOKEN_ADDRESS = 0xeFEfeFEfeFeFEFEFEfefeFeFefEfEfEfeFEFEFEf;
 
     address public immutable EGETH;
@@ -29,6 +31,10 @@ contract EigenpieCustomReceiver is CustomReceiver {
         CustomReceiver(wnative)
         CCIPBaseUpgradeable(ccipRouter)
     {
+        if (egEth == address(0) || egEthStaking == address(0) || initialAdmin == address(0)) {
+            revert CustomReceiverInvalidParameters();
+        }
+
         EGETH = egEth;
         EGETH_STAKING = egEthStaking;
 

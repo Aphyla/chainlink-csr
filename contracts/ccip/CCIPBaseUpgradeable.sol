@@ -20,6 +20,8 @@ abstract contract CCIPBaseUpgradeable is AccessControlUpgradeable, ICCIPBaseUpgr
      * @dev Sets the immutable values for the {CCIP_ROUTER} address.
      */
     constructor(address ccipRouter) {
+        if (ccipRouter == address(0)) revert CCIPBaseInvalidParameters();
+
         CCIP_ROUTER = ccipRouter;
     }
 }

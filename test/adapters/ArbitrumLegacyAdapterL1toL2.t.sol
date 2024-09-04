@@ -38,6 +38,17 @@ contract ArbitrumLegacyAdapterL1toL2Test is Test {
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::4");
     }
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(ArbitrumLegacyAdapterL1toL2.ArbitrumLegacyAdapterInvalidParameters.selector);
+        adapter = new ArbitrumLegacyAdapterL1toL2(address(0), address(l1Token), address(receiver));
+
+        vm.expectRevert(ArbitrumLegacyAdapterL1toL2.ArbitrumLegacyAdapterInvalidParameters.selector);
+        adapter = new ArbitrumLegacyAdapterL1toL2(address(gatewayRouter), address(0), address(receiver));
+
+        vm.expectRevert(IBridgeAdapter.BridgeAdapterInvalidParameters.selector);
+        adapter = new ArbitrumLegacyAdapterL1toL2(address(gatewayRouter), address(l1Token), address(0));
+    }
+
     function test_Fuzz_sendToken(uint256 amount, uint128 maxSubmissionCost, uint32 maxGas, uint64 gasPriceBid) public {
         maxGas =
             uint32(bound(maxGas, 0, gasPriceBid == 0 ? maxGas : (type(uint128).max - maxSubmissionCost) / gasPriceBid));

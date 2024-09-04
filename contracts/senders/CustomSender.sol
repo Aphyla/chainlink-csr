@@ -58,6 +58,8 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
         address oraclePool,
         address initialAdmin
     ) CCIPSenderUpgradeable(linkToken) CCIPBaseUpgradeable(ccipRouter) {
+        if (token == address(0) || wnative == address(0)) revert CustomSenderInvalidParameters();
+
         TOKEN = token;
         WNATIVE = wnative;
 
@@ -69,6 +71,8 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
      * If this contract isn't used as the implementation for a proxy contract, this function will be called by the constructor.
      */
     function initialize(address oraclePool, address initialAdmin) public initializer {
+        if (oraclePool == address(0) || initialAdmin == address(0)) revert CustomSenderInvalidParameters();
+
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _setOraclePool(oraclePool);
     }

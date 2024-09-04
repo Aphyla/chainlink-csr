@@ -36,6 +36,17 @@ contract FraxFerryAdapterL1toL2Test is Test {
         assertEq(address(adapter.DELEGATOR()), address(receiver), "test_Constructor::3");
     }
 
+    function test_Revert_Constructor() public {
+        vm.expectRevert(FraxFerryAdapterL1toL2.FraxFerryAdapterL1toL2InvalidParameters.selector);
+        adapter = new FraxFerryAdapterL1toL2(address(0), address(token), address(receiver));
+
+        vm.expectRevert(FraxFerryAdapterL1toL2.FraxFerryAdapterL1toL2InvalidParameters.selector);
+        adapter = new FraxFerryAdapterL1toL2(address(fraxFerry), address(0), address(receiver));
+
+        vm.expectRevert(IBridgeAdapter.BridgeAdapterInvalidParameters.selector);
+        adapter = new FraxFerryAdapterL1toL2(address(fraxFerry), address(token), address(0));
+    }
+
     function test_Fuzz_SendToken(uint256 amount) public {
         bytes memory feeData = FeeCodec.encodeFraxFerryL1toL2();
 

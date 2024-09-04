@@ -10,6 +10,7 @@ interface IOraclePool {
     error OraclePoolOracleNotSet();
     error OraclePoolFeeTooHigh();
     error OraclePoolZeroAmountIn();
+    error OraclePoolInvalidParameters();
 
     event Swap(address recipient, uint256 amountIn, uint256 amountOut);
     event Pull(address token, address recipient, uint256 amount);
