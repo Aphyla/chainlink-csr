@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
 /**
@@ -63,7 +63,7 @@ library FeeCodec {
         returns (address recipient, uint256 amount, bytes memory feeData)
     {
         uint256 length = packedData.length;
-        
+
         if (length < 52) revert FeeCodecInvalidDataLength(packedData.length, 52);
 
         feeData = abi.encodePacked(packedData); // Force solidity to copy the data
