@@ -26,6 +26,8 @@ contract OraclePool is Ownable2Step, IOraclePool {
     IOracle private _oracle;
     uint96 private _fee;
 
+    uint256 private _lastPrice;
+
     /**
      * @dev Modifier to check if the sender is the expected account.
      */
@@ -122,6 +124,14 @@ contract OraclePool is Ownable2Step, IOraclePool {
         if (address(oracle) == address(0)) revert OraclePoolOracleNotSet();
 
         uint256 price = oracle.getLatestAnswer();
+        uint256 lastPrice = _lastPrice;
+
+        if (lastPrice != price) {
+            if (lastPrice > price) revert OraclePoolInvalidPrice(price, lastPrice);
+
+            _lastPrice = price;
+        }
+
         uint256 amountOut = (amountIn - feeAmount) * PRECISION / price;
 
         if (amountOut < minAmountOut) revert OraclePoolInsufficientAmountOut(amountOut, minAmountOut);

@@ -145,10 +145,13 @@ contract OraclePoolTest is Test {
         amountIn = bound(amountIn, 0.01e18, 100e18);
 
         dataFeed.set(int256(price), 1, 0, block.timestamp, 1);
-        tokenIn.mint(address(oraclePool), amountIn);
 
         uint256 feeAmount = amountIn * oraclePool.getFee() / 1e18;
         uint256 amountOut = (amountIn - feeAmount) * 1e18 / price;
+
+        vm.prank(msgSender);
+        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolUnauthorizedAccount.selector, msgSender));
+        oraclePool.swap(address(0), 0, 0);
 
         vm.startPrank(sender);
         vm.expectRevert(
@@ -158,11 +161,30 @@ contract OraclePoolTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolInsufficientTokenOut.selector, amountOut, 0));
         oraclePool.swap(alice, amountIn, amountOut);
-        vm.stopPrank();
 
-        vm.prank(msgSender);
-        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolUnauthorizedAccount.selector, msgSender));
-        oraclePool.swap(address(0), 0, 0);
+        tokenIn.mint(sender, 3 * amountIn);
+        tokenOut.mint(address(oraclePool), 3 * amountOut);
+
+        tokenIn.approve(address(oraclePool), 3 * amountIn);
+        oraclePool.swap(alice, amountIn, amountOut);
+
+        dataFeed.set(int256(price - 1), 1, 0, block.timestamp, 1);
+
+        vm.expectRevert(abi.encodeWithSelector(IOraclePool.OraclePoolInvalidPrice.selector, price - 1, price));
+        oraclePool.swap(alice, amountIn, amountOut);
+
+        assertEq(tokenOut.balanceOf(alice), amountOut, "test_Fuzz_Revert_Swap::1");
+
+        price = bound(price, price + 1, 200e18);
+        dataFeed.set(int256(price), 1, 0, block.timestamp, 1);
+
+        feeAmount = amountIn * oraclePool.getFee() / 1e18;
+        amountOut = (amountIn - feeAmount) * 1e18 / price;
+
+        oraclePool.swap(bob, amountIn, amountOut);
+
+        assertEq(tokenOut.balanceOf(bob), amountOut, "test_Fuzz_Revert_Swap::1");
+        vm.stopPrank();
     }
 
     function test_Revert_Swap() public {

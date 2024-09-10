@@ -11,6 +11,7 @@ interface IOraclePool {
     error OraclePoolFeeTooHigh();
     error OraclePoolZeroAmountIn();
     error OraclePoolInvalidParameters();
+    error OraclePoolInvalidPrice(uint256 price, uint256 lastPrice);
 
     event Swap(address recipient, uint256 amountIn, uint256 amountOut);
     event Pull(address token, address recipient, uint256 amount);
