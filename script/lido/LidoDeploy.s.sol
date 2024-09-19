@@ -10,7 +10,7 @@ import "../../contracts/senders/CustomSender.sol";
 import "../../contracts/receivers/LidoCustomReceiver.sol";
 import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
 import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
-import "../../contracts/adapters/BaseAdapterL1toL2.sol";
+import "../../contracts/adapters/BaseLegacyAdapterL1toL2.sol";
 import "../../contracts/automations/SyncAutomation.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
@@ -99,14 +99,8 @@ contract LidoDeployScript is Script, LidoParameters {
                 new OptimismLegacyAdapterL1toL2(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE, l1Contracts.receiver.proxy)
             );
 
-            l1Contracts.baseAdapter = address(
-                new BaseAdapterL1toL2(
-                    ETHEREUM_TO_BASE_STANDARD_BRIDGE,
-                    ETHEREUM_WSTETH_TOKEN,
-                    BASE_WSTETH_TOKEN,
-                    l1Contracts.receiver.proxy
-                )
-            );
+            l1Contracts.baseAdapter =
+                address(new BaseLegacyAdapterL1toL2(ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE, l1Contracts.receiver.proxy));
 
             vm.stopBroadcast();
         }

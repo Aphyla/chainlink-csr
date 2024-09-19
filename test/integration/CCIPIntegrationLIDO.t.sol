@@ -10,7 +10,7 @@ import "../../contracts/senders/CustomSender.sol";
 import "../../contracts/receivers/LidoCustomReceiver.sol";
 import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
 import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
-import "../../contracts/adapters/BaseAdapterL1toL2.sol";
+import "../../contracts/adapters/BaseLegacyAdapterL1toL2.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
@@ -19,7 +19,7 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
     LidoCustomReceiver receiver;
     ArbitrumLegacyAdapterL1toL2 arbAdapter;
     OptimismLegacyAdapterL1toL2 opAdapter;
-    BaseAdapterL1toL2 baseAdapter;
+    BaseLegacyAdapterL1toL2 baseAdapter;
 
     uint256 arbForkId;
     CustomSender arbSender;
@@ -53,9 +53,7 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
             arbAdapter =
                 new ArbitrumLegacyAdapterL1toL2(ETHEREUM_TO_ARBITRUM_ROUTER, ETHEREUM_WSTETH_TOKEN, address(receiver));
             opAdapter = new OptimismLegacyAdapterL1toL2(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE, address(receiver));
-            baseAdapter = new BaseAdapterL1toL2(
-                ETHEREUM_TO_BASE_STANDARD_BRIDGE, ETHEREUM_WSTETH_TOKEN, BASE_WSTETH_TOKEN, address(receiver)
-            );
+            baseAdapter = new BaseLegacyAdapterL1toL2(ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE, address(receiver));
 
             vm.label(ETHEREUM_CCIP_ROUTER, "ETH:CCIPRouter");
             vm.label(ETHEREUM_LINK_TOKEN, "ETH:LINK");

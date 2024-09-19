@@ -78,9 +78,9 @@ contract fork_LidoDeployScriptTest is Test, LidoParameters {
             );
             assertEq(optAdapter.DELEGATOR(), l1Contracts.receiver.proxy, "test_Deploy::21");
 
-            BaseAdapterL1toL2 baseAdapter = BaseAdapterL1toL2(l1Contracts.baseAdapter);
+            BaseLegacyAdapterL1toL2 baseAdapter = BaseLegacyAdapterL1toL2(l1Contracts.baseAdapter);
 
-            assertEq(baseAdapter.L1_STANDARD_BRIDGE(), ETHEREUM_TO_BASE_STANDARD_BRIDGE, "test_Deploy::22");
+            assertEq(baseAdapter.L1_ERC20_BRIDGE(), ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE, "test_Deploy::22");
             assertEq(baseAdapter.L1_TOKEN(), ETHEREUM_WSTETH_TOKEN, "test_Deploy::23");
             assertEq(baseAdapter.L2_TOKEN(), BASE_WSTETH_TOKEN, "test_Deploy::24");
             assertEq(baseAdapter.DELEGATOR(), l1Contracts.receiver.proxy, "test_Deploy::25");
