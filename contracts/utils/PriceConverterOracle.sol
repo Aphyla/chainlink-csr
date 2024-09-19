@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IOracle, IPriceOracle} from "../interfaces/IPriceOracle.sol";
 import {IPriceConverterOracle} from "../interfaces/IPriceConverterOracle.sol";
@@ -17,7 +17,7 @@ import {IPriceConverterOracle} from "../interfaces/IPriceConverterOracle.sol";
  * The price returned is always in 1e18 scale (18 decimals) and is calculated as:
  * `price = basePriceOracle.getLatestAnswer() * quotePriceOracle.getLatestAnswer() / 1e18`
  */
-contract PriceConverterOracle is Ownable2Step, IPriceConverterOracle {
+contract PriceConverterOracle is Ownable, IPriceConverterOracle {
     uint256 private constant PRECISION = 1e18;
 
     IPriceOracle private _basePriceOracle;

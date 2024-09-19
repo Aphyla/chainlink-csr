@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AutomationCompatible} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
 import {FeeCodec} from "../libraries/FeeCodec.sol";
@@ -15,7 +15,7 @@ import {ICustomSender} from "../interfaces/ICustomSender.sol";
  * The synchronization is done every `delay` seconds if the amount of native tokens in the oracle pool is greater than `minAmount`.
  * The amount of native tokens to sync is the minimum between the amount in the oracle pool and `maxAmount`.
  */
-contract SyncAutomation is AutomationCompatible, Ownable2Step {
+contract SyncAutomation is AutomationCompatible, Ownable {
     using SafeERC20 for IERC20;
 
     error SyncAutomationOnlyForwarder();

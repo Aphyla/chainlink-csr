@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
 
@@ -11,7 +11,7 @@ import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
  * @dev A contract that allows to get the price of a token in 1e18 scale (18 decimals) using a Chainlink Aggregator.
  * It is expected that the price oracle returns the price in 1e18 scale (18 decimals).
  */
-contract PriceOracle is Ownable2Step, IPriceOracle {
+contract PriceOracle is Ownable, IPriceOracle {
     uint256 private constant PRECISION = 1e18;
 
     AggregatorV3Interface private _aggregator;

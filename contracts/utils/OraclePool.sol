@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {IOracle} from "../interfaces/IOracle.sol";
@@ -14,7 +14,7 @@ import {IOraclePool} from "../interfaces/IOraclePool.sol";
  * The `SENDER` account is the only account allowed to call the swap and pull functions.
  * It is expected that it takes care of rebalancing the tokens in the contract as this contract only allows to swap `TOKEN_IN` for `TOKEN_OUT`.
  */
-contract OraclePool is Ownable2Step, IOraclePool {
+contract OraclePool is Ownable, IOraclePool {
     using SafeERC20 for IERC20;
 
     address public immutable override SENDER;
