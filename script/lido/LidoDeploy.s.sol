@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import "forge-std/Script.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import "./LidoParameters.sol";
 
+import "../ScriptHelper.sol";
 import "../../contracts/senders/CustomSender.sol";
 import "../../contracts/receivers/LidoCustomReceiver.sol";
 import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
@@ -15,7 +15,7 @@ import "../../contracts/automations/SyncAutomation.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
-contract LidoDeployScript is Script, LidoParameters {
+contract LidoDeployScript is ScriptHelper, LidoParameters {
     struct Proxy {
         address proxy;
         address proxyAdmin;
@@ -330,14 +330,225 @@ contract LidoDeployScript is Script, LidoParameters {
 
             vm.stopBroadcast();
         }
+
+        _verifyContracts(l1Contracts, l2Contracts);
     }
 
-    function _predictContractAddress(address account, uint256 deltaNonce) private view returns (address) {
-        uint256 nonce = vm.getNonce(account) + deltaNonce;
-        return vm.computeCreateAddress(account, nonce);
-    }
+    function _verifyContracts(L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) internal {
+        vm.selectFork(ethereumForkId);
 
-    function _getProxyAdmin(address proxy) private view returns (address) {
-        return address(uint160(uint256(vm.load(proxy, ERC1967Utils.ADMIN_SLOT))));
+        {
+            LidoCustomReceiver receiver = LidoCustomReceiver(payable(l1Contracts.receiver.proxy));
+
+            require(receiver.WSTETH() == ETHEREUM_WSTETH_TOKEN, "LidoDeployScript::1");
+            require(receiver.WNATIVE() == ETHEREUM_WETH_TOKEN, "LidoDeployScript::2");
+            require(receiver.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "LidoDeployScript::3");
+            require(receiver.hasRole(receiver.DEFAULT_ADMIN_ROLE(), deployer), "LidoDeployScript::4");
+            require(receiver.getAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR) == l1Contracts.arbitrumAdapter, "LidoDeployScript::5");
+            require(receiver.getAdapter(OPTIMISM_CCIP_CHAIN_SELECTOR) == l1Contracts.optimismAdapter, "LidoDeployScript::6");
+            require(receiver.getAdapter(BASE_CCIP_CHAIN_SELECTOR) == l1Contracts.baseAdapter, "LidoDeployScript::7");
+            require(
+                keccak256(receiver.getSender(ARBITRUM_CCIP_CHAIN_SELECTOR))
+                    == keccak256(abi.encode(l2Contracts[0].sender.proxy)),
+                "LidoDeployScript::8"
+            );
+            require(
+                keccak256(receiver.getSender(OPTIMISM_CCIP_CHAIN_SELECTOR))
+                    == keccak256(abi.encode(l2Contracts[1].sender.proxy)),
+                "LidoDeployScript::9"
+            );
+            require(
+                keccak256(receiver.getSender(BASE_CCIP_CHAIN_SELECTOR))
+                    == keccak256(abi.encode(l2Contracts[2].sender.proxy)),
+                "LidoDeployScript::10"
+            );
+            require(_getProxyAdmin(l1Contracts.receiver.proxy) == l1Contracts.receiver.proxyAdmin, "LidoDeployScript::11");
+            require(ProxyAdmin(l1Contracts.receiver.proxyAdmin).owner() == deployer, "LidoDeployScript::12");
+            require(
+                _getProxyImplementation(l1Contracts.receiver.proxy) == l1Contracts.receiver.implementation,
+                "LidoDeployScript::13"
+            );
+
+            ArbitrumLegacyAdapterL1toL2 arbAdapter = ArbitrumLegacyAdapterL1toL2(l1Contracts.arbitrumAdapter);
+
+            require(arbAdapter.L1_GATEWAY_ROUTER() == ETHEREUM_TO_ARBITRUM_ROUTER, "LidoDeployScript::14");
+            require(arbAdapter.L1_TOKEN() == ETHEREUM_WSTETH_TOKEN, "LidoDeployScript::15");
+            require(
+                arbAdapter.L1_TOKEN_GATEWAY()
+                    == IArbitrumL1GatewayRouter(ETHEREUM_TO_ARBITRUM_ROUTER).l1TokenToGateway(ETHEREUM_WSTETH_TOKEN),
+                "LidoDeployScript::16"
+            );
+            require(arbAdapter.DELEGATOR() == l1Contracts.receiver.proxy, "LidoDeployScript::17");
+
+            OptimismLegacyAdapterL1toL2 optAdapter = OptimismLegacyAdapterL1toL2(l1Contracts.optimismAdapter);
+
+            require(optAdapter.L1_ERC20_BRIDGE() == ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE, "LidoDeployScript::18");
+            require(
+                optAdapter.L1_TOKEN() == IOptimismL1ERC20TokenBridge(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE).l1Token(),
+                "LidoDeployScript::19"
+            );
+            require(
+                optAdapter.L2_TOKEN() == IOptimismL1ERC20TokenBridge(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE).l2Token(),
+                "LidoDeployScript::20"
+            );
+            require(optAdapter.DELEGATOR() == l1Contracts.receiver.proxy, "LidoDeployScript::21");
+
+            BaseLegacyAdapterL1toL2 baseAdapter = BaseLegacyAdapterL1toL2(l1Contracts.baseAdapter);
+
+            require(baseAdapter.L1_ERC20_BRIDGE() == ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE, "LidoDeployScript::22");
+            require(baseAdapter.L1_TOKEN() == ETHEREUM_WSTETH_TOKEN, "LidoDeployScript::23");
+            require(baseAdapter.L2_TOKEN() == BASE_WSTETH_TOKEN, "LidoDeployScript::24");
+            require(baseAdapter.DELEGATOR() == l1Contracts.receiver.proxy, "LidoDeployScript::25");
+        }
+
+        vm.selectFork(arbitrumForkId);
+
+        {
+            PriceOracle priceOracle = PriceOracle(l2Contracts[0].priceOracle);
+
+            (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
+
+            require(dataFeed == ARBITRUM_WSTETH_STETH_DATAFEED, "LidoDeployScript::26");
+            require(isInverse == ARBITRUM_WSTETH_STETH_DATAFEED_IS_INVERSE, "LidoDeployScript::27");
+            require(heartbeat == ARBITRUM_WSTETH_STETH_DATAFEED_HEARTBEAT, "LidoDeployScript::28");
+            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "LidoDeployScript::29");
+
+            OraclePool oraclePool = OraclePool(l2Contracts[0].oraclePool);
+
+            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "LidoDeployScript::30");
+            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "LidoDeployScript::31");
+            require(oraclePool.TOKEN_OUT() == ARBITRUM_WSTETH_TOKEN, "LidoDeployScript::32");
+            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "LidoDeployScript::33");
+            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "LidoDeployScript::34");
+            require(oraclePool.owner() == deployer, "LidoDeployScript::35");
+
+            CustomSender sender = CustomSender(l2Contracts[0].sender.proxy);
+
+            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "LidoDeployScript::36");
+            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "LidoDeployScript::37");
+            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "LidoDeployScript::38");
+            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "LidoDeployScript::39");
+            require(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), "LidoDeployScript::40");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "LidoDeployScript::41");
+            require(
+                abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
+                "LidoDeployScript::42"
+            );
+            require(_getProxyAdmin(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.proxyAdmin, "LidoDeployScript::43");
+            require(ProxyAdmin(l2Contracts[0].sender.proxyAdmin).owner() == deployer, "LidoDeployScript::44");
+            require(
+                _getProxyImplementation(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.implementation,
+                "LidoDeployScript::45"
+            );
+
+            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
+
+            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "LidoDeployScript::46");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "LidoDeployScript::47");
+            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "LidoDeployScript::48");
+            require(syncAutomation.owner() == deployer, "LidoDeployScript::49");
+            require(syncAutomation.getLastExecution() == block.timestamp, "LidoDeployScript::50");
+            require(syncAutomation.getDelay() == type(uint48).max, "LidoDeployScript::51");
+        }
+
+        vm.selectFork(optimismForkId);
+
+        {
+            PriceOracle priceOracle = PriceOracle(l2Contracts[1].priceOracle);
+
+            (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
+
+            require(dataFeed == OPTIMISM_WSTETH_STETH_DATAFEED, "LidoDeployScript::52");
+            require(isInverse == OPTIMISM_WSTETH_STETH_DATAFEED_IS_INVERSE, "LidoDeployScript::53");
+            require(heartbeat == OPTIMISM_WSTETH_STETH_DATAFEED_HEARTBEAT, "LidoDeployScript::54");
+            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "LidoDeployScript::55");
+
+            OraclePool oraclePool = OraclePool(l2Contracts[1].oraclePool);
+
+            require(oraclePool.SENDER() == l2Contracts[1].sender.proxy, "LidoDeployScript::56");
+            require(oraclePool.TOKEN_IN() == OPTIMISM_WETH_TOKEN, "LidoDeployScript::57");
+            require(oraclePool.TOKEN_OUT() == OPTIMISM_WSTETH_TOKEN, "LidoDeployScript::58");
+            require(oraclePool.getOracle() == l2Contracts[1].priceOracle, "LidoDeployScript::59");
+            require(oraclePool.getFee() == OPTIMISM_ORACLE_POOL_FEE, "LidoDeployScript::60");
+            require(oraclePool.owner() == deployer, "LidoDeployScript::61");
+
+            CustomSender sender = CustomSender(l2Contracts[1].sender.proxy);
+
+            require(sender.WNATIVE() == OPTIMISM_WETH_TOKEN, "LidoDeployScript::62");
+            require(sender.LINK_TOKEN() == OPTIMISM_LINK_TOKEN, "LidoDeployScript::63");
+            require(sender.CCIP_ROUTER() == OPTIMISM_CCIP_ROUTER, "LidoDeployScript::64");
+            require(sender.getOraclePool() == l2Contracts[1].oraclePool, "LidoDeployScript::65");
+            require(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), "LidoDeployScript::66");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[1].syncAutomation), "LidoDeployScript::67");
+            require(
+                abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
+                "LidoDeployScript::68"
+            );
+            require(_getProxyAdmin(l2Contracts[1].sender.proxy) == l2Contracts[1].sender.proxyAdmin, "LidoDeployScript::69");
+            require(ProxyAdmin(l2Contracts[1].sender.proxyAdmin).owner() == deployer, "LidoDeployScript::70");
+            require(
+                _getProxyImplementation(l2Contracts[1].sender.proxy) == l2Contracts[1].sender.implementation,
+                "LidoDeployScript::71"
+            );
+
+            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[1].syncAutomation);
+
+            require(syncAutomation.SENDER() == l2Contracts[1].sender.proxy, "LidoDeployScript::72");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "LidoDeployScript::73");
+            require(syncAutomation.WNATIVE() == OPTIMISM_WETH_TOKEN, "LidoDeployScript::74");
+            require(syncAutomation.owner() == deployer, "LidoDeployScript::75");
+            require(syncAutomation.getLastExecution() == block.timestamp, "LidoDeployScript::76");
+            require(syncAutomation.getDelay() == type(uint48).max, "LidoDeployScript::77");
+        }
+
+        vm.selectFork(baseForkId);
+
+        {
+            PriceOracle priceOracle = PriceOracle(l2Contracts[2].priceOracle);
+
+            (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
+
+            require(dataFeed == BASE_WSTETH_STETH_DATAFEED, "LidoDeployScript::78");
+            require(isInverse == BASE_WSTETH_STETH_DATAFEED_IS_INVERSE, "LidoDeployScript::79");
+            require(heartbeat == BASE_WSTETH_STETH_DATAFEED_HEARTBEAT, "LidoDeployScript::80");
+            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "LidoDeployScript::81");
+
+            OraclePool oraclePool = OraclePool(l2Contracts[2].oraclePool);
+
+            require(oraclePool.SENDER() == l2Contracts[2].sender.proxy, "LidoDeployScript::82");
+            require(oraclePool.TOKEN_IN() == BASE_WETH_TOKEN, "LidoDeployScript::83");
+            require(oraclePool.TOKEN_OUT() == BASE_WSTETH_TOKEN, "LidoDeployScript::84");
+            require(oraclePool.getOracle() == l2Contracts[2].priceOracle, "LidoDeployScript::85");
+            require(oraclePool.getFee() == BASE_ORACLE_POOL_FEE, "LidoDeployScript::86");
+            require(oraclePool.owner() == deployer, "LidoDeployScript::87");
+
+            CustomSender sender = CustomSender(l2Contracts[2].sender.proxy);
+
+            require(sender.WNATIVE() == BASE_WETH_TOKEN, "LidoDeployScript::88");
+            require(sender.LINK_TOKEN() == BASE_LINK_TOKEN, "LidoDeployScript::89");
+            require(sender.CCIP_ROUTER() == BASE_CCIP_ROUTER, "LidoDeployScript::90");
+            require(sender.getOraclePool() == l2Contracts[2].oraclePool, "LidoDeployScript::91");
+            require(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), "LidoDeployScript::92");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[2].syncAutomation), "LidoDeployScript::93");
+            require(
+                abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
+                "LidoDeployScript::94"
+            );
+            require(_getProxyAdmin(l2Contracts[2].sender.proxy) == l2Contracts[2].sender.proxyAdmin, "LidoDeployScript::95");
+            require(ProxyAdmin(l2Contracts[2].sender.proxyAdmin).owner() == deployer, "LidoDeployScript::96");
+            require(
+                _getProxyImplementation(l2Contracts[2].sender.proxy) == l2Contracts[2].sender.implementation,
+                "LidoDeployScript::97"
+            );
+
+            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[2].syncAutomation);
+
+            require(syncAutomation.SENDER() == l2Contracts[2].sender.proxy, "LidoDeployScript::98");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "LidoDeployScript::99");
+            require(syncAutomation.WNATIVE() == BASE_WETH_TOKEN, "LidoDeployScript::100");
+            require(syncAutomation.owner() == deployer, "LidoDeployScript::101");
+            require(syncAutomation.getLastExecution() == block.timestamp, "LidoDeployScript::102");
+            require(syncAutomation.getDelay() == type(uint48).max, "LidoDeployScript::103");
+        }
     }
 }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import "forge-std/Script.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import "./EigenpieParameters.sol";
 
+import "../ScriptHelper.sol";
 import "../../contracts/senders/CustomSender.sol";
 import "../../contracts/receivers/EigenpieCustomReceiver.sol";
 import "../../contracts/adapters/CCIPAdapter.sol";
@@ -13,7 +13,7 @@ import "../../contracts/automations/SyncAutomation.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
-contract EigenpieDeployScript is Script, EigenpieParameters {
+contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
     struct Proxy {
         address proxy;
         address proxyAdmin;
@@ -169,14 +169,96 @@ contract EigenpieDeployScript is Script, EigenpieParameters {
 
             vm.stopBroadcast();
         }
+
+        _verifyContracts(l1Contracts, l2Contracts);
     }
 
-    function _predictContractAddress(address account, uint256 deltaNonce) private view returns (address) {
-        uint256 nonce = vm.getNonce(account) + deltaNonce;
-        return vm.computeCreateAddress(account, nonce);
-    }
+    function _verifyContracts(L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) internal {
+        vm.selectFork(ethereumForkId);
 
-    function _getProxyAdmin(address proxy) private view returns (address) {
-        return address(uint160(uint256(vm.load(proxy, ERC1967Utils.ADMIN_SLOT))));
+        {
+            EigenpieCustomReceiver receiver = EigenpieCustomReceiver(payable(l1Contracts.receiver.proxy));
+
+            require(receiver.EGETH() == ETHEREUM_EGETH_TOKEN, "EigenpieDeployScript::1");
+            require(receiver.WNATIVE() == ETHEREUM_WETH_TOKEN, "EigenpieDeployScript::2");
+            require(receiver.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "EigenpieDeployScript::3");
+            require(receiver.hasRole(receiver.DEFAULT_ADMIN_ROLE(), deployer), "EigenpieDeployScript::4");
+            require(
+                receiver.getAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR) == l1Contracts.arbitrumAdapter,
+                "EigenpieDeployScript::5"
+            );
+            require(
+                keccak256(receiver.getSender(ARBITRUM_CCIP_CHAIN_SELECTOR))
+                    == keccak256(abi.encode(l2Contracts[0].sender.proxy)),
+                "EigenpieDeployScript::6"
+            );
+            require(
+                _getProxyAdmin(l1Contracts.receiver.proxy) == l1Contracts.receiver.proxyAdmin, "EigenpieDeployScript::7"
+            );
+            require(ProxyAdmin(l1Contracts.receiver.proxyAdmin).owner() == deployer, "EigenpieDeployScript::8");
+            require(
+                _getProxyImplementation(l1Contracts.receiver.proxy) == l1Contracts.receiver.implementation,
+                "EigenpieDeployScript::9"
+            );
+
+            CCIPAdapter ccipAdapter = CCIPAdapter(l1Contracts.arbitrumAdapter);
+
+            require(ccipAdapter.LINK_TOKEN() == ETHEREUM_LINK_TOKEN, "EigenpieDeployScript::10");
+            require(ccipAdapter.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "EigenpieDeployScript::11");
+            require(ccipAdapter.L1_TOKEN() == ETHEREUM_EGETH_TOKEN, "EigenpieDeployScript::12");
+        }
+
+        vm.selectFork(arbitrumForkId);
+
+        {
+            PriceOracle priceOracle = PriceOracle(l2Contracts[0].priceOracle);
+
+            (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
+
+            require(dataFeed == ARBITRUM_EGETH_ETH_DATAFEED, "EigenpieDeployScript::13");
+            require(isInverse == ARBITRUM_EGETH_ETH_DATAFEED_IS_INVERSE, "EigenpieDeployScript::14");
+            require(heartbeat == ARBITRUM_EGETH_ETH_DATAFEED_HEARTBEAT, "EigenpieDeployScript::15");
+            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "EigenpieDeployScript::16");
+
+            OraclePool oraclePool = OraclePool(l2Contracts[0].oraclePool);
+
+            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "EigenpieDeployScript::17");
+            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "EigenpieDeployScript::18");
+            require(oraclePool.TOKEN_OUT() == ARBITRUM_EGETH_TOKEN, "EigenpieDeployScript::19");
+            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "EigenpieDeployScript::20");
+            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "EigenpieDeployScript::21");
+            require(oraclePool.owner() == deployer, "EigenpieDeployScript::22");
+
+            CustomSender sender = CustomSender(l2Contracts[0].sender.proxy);
+
+            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "EigenpieDeployScript::23");
+            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "EigenpieDeployScript::24");
+            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "EigenpieDeployScript::25");
+            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "EigenpieDeployScript::26");
+            require(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), "EigenpieDeployScript::27");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "EigenpieDeployScript::28");
+            require(
+                abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
+                "EigenpieDeployScript::29"
+            );
+            require(
+                _getProxyAdmin(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.proxyAdmin,
+                "EigenpieDeployScript::30"
+            );
+            require(ProxyAdmin(l2Contracts[0].sender.proxyAdmin).owner() == deployer, "EigenpieDeployScript::31");
+            require(
+                _getProxyImplementation(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.implementation,
+                "EigenpieDeployScript::32"
+            );
+
+            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
+
+            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "EigenpieDeployScript::33");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "EigenpieDeployScript::34");
+            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "EigenpieDeployScript::35");
+            require(syncAutomation.owner() == deployer, "EigenpieDeployScript::36");
+            require(syncAutomation.getLastExecution() == block.timestamp, "EigenpieDeployScript::37");
+            require(syncAutomation.getDelay() == type(uint48).max, "EigenpieDeployScript::38");
+        }
     }
 }
