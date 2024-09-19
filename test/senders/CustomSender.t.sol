@@ -80,7 +80,7 @@ contract CustomSenderTest is Test {
             address(wnative), address(wnative), address(link), address(0), address(oraclePool), address(this)
         );
 
-        vm.expectRevert(ICustomSender.CustomSenderInvalidParameters.selector);
+        // Should not revert, we allow the oracle pool to be set to address(0) to disable fast stake
         sender = new CustomSender(
             address(wnative), address(wnative), address(link), address(ccipRouter), address(0), address(this)
         );
