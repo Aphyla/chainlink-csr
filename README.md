@@ -28,7 +28,7 @@ Do not forget to replace `<NAME_OF_THE_CONTRACT>` with the name of the contract,
 
 #### Bridge Adapter
 
-If the bridge is not supported (currently, only OPTIMISM, ARBITRUM and CCIP bridges are supported), inherit the [BridgeAdapter](contracts/adapaters/BridgeAdapter.sol) contract and implement the `_sendToken` function.
+If the bridge is not supported (currently, only OPTIMISM, ARBITRUM, BASE and CCIP bridges are supported), inherit the [BridgeAdapter](contracts/adapaters/BridgeAdapter.sol) contract and implement the `_sendToken` function.
 
 Note that bridge adapters should not store any data in storage, as this would lead to storage collisions.
 
