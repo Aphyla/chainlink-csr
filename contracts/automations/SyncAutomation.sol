@@ -8,6 +8,7 @@ import {AutomationCompatible} from "@chainlink/contracts/src/v0.8/automation/Aut
 import {FeeCodec} from "../libraries/FeeCodec.sol";
 import {IOraclePool} from "../interfaces/IOraclePool.sol";
 import {ICustomSender} from "../interfaces/ICustomSender.sol";
+import {ISyncAutomation} from "../interfaces/ISyncAutomation.sol";
 
 /**
  * @title SyncAutomation Contract
@@ -15,19 +16,8 @@ import {ICustomSender} from "../interfaces/ICustomSender.sol";
  * The synchronization is done every `delay` seconds if the amount of native tokens in the oracle pool is greater than `minAmount`.
  * The amount of native tokens to sync is the minimum between the amount in the oracle pool and `maxAmount`.
  */
-contract SyncAutomation is AutomationCompatible, Ownable {
+contract SyncAutomation is AutomationCompatible, Ownable, ISyncAutomation {
     using SafeERC20 for IERC20;
-
-    error SyncAutomationOnlyForwarder();
-    error SyncAutomationNoUpkeepNeeded();
-    error SyncAutomationInvalidAmounts(uint128 minAmount, uint128 maxAmount);
-    error SyncAutomationInvalidParameters();
-
-    event ForwarderSet(address forwarder);
-    event DelaySet(uint48 delay);
-    event AmountsSet(uint128 minAmount, uint128 maxAmount);
-    event FeeOtoDSet(bytes fee);
-    event FeeDtoOSet(bytes fee);
 
     address public immutable SENDER;
     uint64 public immutable DEST_CHAIN_SELECTOR;
@@ -121,6 +111,21 @@ contract SyncAutomation is AutomationCompatible, Ownable {
      */
     function getAmountToSync() public view virtual returns (uint256) {
         return _getAmountToSync();
+    }
+
+    /**
+     * @dev Returns the max fee used to sync the native tokens to the destination chain, and back to the origin chain.
+     */
+    function getMaxFees() public view virtual returns (uint256 maxNativeFee, uint256 maxLinkFee) {
+        (uint256 maxFeeOtoD, bool payInLinkOtoD) = FeeCodec.decodeFeeMemory(_feeOtoD);
+
+        if (payInLinkOtoD) maxLinkFee = maxFeeOtoD;
+        else maxNativeFee = maxFeeOtoD;
+
+        (uint256 maxFeeDtoO, bool payInLinkDtoO) = FeeCodec.decodeFeeMemory(_feeDtoO);
+
+        if (payInLinkDtoO) maxLinkFee += maxFeeDtoO;
+        else maxNativeFee += maxFeeDtoO;
     }
 
     /**

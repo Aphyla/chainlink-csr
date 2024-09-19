@@ -39,10 +39,10 @@ contract SyncAutomationTest is Test {
     }
 
     function test_Revert_Constructor() public {
-        vm.expectRevert(SyncAutomation.SyncAutomationInvalidParameters.selector);
+        vm.expectRevert(ISyncAutomation.SyncAutomationInvalidParameters.selector);
         syncAutomation = new SyncAutomation(address(0), DEST_CHAIN_SELECTOR, address(this));
 
-        vm.expectRevert(SyncAutomation.SyncAutomationInvalidParameters.selector);
+        vm.expectRevert(ISyncAutomation.SyncAutomationInvalidParameters.selector);
         syncAutomation = new SyncAutomation(address(sender), 0, address(this));
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
@@ -123,11 +123,11 @@ contract SyncAutomationTest is Test {
         minAmount = uint128(bound(minAmount, 1, type(uint128).max));
         maxAmount = uint128(bound(maxAmount, 0, minAmount - 1));
 
-        vm.expectRevert(abi.encodeWithSelector(SyncAutomation.SyncAutomationInvalidAmounts.selector, 0, 1));
+        vm.expectRevert(abi.encodeWithSelector(ISyncAutomation.SyncAutomationInvalidAmounts.selector, 0, 1));
         syncAutomation.setAmounts(0, 1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(SyncAutomation.SyncAutomationInvalidAmounts.selector, minAmount, maxAmount)
+            abi.encodeWithSelector(ISyncAutomation.SyncAutomationInvalidAmounts.selector, minAmount, maxAmount)
         );
         syncAutomation.setAmounts(minAmount, maxAmount);
     }
@@ -162,6 +162,28 @@ contract SyncAutomationTest is Test {
         syncAutomation.setFeeDtoO(fee);
 
         assertEq(syncAutomation.getFeeDtoO(), fee, "test_Fuzz_SetFeeDtoO::4");
+    }
+
+    function test_Fuzz_GetMaxFees(
+        uint128 maxFee0toD,
+        bool payInLink0toD,
+        uint128 maxFeeDto0,
+        bool payInLinkDto0,
+        bytes memory otherData
+    ) public {
+        bytes memory fee0toD = abi.encodePacked(maxFee0toD, payInLink0toD, otherData);
+        bytes memory feeDto0 = abi.encodePacked(maxFeeDto0, payInLinkDto0, otherData);
+
+        syncAutomation.setFeeOtoD(fee0toD);
+        syncAutomation.setFeeDtoO(feeDto0);
+
+        (uint256 maxNativeFee, uint256 maxLinkFee) = syncAutomation.getMaxFees();
+
+        uint256 expectedMaxNativeFee = uint256(payInLink0toD ? 0 : maxFee0toD) + (payInLinkDto0 ? 0 : maxFeeDto0);
+        uint256 expectedMaxLinkFee = uint256(payInLink0toD ? maxFee0toD : 0) + (payInLinkDto0 ? maxFeeDto0 : 0);
+
+        assertEq(maxNativeFee, expectedMaxNativeFee, "test_Fuzz_GetMaxFee::1");
+        assertEq(maxLinkFee, expectedMaxLinkFee, "test_Fuzz_GetMaxFee::2");
     }
 
     function test_Fuzz_Revert_OnlyOwner(address msgSender) public {
@@ -384,13 +406,13 @@ contract SyncAutomationTest is Test {
         assertEq(performData, abi.encode(amount), "test_Fuzz_Revert_PerformUpKeep::2");
 
         vm.prank(msgSender);
-        vm.expectRevert(SyncAutomation.SyncAutomationOnlyForwarder.selector);
+        vm.expectRevert(ISyncAutomation.SyncAutomationOnlyForwarder.selector);
         syncAutomation.performUpkeep(performData);
 
         syncAutomation.setDelay(delay + 1);
 
         vm.prank(FORWARDER);
-        vm.expectRevert(SyncAutomation.SyncAutomationNoUpkeepNeeded.selector);
+        vm.expectRevert(ISyncAutomation.SyncAutomationNoUpkeepNeeded.selector);
         syncAutomation.performUpkeep(performData);
     }
 }
