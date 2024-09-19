@@ -182,8 +182,8 @@ contract SyncAutomationTest is Test {
         uint256 expectedMaxNativeFee = uint256(payInLink0toD ? 0 : maxFee0toD) + (payInLinkDto0 ? 0 : maxFeeDto0);
         uint256 expectedMaxLinkFee = uint256(payInLink0toD ? maxFee0toD : 0) + (payInLinkDto0 ? maxFeeDto0 : 0);
 
-        assertEq(maxNativeFee, expectedMaxNativeFee, "test_Fuzz_GetMaxFee::1");
-        assertEq(maxLinkFee, expectedMaxLinkFee, "test_Fuzz_GetMaxFee::2");
+        assertEq(maxNativeFee, expectedMaxNativeFee, "test_Fuzz_GetMaxFees::1");
+        assertEq(maxLinkFee, expectedMaxLinkFee, "test_Fuzz_GetMaxFees::2");
     }
 
     function test_Fuzz_Revert_OnlyOwner(address msgSender) public {

@@ -183,7 +183,7 @@ contract OraclePoolTest is Test {
 
         oraclePool.swap(bob, amountIn, amountOut);
 
-        assertEq(tokenOut.balanceOf(bob), amountOut, "test_Fuzz_Revert_Swap::1");
+        assertEq(tokenOut.balanceOf(bob), amountOut, "test_Fuzz_Revert_Swap::2");
         vm.stopPrank();
     }
 
