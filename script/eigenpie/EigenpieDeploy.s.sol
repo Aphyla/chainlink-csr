@@ -67,14 +67,14 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
                     ETHEREUM_EGETH_STAKING,
                     ETHEREUM_WETH_TOKEN,
                     ETHEREUM_CCIP_ROUTER,
-                    address(0xdead)
+                    DEAD_ADDRESS
                 )
             );
 
             l1Contracts.receiver.proxy = address(
                 new TransparentUpgradeableProxy(
                     l1Contracts.receiver.implementation,
-                    deployer,
+                    ETHEREUM_OWNER == address(0) ? deployer : ETHEREUM_OWNER,
                     abi.encodeCall(EigenpieCustomReceiver.initialize, (deployer))
                 )
             );
@@ -120,15 +120,15 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
                     ARBITRUM_WETH_TOKEN,
                     ARBITRUM_LINK_TOKEN,
                     ARBITRUM_CCIP_ROUTER,
-                    address(0xdead),
-                    address(0xdead)
+                    DEAD_ADDRESS,
+                    DEAD_ADDRESS
                 )
             );
 
             arbContracts.sender.proxy = address(
                 new TransparentUpgradeableProxy(
                     arbContracts.sender.implementation,
-                    deployer,
+                    ARBITRUM_OWNER == address(0) ? deployer : ARBITRUM_OWNER,
                     abi.encodeCall(CustomSender.initialize, (arbContracts.oraclePool, deployer))
                 )
             );
@@ -146,12 +146,15 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
             vm.selectFork(ethereumForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            EigenpieCustomReceiver(payable(l1Contracts.receiver.proxy)).setAdapter(
-                ARBITRUM_CCIP_CHAIN_SELECTOR, l1Contracts.arbitrumAdapter
-            );
-            EigenpieCustomReceiver(payable(l1Contracts.receiver.proxy)).setSender(
-                ARBITRUM_CCIP_CHAIN_SELECTOR, abi.encode(arbContracts.sender.proxy)
-            );
+            EigenpieCustomReceiver receiver = EigenpieCustomReceiver(payable(l1Contracts.receiver.proxy));
+
+            receiver.setAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR, l1Contracts.arbitrumAdapter);
+            receiver.setSender(ARBITRUM_CCIP_CHAIN_SELECTOR, abi.encode(arbContracts.sender.proxy));
+
+            if (ETHEREUM_OWNER != address(0)) {
+                receiver.grantRole(receiver.DEFAULT_ADMIN_ROLE(), ETHEREUM_OWNER);
+                receiver.renounceRole(receiver.DEFAULT_ADMIN_ROLE(), deployer);
+            }
 
             vm.stopBroadcast();
         }
@@ -161,51 +164,73 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
             vm.selectFork(arbitrumForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            CustomSender(arbContracts.sender.proxy).setReceiver(
-                ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy)
+            CustomSender sender = CustomSender(arbContracts.sender.proxy);
+            SyncAutomation syncAutomation = SyncAutomation(arbContracts.syncAutomation);
+
+            sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
+
+            sender.grantRole(sender.SYNC_ROLE(), address(syncAutomation));
+
+            syncAutomation.setFeeOtoD(
+                FeeCodec.encodeCCIP(
+                    ETHEREUM_DESTINATION_MAX_FEE, ETHEREUM_DESTINATION_PAY_IN_LINK, ETHEREUM_DESTINATION_GAS_LIMIT
+                )
+            );
+            syncAutomation.setFeeDtoO(
+                FeeCodec.encodeCCIP(
+                    ARBITRUM_DESTINATION_MAX_FEE, ARBITRUM_DESTINATION_PAY_IN_LINK, ARBITRUM_DESTINATION_GAS_LIMIT
+                )
             );
 
-            CustomSender(arbContracts.sender.proxy).grantRole(keccak256("SYNC_ROLE"), arbContracts.syncAutomation);
+            syncAutomation.setAmounts(ARBITRUM_MIN_SYNC_AMOUNT, ARBITRUM_MAX_SYNC_AMOUNT);
+            syncAutomation.setDelay(ARBITRUM_MIN_SYNC_DELAY);
+
+            if (ARBITRUM_OWNER != address(0)) {
+                sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), ARBITRUM_OWNER);
+                sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
+            }
 
             vm.stopBroadcast();
         }
 
-        _verifyContracts(l1Contracts, l2Contracts);
+        _verifyDeployments(l1Contracts, l2Contracts);
     }
 
-    function _verifyContracts(L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) internal {
+    function _verifyDeployments(L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) internal {
         vm.selectFork(ethereumForkId);
 
         {
             EigenpieCustomReceiver receiver = EigenpieCustomReceiver(payable(l1Contracts.receiver.proxy));
 
-            require(receiver.EGETH() == ETHEREUM_EGETH_TOKEN, "EigenpieDeployScript::1");
-            require(receiver.WNATIVE() == ETHEREUM_WETH_TOKEN, "EigenpieDeployScript::2");
-            require(receiver.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "EigenpieDeployScript::3");
-            require(receiver.hasRole(receiver.DEFAULT_ADMIN_ROLE(), deployer), "EigenpieDeployScript::4");
+            require(receiver.EGETH() == ETHEREUM_EGETH_TOKEN, "_verifyDeployments::1");
+            require(receiver.WNATIVE() == ETHEREUM_WETH_TOKEN, "_verifyDeployments::2");
+            require(receiver.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "_verifyDeployments::3");
+            _checkRole(
+                address(receiver), receiver.DEFAULT_ADMIN_ROLE(), deployer, ETHEREUM_OWNER, "_verifyDeployments::4"
+            );
             require(
                 receiver.getAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR) == l1Contracts.arbitrumAdapter,
-                "EigenpieDeployScript::5"
+                "_verifyDeployments::5"
             );
             require(
                 keccak256(receiver.getSender(ARBITRUM_CCIP_CHAIN_SELECTOR))
                     == keccak256(abi.encode(l2Contracts[0].sender.proxy)),
-                "EigenpieDeployScript::6"
+                "_verifyDeployments::6"
             );
             require(
-                _getProxyAdmin(l1Contracts.receiver.proxy) == l1Contracts.receiver.proxyAdmin, "EigenpieDeployScript::7"
+                _getProxyAdmin(l1Contracts.receiver.proxy) == l1Contracts.receiver.proxyAdmin, "_verifyDeployments::7"
             );
-            require(ProxyAdmin(l1Contracts.receiver.proxyAdmin).owner() == deployer, "EigenpieDeployScript::8");
+            _checkOwner(l1Contracts.receiver.proxyAdmin, deployer, ETHEREUM_OWNER, "_verifyDeployments::8");
             require(
                 _getProxyImplementation(l1Contracts.receiver.proxy) == l1Contracts.receiver.implementation,
-                "EigenpieDeployScript::9"
+                "_verifyDeployments::9"
             );
 
             CCIPAdapter ccipAdapter = CCIPAdapter(l1Contracts.arbitrumAdapter);
 
-            require(ccipAdapter.LINK_TOKEN() == ETHEREUM_LINK_TOKEN, "EigenpieDeployScript::10");
-            require(ccipAdapter.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "EigenpieDeployScript::11");
-            require(ccipAdapter.L1_TOKEN() == ETHEREUM_EGETH_TOKEN, "EigenpieDeployScript::12");
+            require(ccipAdapter.LINK_TOKEN() == ETHEREUM_LINK_TOKEN, "_verifyDeployments::10");
+            require(ccipAdapter.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "_verifyDeployments::11");
+            require(ccipAdapter.L1_TOKEN() == ETHEREUM_EGETH_TOKEN, "_verifyDeployments::12");
         }
 
         vm.selectFork(arbitrumForkId);
@@ -215,50 +240,80 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
 
             (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
 
-            require(dataFeed == ARBITRUM_EGETH_ETH_DATAFEED, "EigenpieDeployScript::13");
-            require(isInverse == ARBITRUM_EGETH_ETH_DATAFEED_IS_INVERSE, "EigenpieDeployScript::14");
-            require(heartbeat == ARBITRUM_EGETH_ETH_DATAFEED_HEARTBEAT, "EigenpieDeployScript::15");
-            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "EigenpieDeployScript::16");
+            require(dataFeed == ARBITRUM_EGETH_ETH_DATAFEED, "_verifyDeployments::13");
+            require(isInverse == ARBITRUM_EGETH_ETH_DATAFEED_IS_INVERSE, "_verifyDeployments::14");
+            require(heartbeat == ARBITRUM_EGETH_ETH_DATAFEED_HEARTBEAT, "_verifyDeployments::15");
+            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "_verifyDeployments::16");
+            _checkOwner(address(priceOracle), deployer, ARBITRUM_OWNER, "_verifyDeployments::17");
 
             OraclePool oraclePool = OraclePool(l2Contracts[0].oraclePool);
 
-            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "EigenpieDeployScript::17");
-            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "EigenpieDeployScript::18");
-            require(oraclePool.TOKEN_OUT() == ARBITRUM_EGETH_TOKEN, "EigenpieDeployScript::19");
-            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "EigenpieDeployScript::20");
-            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "EigenpieDeployScript::21");
-            require(oraclePool.owner() == deployer, "EigenpieDeployScript::22");
+            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::18");
+            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::19");
+            require(oraclePool.TOKEN_OUT() == ARBITRUM_EGETH_TOKEN, "_verifyDeployments::20");
+            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "_verifyDeployments::21");
+            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "_verifyDeployments::22");
+            _checkOwner(address(oraclePool), deployer, ARBITRUM_OWNER, "_verifyDeployments::23");
 
             CustomSender sender = CustomSender(l2Contracts[0].sender.proxy);
 
-            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "EigenpieDeployScript::23");
-            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "EigenpieDeployScript::24");
-            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "EigenpieDeployScript::25");
-            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "EigenpieDeployScript::26");
-            require(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), "EigenpieDeployScript::27");
-            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "EigenpieDeployScript::28");
+            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::24");
+            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "_verifyDeployments::25");
+            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "_verifyDeployments::26");
+            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "_verifyDeployments::27");
+            _checkRole(address(sender), sender.DEFAULT_ADMIN_ROLE(), deployer, ARBITRUM_OWNER, "_verifyDeployments::28");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "_verifyDeployments::29");
             require(
                 abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
-                "EigenpieDeployScript::29"
+                "_verifyDeployments::30"
             );
             require(
                 _getProxyAdmin(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.proxyAdmin,
-                "EigenpieDeployScript::30"
+                "_verifyDeployments::31"
             );
-            require(ProxyAdmin(l2Contracts[0].sender.proxyAdmin).owner() == deployer, "EigenpieDeployScript::31");
+            _checkOwner(l2Contracts[0].sender.proxyAdmin, deployer, ARBITRUM_OWNER, "_verifyDeployments::32");
             require(
                 _getProxyImplementation(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.implementation,
-                "EigenpieDeployScript::32"
+                "_verifyDeployments::33"
             );
 
             SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
 
-            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "EigenpieDeployScript::33");
-            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "EigenpieDeployScript::34");
-            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "EigenpieDeployScript::35");
-            require(syncAutomation.owner() == deployer, "EigenpieDeployScript::36");
-            require(syncAutomation.getLastExecution() == block.timestamp, "EigenpieDeployScript::37");
-            require(syncAutomation.getDelay() == type(uint48).max, "EigenpieDeployScript::38");
+            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::34");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::35");
+            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::36");
+            _checkOwner(address(syncAutomation), deployer, ARBITRUM_OWNER, "_verifyDeployments::37");
+            require(syncAutomation.getLastExecution() == block.timestamp, "_verifyDeployments::38");
+            require(syncAutomation.getDelay() == ARBITRUM_MIN_SYNC_DELAY, "_verifyDeployments::39");
+            require(
+                keccak256(abi.encode(syncAutomation.getFeeOtoD()))
+                    == keccak256(
+                        abi.encode(
+                            FeeCodec.encodeCCIP(
+                                ETHEREUM_DESTINATION_MAX_FEE,
+                                ETHEREUM_DESTINATION_PAY_IN_LINK,
+                                ETHEREUM_DESTINATION_GAS_LIMIT
+                            )
+                        )
+                    ),
+                "_verifyDeployments::40"
+            );
+            require(
+                keccak256(abi.encode(syncAutomation.getFeeDtoO()))
+                    == keccak256(
+                        abi.encode(
+                            FeeCodec.encodeCCIP(
+                                ARBITRUM_DESTINATION_MAX_FEE,
+                                ARBITRUM_DESTINATION_PAY_IN_LINK,
+                                ARBITRUM_DESTINATION_GAS_LIMIT
+                            )
+                        )
+                    ),
+                "_verifyDeployments::41"
+            );
+            (uint128 minAmount, uint128 maxAmount) = syncAutomation.getAmounts();
+            require(minAmount == ARBITRUM_MIN_SYNC_AMOUNT, "_verifyDeployments::42");
+            require(maxAmount == ARBITRUM_MAX_SYNC_AMOUNT, "_verifyDeployments::43");
         }
     }
 }

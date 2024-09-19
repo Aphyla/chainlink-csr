@@ -72,14 +72,14 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
                     ETHEREUM_FRXETH_MINTER,
                     ETHEREUM_WETH_TOKEN,
                     ETHEREUM_CCIP_ROUTER,
-                    address(0xdead)
+                    DEAD_ADDRESS
                 )
             );
 
             l1Contracts.receiver.proxy = address(
                 new TransparentUpgradeableProxy(
                     l1Contracts.receiver.implementation,
-                    deployer,
+                    ETHEREUM_OWNER == address(0) ? deployer : ETHEREUM_OWNER,
                     abi.encodeCall(FraxCustomReceiver.initialize, (deployer))
                 )
             );
@@ -132,15 +132,15 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
                     ARBITRUM_WETH_TOKEN,
                     ARBITRUM_LINK_TOKEN,
                     ARBITRUM_CCIP_ROUTER,
-                    address(0xdead),
-                    address(0xdead)
+                    DEAD_ADDRESS,
+                    DEAD_ADDRESS
                 )
             );
 
             arbContracts.sender.proxy = address(
                 new TransparentUpgradeableProxy(
                     arbContracts.sender.implementation,
-                    deployer,
+                    ARBITRUM_OWNER == address(0) ? deployer : ARBITRUM_OWNER,
                     abi.encodeCall(CustomSender.initialize, (arbContracts.oraclePool, deployer))
                 )
             );
@@ -184,15 +184,15 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
                     OPTIMISM_WETH_TOKEN,
                     OPTIMISM_LINK_TOKEN,
                     OPTIMISM_CCIP_ROUTER,
-                    address(0xdead),
-                    address(0xdead)
+                    DEAD_ADDRESS,
+                    DEAD_ADDRESS
                 )
             );
 
             optContracts.sender.proxy = address(
                 new TransparentUpgradeableProxy(
                     optContracts.sender.implementation,
-                    deployer,
+                    OPTIMISM_OWNER == address(0) ? deployer : OPTIMISM_OWNER,
                     abi.encodeCall(CustomSender.initialize, (optContracts.oraclePool, deployer))
                 )
             );
@@ -210,19 +210,18 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
             vm.selectFork(ethereumForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            FraxCustomReceiver(payable(l1Contracts.receiver.proxy)).setAdapter(
-                ARBITRUM_CCIP_CHAIN_SELECTOR, l1Contracts.arbitrumAdapter
-            );
-            FraxCustomReceiver(payable(l1Contracts.receiver.proxy)).setAdapter(
-                OPTIMISM_CCIP_CHAIN_SELECTOR, l1Contracts.optimismAdapter
-            );
+            FraxCustomReceiver receiver = FraxCustomReceiver(payable(l1Contracts.receiver.proxy));
 
-            FraxCustomReceiver(payable(l1Contracts.receiver.proxy)).setSender(
-                ARBITRUM_CCIP_CHAIN_SELECTOR, abi.encode(arbContracts.sender.proxy)
-            );
-            FraxCustomReceiver(payable(l1Contracts.receiver.proxy)).setSender(
-                OPTIMISM_CCIP_CHAIN_SELECTOR, abi.encode(optContracts.sender.proxy)
-            );
+            receiver.setAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR, l1Contracts.arbitrumAdapter);
+            receiver.setAdapter(OPTIMISM_CCIP_CHAIN_SELECTOR, l1Contracts.optimismAdapter);
+
+            receiver.setSender(ARBITRUM_CCIP_CHAIN_SELECTOR, abi.encode(arbContracts.sender.proxy));
+            receiver.setSender(OPTIMISM_CCIP_CHAIN_SELECTOR, abi.encode(optContracts.sender.proxy));
+
+            if (ETHEREUM_OWNER != address(0)) {
+                receiver.grantRole(receiver.DEFAULT_ADMIN_ROLE(), ETHEREUM_OWNER);
+                receiver.renounceRole(receiver.DEFAULT_ADMIN_ROLE(), deployer);
+            }
 
             vm.stopBroadcast();
         }
@@ -232,11 +231,31 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
             vm.selectFork(arbitrumForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            CustomSender(arbContracts.sender.proxy).setReceiver(
-                ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy)
-            );
+            CustomSender sender = CustomSender(arbContracts.sender.proxy);
+            SyncAutomation syncAutomation = SyncAutomation(arbContracts.syncAutomation);
 
-            CustomSender(arbContracts.sender.proxy).grantRole(keccak256("SYNC_ROLE"), arbContracts.syncAutomation);
+            sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
+
+            sender.grantRole(sender.SYNC_ROLE(), address(syncAutomation));
+
+            syncAutomation.setFeeOtoD(
+                FeeCodec.encodeCCIP(
+                    ETHEREUM_DESTINATION_MAX_FEE, ETHEREUM_DESTINATION_PAY_IN_LINK, ETHEREUM_DESTINATION_GAS_LIMIT
+                )
+            );
+            syncAutomation.setFeeDtoO(FeeCodec.encodeFraxFerryL1toL2());
+
+            syncAutomation.setAmounts(ARBITRUM_MIN_SYNC_AMOUNT, ARBITRUM_MAX_SYNC_AMOUNT);
+            syncAutomation.setDelay(ARBITRUM_MIN_SYNC_DELAY);
+
+            if (ARBITRUM_OWNER != address(0)) {
+                PriceOracle(arbContracts.priceOracle).transferOwnership(ARBITRUM_OWNER);
+                OraclePool(arbContracts.oraclePool).transferOwnership(ARBITRUM_OWNER);
+                syncAutomation.transferOwnership(ARBITRUM_OWNER);
+
+                sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), ARBITRUM_OWNER);
+                sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
+            }
 
             vm.stopBroadcast();
         }
@@ -246,56 +265,86 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
             vm.selectFork(optimismForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            CustomSender(optContracts.sender.proxy).setReceiver(
-                ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy)
-            );
+            CustomSender sender = CustomSender(optContracts.sender.proxy);
+            SyncAutomation syncAutomation = SyncAutomation(optContracts.syncAutomation);
 
-            CustomSender(optContracts.sender.proxy).grantRole(keccak256("SYNC_ROLE"), optContracts.syncAutomation);
+            sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
+
+            sender.grantRole(sender.SYNC_ROLE(), address(syncAutomation));
+
+            syncAutomation.setFeeOtoD(
+                FeeCodec.encodeCCIP(
+                    ETHEREUM_DESTINATION_MAX_FEE, ETHEREUM_DESTINATION_PAY_IN_LINK, ETHEREUM_DESTINATION_GAS_LIMIT
+                )
+            );
+            syncAutomation.setFeeDtoO(FeeCodec.encodeFraxFerryL1toL2());
+
+            syncAutomation.setAmounts(OPTIMISM_MIN_SYNC_AMOUNT, OPTIMISM_MAX_SYNC_AMOUNT);
+            syncAutomation.setDelay(OPTIMISM_MIN_SYNC_DELAY);
+
+            if (OPTIMISM_OWNER != address(0)) {
+                PriceOracle(optContracts.priceOracle).transferOwnership(OPTIMISM_OWNER);
+                OraclePool(optContracts.oraclePool).transferOwnership(OPTIMISM_OWNER);
+                syncAutomation.transferOwnership(OPTIMISM_OWNER);
+
+                sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), OPTIMISM_OWNER);
+                sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
+            }
 
             vm.stopBroadcast();
         }
 
-        _verifyContracts(l1Contracts, l2Contracts);
+        _verifyDeployments(l1Contracts, l2Contracts);
     }
 
-    function _verifyContracts(L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) internal {
+    function _verifyDeployments(L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) internal {
         vm.selectFork(ethereumForkId);
 
         {
             FraxCustomReceiver receiver = FraxCustomReceiver(payable(l1Contracts.receiver.proxy));
 
-            require(receiver.SFRXETH() == ETHEREUM_SFRXETH_TOKEN, "FraxDeployScript::1");
-            require(receiver.WNATIVE() == ETHEREUM_WETH_TOKEN, "FraxDeployScript::2");
-            require(receiver.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "FraxDeployScript::3");
-            require(receiver.hasRole(receiver.DEFAULT_ADMIN_ROLE(), deployer), "FraxDeployScript::4");
-            require(receiver.getAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR) == l1Contracts.arbitrumAdapter, "FraxDeployScript::5");
-            require(receiver.getAdapter(OPTIMISM_CCIP_CHAIN_SELECTOR) == l1Contracts.optimismAdapter, "FraxDeployScript::6");
+            require(receiver.SFRXETH() == ETHEREUM_SFRXETH_TOKEN, "_verifyDeployments::1");
+            require(receiver.WNATIVE() == ETHEREUM_WETH_TOKEN, "_verifyDeployments::2");
+            require(receiver.CCIP_ROUTER() == ETHEREUM_CCIP_ROUTER, "_verifyDeployments::3");
+            _checkRole(
+                address(receiver), receiver.DEFAULT_ADMIN_ROLE(), deployer, ETHEREUM_OWNER, "_verifyDeployments::4"
+            );
+            require(
+                receiver.getAdapter(ARBITRUM_CCIP_CHAIN_SELECTOR) == l1Contracts.arbitrumAdapter,
+                "_verifyDeployments::5"
+            );
+            require(
+                receiver.getAdapter(OPTIMISM_CCIP_CHAIN_SELECTOR) == l1Contracts.optimismAdapter,
+                "_verifyDeployments::6"
+            );
             require(
                 keccak256(receiver.getSender(ARBITRUM_CCIP_CHAIN_SELECTOR))
                     == keccak256(abi.encode(l2Contracts[0].sender.proxy)),
-                "FraxDeployScript::7"
+                "_verifyDeployments::7"
             );
             require(
                 keccak256(receiver.getSender(OPTIMISM_CCIP_CHAIN_SELECTOR))
                     == keccak256(abi.encode(l2Contracts[1].sender.proxy)),
-                "FraxDeployScript::8"
+                "_verifyDeployments::8"
             );
-            require(_getProxyAdmin(l1Contracts.receiver.proxy) == l1Contracts.receiver.proxyAdmin, "FraxDeployScript::9");
-            require(ProxyAdmin(l1Contracts.receiver.proxyAdmin).owner() == deployer, "FraxDeployScript::10");
+            require(
+                _getProxyAdmin(l1Contracts.receiver.proxy) == l1Contracts.receiver.proxyAdmin, "_verifyDeployments::9"
+            );
+            _checkOwner(l1Contracts.receiver.proxyAdmin, deployer, ETHEREUM_OWNER, "_verifyDeployments::12");
             require(
                 _getProxyImplementation(l1Contracts.receiver.proxy) == l1Contracts.receiver.implementation,
-                "FraxDeployScript::11"
+                "_verifyDeployments::11"
             );
 
             FraxFerryAdapterL1toL2 arbAdapter = FraxFerryAdapterL1toL2(l1Contracts.arbitrumAdapter);
 
-            require(arbAdapter.FRAX_FERRY() == ETHEREUM_TO_ARBITRUM_FRAX_FERRY, "FraxDeployScript::12");
-            require(arbAdapter.TOKEN() == ETHEREUM_SFRXETH_TOKEN, "FraxDeployScript::13");
+            require(arbAdapter.FRAX_FERRY() == ETHEREUM_TO_ARBITRUM_FRAX_FERRY, "_verifyDeployments::12");
+            require(arbAdapter.TOKEN() == ETHEREUM_SFRXETH_TOKEN, "_verifyDeployments::13");
 
             FraxFerryAdapterL1toL2 optAdapter = FraxFerryAdapterL1toL2(l1Contracts.optimismAdapter);
 
-            require(optAdapter.FRAX_FERRY() == ETHEREUM_TO_OPTIMISM_FRAX_FERRY, "FraxDeployScript::14");
-            require(optAdapter.TOKEN() == ETHEREUM_SFRXETH_TOKEN, "FraxDeployScript::15");
+            require(optAdapter.FRAX_FERRY() == ETHEREUM_TO_OPTIMISM_FRAX_FERRY, "_verifyDeployments::14");
+            require(optAdapter.TOKEN() == ETHEREUM_SFRXETH_TOKEN, "_verifyDeployments::15");
         }
 
         vm.selectFork(arbitrumForkId);
@@ -305,47 +354,68 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
 
             (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
 
-            require(dataFeed == ARBITRUM_SFRXETH_FRXETH_DATAFEED, "FraxDeployScript::16");
-            require(isInverse == ARBITRUM_SFRXETH_FRXETH_DATAFEED_IS_INVERSE, "FraxDeployScript::17");
-            require(heartbeat == ARBITRUM_SFRXETH_FRXETH_DATAFEED_HEARTBEAT, "FraxDeployScript::18");
-            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "FraxDeployScript::19");
+            require(dataFeed == ARBITRUM_SFRXETH_FRXETH_DATAFEED, "_verifyDeployments::16");
+            require(isInverse == ARBITRUM_SFRXETH_FRXETH_DATAFEED_IS_INVERSE, "_verifyDeployments::17");
+            require(heartbeat == ARBITRUM_SFRXETH_FRXETH_DATAFEED_HEARTBEAT, "_verifyDeployments::18");
+            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "_verifyDeployments::19");
+            _checkOwner(address(priceOracle), deployer, ARBITRUM_OWNER, "_verifyDeployments::30");
 
             OraclePool oraclePool = OraclePool(l2Contracts[0].oraclePool);
 
-            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "FraxDeployScript::20");
-            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "FraxDeployScript::21");
-            require(oraclePool.TOKEN_OUT() == ARBITRUM_SFRXETH_TOKEN, "FraxDeployScript::22");
-            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "FraxDeployScript::23");
-            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "FraxDeployScript::24");
-            require(oraclePool.owner() == deployer, "FraxDeployScript::25");
+            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::20");
+            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::21");
+            require(oraclePool.TOKEN_OUT() == ARBITRUM_SFRXETH_TOKEN, "_verifyDeployments::22");
+            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "_verifyDeployments::23");
+            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "_verifyDeployments::24");
+            require(oraclePool.owner() == deployer, "_verifyDeployments::25");
+            _checkOwner(address(oraclePool), deployer, ARBITRUM_OWNER, "_verifyDeployments::30");
 
             CustomSender sender = CustomSender(l2Contracts[0].sender.proxy);
 
-            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "FraxDeployScript::26");
-            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "FraxDeployScript::27");
-            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "FraxDeployScript::28");
-            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "FraxDeployScript::29");
-            require(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), "FraxDeployScript::30");
-            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "FraxDeployScript::31");
+            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::26");
+            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "_verifyDeployments::27");
+            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "_verifyDeployments::28");
+            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "_verifyDeployments::29");
+            _checkRole(address(sender), sender.DEFAULT_ADMIN_ROLE(), deployer, ARBITRUM_OWNER, "_verifyDeployments::41");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "_verifyDeployments::31");
             require(
                 abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
-                "FraxDeployScript::32"
+                "_verifyDeployments::32"
             );
-            require(_getProxyAdmin(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.proxyAdmin, "FraxDeployScript::33");
-            require(ProxyAdmin(l2Contracts[0].sender.proxyAdmin).owner() == deployer, "FraxDeployScript::34");
+            require(
+                _getProxyAdmin(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.proxyAdmin,
+                "_verifyDeployments::33"
+            );
+            _checkOwner(l2Contracts[0].sender.proxyAdmin, deployer, ARBITRUM_OWNER, "_verifyDeployments::34");
             require(
                 _getProxyImplementation(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.implementation,
-                "FraxDeployScript::35"
+                "_verifyDeployments::35"
             );
 
             SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
 
-            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "FraxDeployScript::36");
-            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "FraxDeployScript::37");
-            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "FraxDeployScript::38");
-            require(syncAutomation.owner() == deployer, "FraxDeployScript::39");
-            require(syncAutomation.getLastExecution() == block.timestamp, "FraxDeployScript::40");
-            require(syncAutomation.getDelay() == type(uint48).max, "FraxDeployScript::41");
+            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::36");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::37");
+            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::38");
+            require(syncAutomation.owner() == deployer, "_verifyDeployments::39");
+            require(syncAutomation.getLastExecution() == block.timestamp, "_verifyDeployments::40");
+            require(syncAutomation.getDelay() == ARBITRUM_MIN_SYNC_DELAY, "_verifyDeployments::41");
+            require(
+                keccak256(syncAutomation.getFeeOtoD())
+                    == keccak256(
+                        FeeCodec.encodeCCIP(
+                            ETHEREUM_DESTINATION_MAX_FEE, ETHEREUM_DESTINATION_PAY_IN_LINK, ETHEREUM_DESTINATION_GAS_LIMIT
+                        )
+                    ),
+                "_verifyDeployments::53"
+            );
+            require(
+                keccak256(syncAutomation.getFeeDtoO()) == keccak256(FeeCodec.encodeFraxFerryL1toL2()),
+                "_verifyDeployments::54"
+            );
+            (uint128 minSyncAmount, uint128 maxSyncAmount) = syncAutomation.getAmounts();
+            require(minSyncAmount == ARBITRUM_MIN_SYNC_AMOUNT, "_verifyDeployments::55");
+            require(maxSyncAmount == ARBITRUM_MAX_SYNC_AMOUNT, "_verifyDeployments::56");
         }
 
         vm.selectFork(optimismForkId);
@@ -355,47 +425,68 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
 
             (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
 
-            require(dataFeed == OPTIMISM_SFRXETH_FRXETH_DATAFEED, "FraxDeployScript::42");
-            require(isInverse == OPTIMISM_SFRXETH_FRXETH_DATAFEED_IS_INVERSE, "FraxDeployScript::43");
-            require(heartbeat == OPTIMISM_SFRXETH_FRXETH_DATAFEED_HEARTBEAT, "FraxDeployScript::44");
-            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "FraxDeployScript::45");
+            require(dataFeed == OPTIMISM_SFRXETH_FRXETH_DATAFEED, "_verifyDeployments::42");
+            require(isInverse == OPTIMISM_SFRXETH_FRXETH_DATAFEED_IS_INVERSE, "_verifyDeployments::43");
+            require(heartbeat == OPTIMISM_SFRXETH_FRXETH_DATAFEED_HEARTBEAT, "_verifyDeployments::44");
+            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "_verifyDeployments::45");
+            _checkOwner(address(priceOracle), deployer, OPTIMISM_OWNER, "_verifyDeployments::60");
 
             OraclePool oraclePool = OraclePool(l2Contracts[1].oraclePool);
 
-            require(oraclePool.SENDER() == l2Contracts[1].sender.proxy, "FraxDeployScript::46");
-            require(oraclePool.TOKEN_IN() == OPTIMISM_WETH_TOKEN, "FraxDeployScript::47");
-            require(oraclePool.TOKEN_OUT() == OPTIMISM_SFRXETH_TOKEN, "FraxDeployScript::48");
-            require(oraclePool.getOracle() == l2Contracts[1].priceOracle, "FraxDeployScript::49");
-            require(oraclePool.getFee() == OPTIMISM_ORACLE_POOL_FEE, "FraxDeployScript::50");
-            require(oraclePool.owner() == deployer, "FraxDeployScript::51");
+            require(oraclePool.SENDER() == l2Contracts[1].sender.proxy, "_verifyDeployments::46");
+            require(oraclePool.TOKEN_IN() == OPTIMISM_WETH_TOKEN, "_verifyDeployments::47");
+            require(oraclePool.TOKEN_OUT() == OPTIMISM_SFRXETH_TOKEN, "_verifyDeployments::48");
+            require(oraclePool.getOracle() == l2Contracts[1].priceOracle, "_verifyDeployments::49");
+            require(oraclePool.getFee() == OPTIMISM_ORACLE_POOL_FEE, "_verifyDeployments::50");
+            require(oraclePool.owner() == deployer, "_verifyDeployments::51");
+            _checkOwner(address(oraclePool), deployer, OPTIMISM_OWNER, "_verifyDeployments::60");
 
             CustomSender sender = CustomSender(l2Contracts[1].sender.proxy);
 
-            require(sender.WNATIVE() == OPTIMISM_WETH_TOKEN, "FraxDeployScript::52");
-            require(sender.LINK_TOKEN() == OPTIMISM_LINK_TOKEN, "FraxDeployScript::53");
-            require(sender.CCIP_ROUTER() == OPTIMISM_CCIP_ROUTER, "FraxDeployScript::54");
-            require(sender.getOraclePool() == l2Contracts[1].oraclePool, "FraxDeployScript::55");
-            require(sender.hasRole(sender.DEFAULT_ADMIN_ROLE(), deployer), "FraxDeployScript::56");
-            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[1].syncAutomation), "FraxDeployScript::57");
+            require(sender.WNATIVE() == OPTIMISM_WETH_TOKEN, "_verifyDeployments::52");
+            require(sender.LINK_TOKEN() == OPTIMISM_LINK_TOKEN, "_verifyDeployments::53");
+            require(sender.CCIP_ROUTER() == OPTIMISM_CCIP_ROUTER, "_verifyDeployments::54");
+            require(sender.getOraclePool() == l2Contracts[1].oraclePool, "_verifyDeployments::55");
+            _checkRole(address(sender), sender.DEFAULT_ADMIN_ROLE(), deployer, OPTIMISM_OWNER, "_verifyDeployments::66");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[1].syncAutomation), "_verifyDeployments::57");
             require(
                 abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
-                "FraxDeployScript::58"
+                "_verifyDeployments::58"
             );
-            require(_getProxyAdmin(l2Contracts[1].sender.proxy) == l2Contracts[1].sender.proxyAdmin, "FraxDeployScript::59");
-            require(ProxyAdmin(l2Contracts[1].sender.proxyAdmin).owner() == deployer, "FraxDeployScript::60");
+            require(
+                _getProxyAdmin(l2Contracts[1].sender.proxy) == l2Contracts[1].sender.proxyAdmin,
+                "_verifyDeployments::59"
+            );
+            _checkOwner(l2Contracts[1].sender.proxyAdmin, deployer, OPTIMISM_OWNER, "_verifyDeployments::60");
             require(
                 _getProxyImplementation(l2Contracts[1].sender.proxy) == l2Contracts[1].sender.implementation,
-                "FraxDeployScript::61"
+                "_verifyDeployments::61"
             );
 
             SyncAutomation syncAutomation = SyncAutomation(l2Contracts[1].syncAutomation);
 
-            require(syncAutomation.SENDER() == l2Contracts[1].sender.proxy, "FraxDeployScript::62");
-            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "FraxDeployScript::63");
-            require(syncAutomation.WNATIVE() == OPTIMISM_WETH_TOKEN, "FraxDeployScript::64");
-            require(syncAutomation.owner() == deployer, "FraxDeployScript::65");
-            require(syncAutomation.getLastExecution() == block.timestamp, "FraxDeployScript::66");
-            require(syncAutomation.getDelay() == type(uint48).max, "FraxDeployScript::67");
+            require(syncAutomation.SENDER() == l2Contracts[1].sender.proxy, "_verifyDeployments::62");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::63");
+            require(syncAutomation.WNATIVE() == OPTIMISM_WETH_TOKEN, "_verifyDeployments::64");
+            require(syncAutomation.owner() == deployer, "_verifyDeployments::65");
+            require(syncAutomation.getLastExecution() == block.timestamp, "_verifyDeployments::66");
+            require(syncAutomation.getDelay() == OPTIMISM_MIN_SYNC_DELAY, "_verifyDeployments::67");
+            require(
+                keccak256(syncAutomation.getFeeOtoD())
+                    == keccak256(
+                        FeeCodec.encodeCCIP(
+                            ETHEREUM_DESTINATION_MAX_FEE, ETHEREUM_DESTINATION_PAY_IN_LINK, ETHEREUM_DESTINATION_GAS_LIMIT
+                        )
+                    ),
+                "_verifyDeployments::78"
+            );
+            require(
+                keccak256(syncAutomation.getFeeDtoO()) == keccak256(FeeCodec.encodeFraxFerryL1toL2()),
+                "_verifyDeployments::79"
+            );
+            (uint128 minSyncAmount, uint128 maxSyncAmount) = syncAutomation.getAmounts();
+            require(minSyncAmount == OPTIMISM_MIN_SYNC_AMOUNT, "_verifyDeployments::80");
+            require(maxSyncAmount == OPTIMISM_MAX_SYNC_AMOUNT, "_verifyDeployments::81");
         }
     }
 }

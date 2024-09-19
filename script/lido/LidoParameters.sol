@@ -11,6 +11,11 @@ contract LidoParameters {
     address internal constant ETHEREUM_TO_ARBITRUM_ROUTER = 0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef;
     address internal constant ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE = 0x76943C0D61395d8F2edF9060e1533529cAe05dE6;
     address internal constant ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE = 0x9de443AdC5A411E83F1878Ef24C3F52C61571e72;
+    address internal constant ETHEREUM_OWNER = address(0); // If left as address(0), the owner will be the deployer
+    /* Origin to Destination Fee Parameters */
+    uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 1e18; // Max fee used by the automation contract when calling sync
+    bool internal constant ETHEREUM_DESTINATION_PAY_IN_LINK = true; // Whether the automation contract should pay the fee in LINK or ETH
+    uint32 internal constant ETHEREUM_DESTINATION_GAS_LIMIT = 1_000_000; // Gas limit used by the automation contract when calling sync
 
     uint64 internal constant ARBITRUM_FORK_BLOCK = 219083410;
     uint64 internal constant ARBITRUM_CCIP_CHAIN_SELECTOR = 4949039107694359620;
@@ -19,9 +24,19 @@ contract LidoParameters {
     address internal constant ARBITRUM_WETH_TOKEN = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address internal constant ARBITRUM_WSTETH_TOKEN = 0x5979D7b546E38E414F7E9822514be443A4800529;
     address internal constant ARBITRUM_WSTETH_STETH_DATAFEED = 0xB1552C5e96B312d0Bf8b554186F846C40614a540;
-    bool internal constant ARBITRUM_WSTETH_STETH_DATAFEED_IS_INVERSE = false;
-    uint32 internal constant ARBITRUM_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours;
-    uint96 internal constant ARBITRUM_ORACLE_POOL_FEE = 0.01e18;
+    address internal constant ARBITRUM_OWNER = address(0); // If left as address(0), the owner will be the deployer
+    /* Data feed parameters */
+    bool internal constant ARBITRUM_WSTETH_STETH_DATAFEED_IS_INVERSE = false; // If the data feed is inverted, i.e. the price returned is the inverse of the price wanted
+    uint32 internal constant ARBITRUM_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours; // The maximum time between data feed updates
+    uint96 internal constant ARBITRUM_ORACLE_POOL_FEE = 0.01e18; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
+    uint128 internal constant ARBITRUM_ORIGIN_MAX_SUBMISSION_COST = 0.1e18; // The maximum amount of ETH to be paid for submitting the ticket to the arbitrum bridge
+    /* Destination to Origin Fee Parameters */
+    uint32 internal constant ARBITRUM_ORIGIN_MAX_GAS = 100_000; // The maximum amount of gas used to cover the L2 execution cost
+    uint64 internal constant ARBITRUM_ORIGIN_GAS_PRICE_BID = 1e9; // The gas price bid for the L2 execution cost
+    /* Sync Automation Parameters */
+    uint128 internal constant ARBITRUM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
+    uint128 internal constant ARBITRUM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint48 internal constant ARBITRUM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
 
     uint64 internal constant OPTIMISM_FORK_BLOCK = 121425199;
     uint64 internal constant OPTIMISM_CCIP_CHAIN_SELECTOR = 3734403246176062136;
@@ -30,9 +45,17 @@ contract LidoParameters {
     address internal constant OPTIMISM_WETH_TOKEN = 0x4200000000000000000000000000000000000006;
     address internal constant OPTIMISM_WSTETH_TOKEN = 0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb;
     address internal constant OPTIMISM_WSTETH_STETH_DATAFEED = 0xe59EBa0D492cA53C6f46015EEa00517F2707dc77;
-    bool internal constant OPTIMISM_WSTETH_STETH_DATAFEED_IS_INVERSE = false;
-    uint32 internal constant OPTIMISM_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours;
-    uint96 internal constant OPTIMISM_ORACLE_POOL_FEE = 0.01e18;
+    address internal constant OPTIMISM_OWNER = address(0); // If left as address(0), the owner will be the deployer
+    /* Data feed parameters */
+    bool internal constant OPTIMISM_WSTETH_STETH_DATAFEED_IS_INVERSE = false; // If the data feed is inverted, i.e. the price returned is the inverse of the price wanted
+    uint32 internal constant OPTIMISM_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours; // The maximum time between data feed updates
+    uint96 internal constant OPTIMISM_ORACLE_POOL_FEE = 0.01e18; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
+    /* Destination to Origin Fee Parameters */
+    uint32 internal constant OPTIMISM_ORIGIN_L2_GAS = 100_000; // The amount of gas used to cover the L2 execution cost
+    /* Sync Automation Parameters */
+    uint128 internal constant OPTIMISM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
+    uint128 internal constant OPTIMISM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint48 internal constant OPTIMISM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
 
     uint64 internal constant BASE_FORK_BLOCK = 18811140;
     uint64 internal constant BASE_CCIP_CHAIN_SELECTOR = 15971525489660198786;
@@ -41,7 +64,15 @@ contract LidoParameters {
     address internal constant BASE_WETH_TOKEN = 0x4200000000000000000000000000000000000006;
     address internal constant BASE_WSTETH_TOKEN = 0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452;
     address internal constant BASE_WSTETH_STETH_DATAFEED = 0xB88BAc61a4Ca37C43a3725912B1f472c9A5bc061;
-    bool internal constant BASE_WSTETH_STETH_DATAFEED_IS_INVERSE = false;
-    uint32 internal constant BASE_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours;
-    uint96 internal constant BASE_ORACLE_POOL_FEE = 0.01e18;
+    address internal constant BASE_OWNER = address(0); // If left as address(0), the owner will be the deployer
+    /* Data feed parameters */
+    bool internal constant BASE_WSTETH_STETH_DATAFEED_IS_INVERSE = false; // If the data feed is inverted, i.e. the price returned is the inverse of the price wanted
+    uint32 internal constant BASE_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours; // The maximum time between data feed updates
+    uint96 internal constant BASE_ORACLE_POOL_FEE = 0.01e18; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
+    /* Destination to Origin Fee Parameters */
+    uint32 internal constant BASE_ORIGIN_L2_GAS = 100_000; // The amount of gas used to cover the L2 execution cost
+    /* Sync Automation Parameters */
+    uint128 internal constant BASE_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
+    uint128 internal constant BASE_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint48 internal constant BASE_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
 }
