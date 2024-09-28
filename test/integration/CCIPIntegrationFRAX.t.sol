@@ -61,7 +61,7 @@ contract fork_CCIPIntegrationFRAXTest is Test, FraxParameters {
         {
             vm.selectFork(arbForkId);
 
-            arbPriceOracle = new PriceOracle(ARBITRUM_SFRXETH_FRXETH_DATAFEED, false, 24 hours, address(this));
+            arbPriceOracle = new PriceOracle(ARBITRUM_SFRXETH_FRXETH_DATAFEED, false, 24 hours);
             arbOraclePool = new OraclePool(
                 _predictContractAddress(1),
                 ARBITRUM_WETH_TOKEN,
@@ -89,7 +89,7 @@ contract fork_CCIPIntegrationFRAXTest is Test, FraxParameters {
         {
             vm.selectFork(opForkId);
 
-            opPriceOracle = new PriceOracle(OPTIMISM_SFRXETH_FRXETH_DATAFEED, false, 24 hours, address(this));
+            opPriceOracle = new PriceOracle(OPTIMISM_SFRXETH_FRXETH_DATAFEED, false, 24 hours);
             opOraclePool = new OraclePool(
                 _predictContractAddress(1),
                 OPTIMISM_WETH_TOKEN,

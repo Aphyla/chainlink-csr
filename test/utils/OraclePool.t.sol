@@ -23,7 +23,7 @@ contract OraclePoolTest is Test {
 
     function setUp() public {
         dataFeed = new MockDataFeed(18);
-        priceOracle = new PriceOracle(address(dataFeed), false, 1 hours, address(this));
+        priceOracle = new PriceOracle(address(dataFeed), false, 1 hours);
         tokenIn = new MockERC20("TokenIn", "TI", 18);
         tokenOut = new MockERC20("TokenOut", "TO", 18);
         oraclePool =

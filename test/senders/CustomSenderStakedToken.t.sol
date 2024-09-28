@@ -32,7 +32,7 @@ contract CustomSenderStakedTokenTest is Test {
         link = new MockERC20("Link", "LINK", 18);
         ccipRouter = new MockCCIPRouter(address(link), LINK_FEE, NATIVE_FEE);
         dataFeed = new MockDataFeed(18);
-        priceOracle = new PriceOracle(address(dataFeed), false, 1 hours, address(this));
+        priceOracle = new PriceOracle(address(dataFeed), false, 1 hours);
 
         token = new MockERC20("Token", "TK", 18);
         stakedToken = new MockERC20("StakedToken", "STK", 18);

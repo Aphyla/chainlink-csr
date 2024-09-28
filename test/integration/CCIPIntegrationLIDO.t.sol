@@ -66,7 +66,7 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
         {
             vm.selectFork(arbForkId);
 
-            arbPriceOracle = new PriceOracle(ARBITRUM_WSTETH_STETH_DATAFEED, false, 24 hours, address(this));
+            arbPriceOracle = new PriceOracle(ARBITRUM_WSTETH_STETH_DATAFEED, false, 24 hours);
             arbOraclePool = new OraclePool(
                 _predictContractAddress(1),
                 ARBITRUM_WETH_TOKEN,
@@ -94,7 +94,7 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
         {
             vm.selectFork(opForkId);
 
-            opPriceOracle = new PriceOracle(OPTIMISM_WSTETH_STETH_DATAFEED, false, 24 hours, address(this));
+            opPriceOracle = new PriceOracle(OPTIMISM_WSTETH_STETH_DATAFEED, false, 24 hours);
             opOraclePool = new OraclePool(
                 _predictContractAddress(1),
                 OPTIMISM_WETH_TOKEN,
@@ -122,7 +122,7 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
         {
             vm.selectFork(baseForkId);
 
-            basePriceOracle = new PriceOracle(BASE_WSTETH_STETH_DATAFEED, false, 24 hours, address(this));
+            basePriceOracle = new PriceOracle(BASE_WSTETH_STETH_DATAFEED, false, 24 hours);
             baseOraclePool = new OraclePool(
                 _predictContractAddress(1),
                 BASE_WETH_TOKEN,

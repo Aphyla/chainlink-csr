@@ -49,7 +49,7 @@ contract shanghai_fork_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
         {
             vm.selectFork(arbForkId);
 
-            arbPriceOracle = new PriceOracle(ARBITRUM_EGETH_ETH_DATAFEED, false, 24 hours, address(this));
+            arbPriceOracle = new PriceOracle(ARBITRUM_EGETH_ETH_DATAFEED, false, 24 hours);
             arbOraclePool = new OraclePool(
                 _predictContractAddress(1),
                 ARBITRUM_WETH_TOKEN,

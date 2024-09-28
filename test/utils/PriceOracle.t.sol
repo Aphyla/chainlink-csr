@@ -7,143 +7,136 @@ import "../../contracts/utils/PriceOracle.sol";
 import "../mocks/MockDataFeed.sol";
 
 contract PriceOracleTest is Test {
-    PriceOracle public priceOracle;
-    MockDataFeed public dataFeed8;
-    MockDataFeed public dataFeed18;
+    PriceOracle public priceOracle8;
+    MockDataFeed public aggregator8;
+    bool public priceOracle8IsInverse = false;
+    uint32 public priceOracle8Heartbeat = 1 hours;
+    uint8 public priceOracle8Decimals = 8;
+
+    PriceOracle public priceOracle18;
+    MockDataFeed public aggregator18;
+    bool public priceOracle18IsInverse = true;
+    uint32 public priceOracle18Heartbeat = 24 hours;
+    uint8 public priceOracle18Decimals = 18;
 
     function setUp() public {
-        dataFeed8 = new MockDataFeed(8);
-        dataFeed18 = new MockDataFeed(18);
-        priceOracle = new PriceOracle(address(dataFeed8), false, 1 hours, address(this));
+        aggregator8 = new MockDataFeed(priceOracle8Decimals);
+        aggregator18 = new MockDataFeed(priceOracle18Decimals);
 
-        vm.label(address(dataFeed8), "dataFeed8");
-        vm.label(address(dataFeed18), "dataFeed18");
-        vm.label(address(priceOracle), "priceOracle");
+        priceOracle8 = new PriceOracle(address(aggregator8), priceOracle8IsInverse, priceOracle8Heartbeat);
+        priceOracle18 = new PriceOracle(address(aggregator18), priceOracle18IsInverse, priceOracle18Heartbeat);
+
+        vm.label(address(aggregator8), "aggregator8");
+        vm.label(address(priceOracle8), "priceOracle8");
+        vm.label(address(aggregator18), "aggregator18");
+        vm.label(address(priceOracle18), "priceOracle18");
     }
 
     function test_Constructor() public {
-        priceOracle = new PriceOracle(address(dataFeed8), false, 1 hours, address(this)); // to fix coverage
+        priceOracle8 = new PriceOracle(address(aggregator8), priceOracle8IsInverse, priceOracle8Heartbeat);
 
-        (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
-
-        assertEq(dataFeed, address(dataFeed8), "test_Constructor::1");
-        assertEq(isInverse, false, "test_Constructor::2");
-        assertEq(heartbeat, 1 hours, "test_Constructor::3");
-        assertEq(decimals, 8, "test_Constructor::4");
+        assertEq(priceOracle8.AGGREGATOR(), address(aggregator8), "test_Constructor::1");
+        assertEq(priceOracle8.IS_INVERSE(), priceOracle8IsInverse, "test_Constructor::2");
+        assertEq(priceOracle8.HEARTBEAT(), priceOracle8Heartbeat, "test_Constructor::3");
+        assertEq(priceOracle8.DECIMALS(), priceOracle8Decimals, "test_Constructor::4");
     }
 
-    function test_GetParameters() public {
-        (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
-
-        assertEq(dataFeed, address(dataFeed8), "test_GetParameters::1");
-        assertEq(isInverse, false, "test_GetParameters::2");
-        assertEq(heartbeat, 1 hours, "test_GetParameters::3");
-        assertEq(decimals, 8, "test_GetParameters::4");
-
-        priceOracle.setAggregator(address(dataFeed18), true);
-
-        (dataFeed, isInverse, heartbeat, decimals) = priceOracle.getOracleParameters();
-
-        assertEq(dataFeed, address(dataFeed18), "test_GetParameters::5");
-        assertEq(isInverse, true, "test_GetParameters::6");
-        assertEq(heartbeat, 1 hours, "test_GetParameters::7");
-        assertEq(decimals, 18, "test_GetParameters::8");
-
-        priceOracle.setHeartbeat(2 hours);
-
-        (dataFeed, isInverse, heartbeat, decimals) = priceOracle.getOracleParameters();
-
-        assertEq(dataFeed, address(dataFeed18), "test_GetParameters::9");
-        assertEq(isInverse, true, "test_GetParameters::10");
-        assertEq(heartbeat, 2 hours, "test_GetParameters::11");
-        assertEq(decimals, 18, "test_GetParameters::12");
-
-        priceOracle.setAggregator(address(0), false);
-
-        (dataFeed, isInverse, heartbeat, decimals) = priceOracle.getOracleParameters();
-
-        assertEq(dataFeed, address(0), "test_GetParameters::13");
-        assertEq(isInverse, false, "test_GetParameters::14");
-        assertEq(heartbeat, 2 hours, "test_GetParameters::15");
-        assertEq(decimals, 0, "test_GetParameters::16");
+    function test_Revert_Constructor() public {
+        vm.expectRevert(IPriceOracle.PriceOracleInvalidParameters.selector);
+        new PriceOracle(address(0), false, 0);
     }
 
-    function test_Fuzz_GetLatestAnswer(int256 price, uint256 updatedAt) public {
+    function test_GetParameters() public view {
+        assertEq(priceOracle8.AGGREGATOR(), address(aggregator8), "test_GetParameters::1");
+        assertEq(priceOracle8.IS_INVERSE(), priceOracle8IsInverse, "test_GetParameters::2");
+        assertEq(priceOracle8.HEARTBEAT(), priceOracle8Heartbeat, "test_GetParameters::3");
+        assertEq(priceOracle8.DECIMALS(), priceOracle8Decimals, "test_GetParameters::4");
+
+        assertEq(priceOracle18.AGGREGATOR(), address(aggregator18), "test_GetParameters::5");
+        assertEq(priceOracle18.IS_INVERSE(), priceOracle18IsInverse, "test_GetParameters::6");
+        assertEq(priceOracle18.HEARTBEAT(), priceOracle18Heartbeat, "test_GetParameters::7");
+        assertEq(priceOracle18.DECIMALS(), priceOracle18Decimals, "test_GetParameters::8");
+    }
+
+    function test_Fuzz_GetLatestAnswer(int256 price8, int256 price18, uint256 updatedAt8, uint256 updatedAt18) public {
         vm.warp(365 days);
 
-        int256 sprice = bound(price, 1, int256(type(uint256).max / 1e18));
-        updatedAt = bound(updatedAt, block.timestamp - 1 hours, block.timestamp);
+        int256 sprice8 = bound(price8, 1, int256(type(uint256).max / 1e18));
+        int256 sprice18 = bound(price18, 1, int256(10 ** (18 + priceOracle18Decimals)));
 
-        dataFeed8.set(sprice, 1, 0, updatedAt, 1);
+        updatedAt8 = bound(updatedAt8, block.timestamp - priceOracle8Heartbeat, block.timestamp);
+        updatedAt18 = bound(updatedAt18, block.timestamp - priceOracle18Heartbeat, block.timestamp);
 
-        assertEq(priceOracle.getLatestAnswer(), uint256(sprice) * 10 ** (18 - 8), "test_Fuzz_GetLatestAnswer::1");
+        aggregator8.set(sprice8, 1, 0, updatedAt8, 1);
+        aggregator18.set(sprice18, 1, 0, updatedAt18, 1);
 
-        dataFeed18.set(sprice, 1, 0, updatedAt, 1);
-        priceOracle.setAggregator(address(dataFeed18), false);
-
-        assertEq(priceOracle.getLatestAnswer(), uint256(sprice) * 10 ** (18 - 18), "test_Fuzz_GetLatestAnswer::2");
-
-        sprice = bound(price, 1, 10 ** (18 + 8));
-
-        dataFeed8.set(sprice, 1, 0, block.timestamp, 1);
-        priceOracle.setAggregator(address(dataFeed8), true);
-
-        assertEq(priceOracle.getLatestAnswer(), 10 ** (18 + 8) / uint256(sprice), "test_Fuzz_GetLatestAnswer::3");
-
-        sprice = bound(price, 1, 10 ** (18 + 18));
-
-        dataFeed18.set(sprice, 1, 0, block.timestamp, 1);
-        priceOracle.setAggregator(address(dataFeed18), true);
-
-        assertEq(priceOracle.getLatestAnswer(), 10 ** (18 + 18) / uint256(sprice), "test_Fuzz_GetLatestAnswer::4");
+        assertEq(
+            priceOracle8.getLatestAnswer(),
+            uint256(sprice8) * 10 ** (18 - priceOracle8Decimals),
+            "test_Fuzz_GetLatestAnswer::1"
+        );
+        assertEq(
+            priceOracle18.getLatestAnswer(),
+            10 ** (18 + priceOracle18Decimals) / uint256(sprice18),
+            "test_Fuzz_GetLatestAnswer::2"
+        );
     }
 
     function test_Fuzz_Revert_GetLatestAnswer(int256 price, uint256 updatedAt) public {
         vm.warp(365 days);
 
-        price = bound(price, type(int256).min, 0);
+        int256 sprice = bound(price, type(int256).min, 0);
 
-        dataFeed8.set(price, 0, 0, 0, 0);
+        aggregator8.set(sprice, 0, 0, 0, 0);
+        aggregator18.set(sprice, 0, 0, 0, 0);
 
         vm.expectRevert(IPriceOracle.PriceOracleInvalidPrice.selector);
-        priceOracle.getLatestAnswer();
+        priceOracle8.getLatestAnswer();
 
-        updatedAt = bound(updatedAt, 0, block.timestamp - 1 hours - 1);
+        vm.expectRevert(IPriceOracle.PriceOracleInvalidPrice.selector);
+        priceOracle18.getLatestAnswer();
 
-        dataFeed8.set(1, 0, 0, updatedAt, 0);
+        aggregator8.set(
+            int256(10 ** priceOracle8Decimals),
+            0,
+            0,
+            bound(updatedAt, 0, block.timestamp - priceOracle8Heartbeat - 1),
+            0
+        );
+        aggregator18.set(
+            int256(10 ** priceOracle18Decimals),
+            0,
+            0,
+            bound(updatedAt, 0, block.timestamp - priceOracle18Heartbeat - 1),
+            0
+        );
 
         vm.expectRevert(IPriceOracle.PriceOracleStalePrice.selector);
-        priceOracle.getLatestAnswer();
+        priceOracle8.getLatestAnswer();
 
-        price = bound(price, int256(type(uint256).max / 1e18) + 1, type(int256).max);
+        vm.expectRevert(IPriceOracle.PriceOracleStalePrice.selector);
+        priceOracle18.getLatestAnswer();
 
-        dataFeed8.set(price, 0, 0, block.timestamp, 0);
+        sprice = bound(price, int256(type(uint256).max / 1e18) + 1, type(int256).max);
+
+        aggregator8.set(sprice, 0, 0, block.timestamp, 0);
 
         vm.expectRevert(); // Revert with EVM overflows
-        priceOracle.getLatestAnswer();
+        priceOracle8.getLatestAnswer();
 
-        price = bound(price, 1e28 + 1, type(int256).max / 1e18);
+        sprice = bound(price, int256(10 ** (18 + priceOracle18Decimals)) + 1, type(int256).max);
 
-        priceOracle.setAggregator(address(dataFeed8), true);
-
-        vm.expectRevert(IPriceOracle.PriceOracleInvalidPrice.selector);
-        priceOracle.getLatestAnswer();
-
-        dataFeed8 = new MockDataFeed(36);
-        priceOracle.setAggregator(address(dataFeed8), false);
-
-        price = bound(price, 1, 1e18 - 1);
-
-        dataFeed8.set(price, 0, 0, block.timestamp, 0);
+        aggregator18.set(sprice, 0, 0, block.timestamp, 0);
 
         vm.expectRevert(IPriceOracle.PriceOracleInvalidPrice.selector);
-        priceOracle.getLatestAnswer();
-    }
+        priceOracle18.getLatestAnswer();
 
-    function test_Revert_GetLatestAnswer() public {
-        priceOracle.setAggregator(address(0), false);
+        MockDataFeed aggregator = new MockDataFeed(36);
+        PriceOracle priceOracle = new PriceOracle(address(aggregator), false, 1);
 
-        vm.expectRevert(IPriceOracle.PriceOracleAggregatorNotSet.selector);
+        aggregator.set(bound(price, 1, 1e18 - 1), 0, 0, block.timestamp, 0);
+
+        vm.expectRevert(IPriceOracle.PriceOracleInvalidPrice.selector);
         priceOracle.getLatestAnswer();
     }
 }

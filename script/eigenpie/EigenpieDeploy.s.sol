@@ -98,8 +98,7 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
                 new PriceOracle(
                     ARBITRUM_EGETH_ETH_DATAFEED,
                     ARBITRUM_EGETH_ETH_DATAFEED_IS_INVERSE,
-                    ARBITRUM_EGETH_ETH_DATAFEED_HEARTBEAT,
-                    deployer
+                    ARBITRUM_EGETH_ETH_DATAFEED_HEARTBEAT
                 )
             );
 
@@ -238,53 +237,53 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
         {
             PriceOracle priceOracle = PriceOracle(l2Contracts[0].priceOracle);
 
-            (address dataFeed, bool isInverse, uint32 heartbeat, uint8 decimals) = priceOracle.getOracleParameters();
-
-            require(dataFeed == ARBITRUM_EGETH_ETH_DATAFEED, "_verifyDeployments::13");
-            require(isInverse == ARBITRUM_EGETH_ETH_DATAFEED_IS_INVERSE, "_verifyDeployments::14");
-            require(heartbeat == ARBITRUM_EGETH_ETH_DATAFEED_HEARTBEAT, "_verifyDeployments::15");
-            require(AggregatorV3Interface(dataFeed).decimals() == decimals, "_verifyDeployments::16");
-            _checkOwner(address(priceOracle), deployer, ARBITRUM_OWNER, "_verifyDeployments::17");
+            require(priceOracle.AGGREGATOR() == ARBITRUM_EGETH_ETH_DATAFEED, "_verifyDeployments::13");
+            require(priceOracle.IS_INVERSE() == ARBITRUM_EGETH_ETH_DATAFEED_IS_INVERSE, "_verifyDeployments::14");
+            require(priceOracle.HEARTBEAT() == ARBITRUM_EGETH_ETH_DATAFEED_HEARTBEAT, "_verifyDeployments::15");
+            require(
+                priceOracle.DECIMALS() == AggregatorV3Interface(priceOracle.AGGREGATOR()).decimals(),
+                "_verifyDeployments::16"
+            );
 
             OraclePool oraclePool = OraclePool(l2Contracts[0].oraclePool);
 
-            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::18");
-            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::19");
-            require(oraclePool.TOKEN_OUT() == ARBITRUM_EGETH_TOKEN, "_verifyDeployments::20");
-            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "_verifyDeployments::21");
-            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "_verifyDeployments::22");
-            _checkOwner(address(oraclePool), deployer, ARBITRUM_OWNER, "_verifyDeployments::23");
+            require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::17");
+            require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::18");
+            require(oraclePool.TOKEN_OUT() == ARBITRUM_EGETH_TOKEN, "_verifyDeployments::19");
+            require(oraclePool.getOracle() == l2Contracts[0].priceOracle, "_verifyDeployments::20");
+            require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "_verifyDeployments::21");
+            _checkOwner(address(oraclePool), deployer, ARBITRUM_OWNER, "_verifyDeployments::22");
 
             CustomSender sender = CustomSender(l2Contracts[0].sender.proxy);
 
-            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::24");
-            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "_verifyDeployments::25");
-            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "_verifyDeployments::26");
-            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "_verifyDeployments::27");
-            _checkRole(address(sender), sender.DEFAULT_ADMIN_ROLE(), deployer, ARBITRUM_OWNER, "_verifyDeployments::28");
-            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "_verifyDeployments::29");
+            require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::23");
+            require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "_verifyDeployments::24");
+            require(sender.CCIP_ROUTER() == ARBITRUM_CCIP_ROUTER, "_verifyDeployments::25");
+            require(sender.getOraclePool() == l2Contracts[0].oraclePool, "_verifyDeployments::26");
+            _checkRole(address(sender), sender.DEFAULT_ADMIN_ROLE(), deployer, ARBITRUM_OWNER, "_verifyDeployments::27");
+            require(sender.hasRole(sender.SYNC_ROLE(), l2Contracts[0].syncAutomation), "_verifyDeployments::28");
             require(
                 abi.decode(sender.getReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR), (address)) == l1Contracts.receiver.proxy,
-                "_verifyDeployments::30"
+                "_verifyDeployments::29"
             );
             require(
                 _getProxyAdmin(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.proxyAdmin,
-                "_verifyDeployments::31"
+                "_verifyDeployments::30"
             );
-            _checkOwner(l2Contracts[0].sender.proxyAdmin, deployer, ARBITRUM_OWNER, "_verifyDeployments::32");
+            _checkOwner(l2Contracts[0].sender.proxyAdmin, deployer, ARBITRUM_OWNER, "_verifyDeployments::31");
             require(
                 _getProxyImplementation(l2Contracts[0].sender.proxy) == l2Contracts[0].sender.implementation,
-                "_verifyDeployments::33"
+                "_verifyDeployments::32"
             );
 
             SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
 
-            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::34");
-            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::35");
-            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::36");
-            _checkOwner(address(syncAutomation), deployer, ARBITRUM_OWNER, "_verifyDeployments::37");
-            require(syncAutomation.getLastExecution() == block.timestamp, "_verifyDeployments::38");
-            require(syncAutomation.getDelay() == ARBITRUM_MIN_SYNC_DELAY, "_verifyDeployments::39");
+            require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::33");
+            require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::34");
+            require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::35");
+            _checkOwner(address(syncAutomation), deployer, ARBITRUM_OWNER, "_verifyDeployments::36");
+            require(syncAutomation.getLastExecution() == block.timestamp, "_verifyDeployments::37");
+            require(syncAutomation.getDelay() == ARBITRUM_MIN_SYNC_DELAY, "_verifyDeployments::38");
             require(
                 keccak256(abi.encode(syncAutomation.getFeeOtoD()))
                     == keccak256(
@@ -296,7 +295,7 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
                             )
                         )
                     ),
-                "_verifyDeployments::40"
+                "_verifyDeployments::39"
             );
             require(
                 keccak256(abi.encode(syncAutomation.getFeeDtoO()))
@@ -309,11 +308,11 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
                             )
                         )
                     ),
-                "_verifyDeployments::41"
+                "_verifyDeployments::40"
             );
             (uint128 minAmount, uint128 maxAmount) = syncAutomation.getAmounts();
-            require(minAmount == ARBITRUM_MIN_SYNC_AMOUNT, "_verifyDeployments::42");
-            require(maxAmount == ARBITRUM_MAX_SYNC_AMOUNT, "_verifyDeployments::43");
+            require(minAmount == ARBITRUM_MIN_SYNC_AMOUNT, "_verifyDeployments::41");
+            require(maxAmount == ARBITRUM_MAX_SYNC_AMOUNT, "_verifyDeployments::42");
         }
     }
 }

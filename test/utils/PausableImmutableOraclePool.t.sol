@@ -24,7 +24,7 @@ contract PausableImmutableoraclePoolTest is Test {
 
     function setUp() public {
         dataFeed = new MockDataFeed(18);
-        priceOracle = new PriceOracle(address(dataFeed), false, 1 hours, address(this));
+        priceOracle = new PriceOracle(address(dataFeed), false, 1 hours);
         tokenIn = new MockERC20("TokenIn", "TI", 18);
         tokenOut = new MockERC20("TokenOut", "TO", 18);
         oraclePool = new PausableImmutableOraclePool(
@@ -77,21 +77,21 @@ contract PausableImmutableoraclePoolTest is Test {
     }
 
     function test_Fuzz_Revert_SetOracle(address oracleB) public {
-        assertEq(oraclePool.getOracle(), address(priceOracle), "test_Fuzz_GetOracle::1");
+        assertEq(oraclePool.getOracle(), address(priceOracle), "test_Fuzz_Revert_SetOracle::1");
 
         vm.expectRevert(PausableImmutableOraclePool.PausableImmutableOraclePoolImmutable.selector);
         oraclePool.setOracle(oracleB);
 
-        assertEq(oraclePool.getOracle(), address(priceOracle), "test_Fuzz_GetOracle::4");
+        assertEq(oraclePool.getOracle(), address(priceOracle), "test_Fuzz_Revert_SetOracle::2");
     }
 
     function test_Fuzz_Revert_SetFee(uint96 newFee) public {
-        assertEq(oraclePool.getFee(), fee, "test_Fuzz_GetFee::1");
+        assertEq(oraclePool.getFee(), fee, "test_Fuzz_Revert_SetFee::1");
 
         vm.expectRevert(PausableImmutableOraclePool.PausableImmutableOraclePoolImmutable.selector);
         oraclePool.setFee(newFee);
 
-        assertEq(oraclePool.getFee(), fee, "test_Fuzz_GetFee::1");
+        assertEq(oraclePool.getFee(), fee, "test_Fuzz_Revert_SetFee::2");
     }
 
     function test_Fuzz_Swap(uint256 price, uint256 amountA, uint256 amountB) public {

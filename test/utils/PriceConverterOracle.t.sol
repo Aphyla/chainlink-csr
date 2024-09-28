@@ -6,140 +6,80 @@ import "forge-std/Test.sol";
 import "../../contracts/utils/PriceConverterOracle.sol";
 import "../../contracts/utils/PriceOracle.sol";
 import "../mocks/MockDataFeed.sol";
+import "../mocks/MockPriceOracle.sol";
 
 contract PriceConverterOracleTest is Test {
     PriceConverterOracle public priceConverterOracle;
 
-    PriceOracle public priceOracleAB;
-    PriceOracle public priceOracleBC;
-
-    MockDataFeed public dataFeedAB;
-    MockDataFeed public dataFeedBC;
+    MockPriceOracle public priceOracleA;
+    MockPriceOracle public priceOracleB;
 
     function setUp() public {
-        dataFeedAB = new MockDataFeed(8);
-        dataFeedBC = new MockDataFeed(18);
+        priceOracleA = new MockPriceOracle();
+        priceOracleB = new MockPriceOracle();
 
-        priceOracleAB = new PriceOracle(address(dataFeedAB), false, 1 hours, address(this));
-        priceOracleBC = new PriceOracle(address(dataFeedBC), false, 1 hours, address(this));
+        priceConverterOracle = new PriceConverterOracle(address(priceOracleA), address(priceOracleB));
 
-        priceConverterOracle = new PriceConverterOracle(address(0), address(0), address(this));
-
-        vm.label(address(dataFeedAB), "dataFeedAB");
-        vm.label(address(dataFeedBC), "dataFeedBC");
-        vm.label(address(priceOracleAB), "priceOracleAB");
-        vm.label(address(priceOracleBC), "priceOracleBC");
+        vm.label(address(priceOracleA), "priceOracleA");
+        vm.label(address(priceOracleB), "priceOracleB");
         vm.label(address(priceConverterOracle), "priceConverterOracle");
     }
 
     function test_Constructor() public {
-        priceConverterOracle = new PriceConverterOracle(address(0), address(0), address(this)); // to fix coverage
+        priceConverterOracle = new PriceConverterOracle(address(1), address(2)); // to fix coverage
 
-        assertEq(priceConverterOracle.getBasePriceOracle(), address(0), "test_Constructor::1");
-        assertEq(priceConverterOracle.getQuotePriceOracle(), address(0), "test_Constructor::2");
+        assertEq(priceConverterOracle.BASE_PRICE_ORACLE(), address(1), "test_Constructor::1");
+        assertEq(priceConverterOracle.QUOTE_PRICE_ORACLE(), address(2), "test_Constructor::2");
     }
 
-    function test_Fuzz_GetPriceOracles(address oracleA, address oracleB) public {
-        address baseOracle = priceConverterOracle.getBasePriceOracle();
-        address quoteOracle = priceConverterOracle.getQuotePriceOracle();
+    function test_Revert_Constructor() public {
+        vm.expectRevert(IPriceConverterOracle.PriceConverterOracleInvalidParameters.selector);
+        new PriceConverterOracle(address(0), address(1));
 
-        assertEq(baseOracle, address(0), "test_Fuzz_GetPriceOracles::1");
-        assertEq(quoteOracle, address(0), "test_Fuzz_GetPriceOracles::2");
+        vm.expectRevert(IPriceConverterOracle.PriceConverterOracleInvalidParameters.selector);
+        new PriceConverterOracle(address(1), address(0));
 
-        priceConverterOracle.setBasePriceOracle(oracleA);
-
-        baseOracle = priceConverterOracle.getBasePriceOracle();
-        quoteOracle = priceConverterOracle.getQuotePriceOracle();
-
-        assertEq(baseOracle, oracleA, "test_Fuzz_GetPriceOracles::3");
-        assertEq(quoteOracle, address(0), "test_Fuzz_GetPriceOracles::4");
-
-        priceConverterOracle.setQuotePriceOracle(oracleB);
-
-        baseOracle = priceConverterOracle.getBasePriceOracle();
-        quoteOracle = priceConverterOracle.getQuotePriceOracle();
-
-        assertEq(baseOracle, oracleA, "test_Fuzz_GetPriceOracles::5");
-        assertEq(quoteOracle, oracleB, "test_Fuzz_GetPriceOracles::6");
-
-        priceConverterOracle.setBasePriceOracle(oracleB);
-
-        baseOracle = priceConverterOracle.getBasePriceOracle();
-        quoteOracle = priceConverterOracle.getQuotePriceOracle();
-
-        assertEq(baseOracle, oracleB, "test_Fuzz_GetPriceOracles::7");
-        assertEq(quoteOracle, oracleB, "test_Fuzz_GetPriceOracles::8");
+        vm.expectRevert(IPriceConverterOracle.PriceConverterOracleInvalidParameters.selector);
+        new PriceConverterOracle(address(0), address(0));
     }
 
-    function test_Fuzz_GetLatestAnswer(int256 priceAB, int256 priceBC) public {
-        int256 spriceAB = bound(priceAB, 1, int256(type(uint256).max / 1e18));
-        int256 spriceBC =
-            bound(priceBC, (1e18 - 1) / (1e10 * spriceAB) + 1, int256(type(uint256).max / (1e18 * uint256(spriceAB))));
-        spriceBC = spriceBC == 0 ? int256(1) : spriceBC;
+    function test_Fuzz_GetLatestAnswer(uint256 priceA, uint256 priceB) public {
+        priceA = bound(priceA, 1, type(uint256).max);
+        priceB = bound(priceB, priceA >= 1e18 ? 1 : (1e18 - 1) / priceA + 1, type(uint256).max / priceA);
 
-        dataFeedAB.set(spriceAB, 0, 0, block.timestamp, 0);
-        dataFeedBC.set(spriceBC, 0, 0, block.timestamp, 0);
+        priceOracleA.setLatestAnswer(priceA);
+        priceOracleB.setLatestAnswer(priceB);
 
-        priceOracleAB.setAggregator(address(dataFeedAB), false);
-        priceOracleBC.setAggregator(address(dataFeedBC), false);
+        assertEq(priceConverterOracle.getLatestAnswer(), priceA * priceB / 1e18, "test_Fuzz_GetLatestAnswer::1");
 
-        priceConverterOracle.setBasePriceOracle(address(priceOracleAB));
-        priceConverterOracle.setQuotePriceOracle(address(priceOracleBC));
+        priceOracleA.setLatestAnswer(priceB);
+        priceOracleB.setLatestAnswer(priceA);
 
-        assertEq(
-            priceConverterOracle.getLatestAnswer(),
-            uint256(spriceAB) * 1e10 * uint256(spriceBC) / 1e18,
-            "test_Fuzz_GetLatestAnswer::1"
+        assertEq(priceConverterOracle.getLatestAnswer(), priceA * priceB / 1e18, "test_Fuzz_GetLatestAnswer::2");
+    }
+
+    function test_Fuzz_Revert_GetLatestAnswer(uint256 priceA, uint256 priceB) public {
+        priceOracleA.setLatestAnswer(bound(priceA, 2, type(uint256).max));
+        priceOracleB.setLatestAnswer(
+            bound(priceB, (type(uint256).max - 1) / (priceOracleA.getLatestAnswer() - 1) + 1, type(uint256).max)
         );
 
-        spriceAB = bound(priceAB, 1, 10 ** (18 + 8));
-        spriceBC = bound(priceBC, 0, 1e18 / (1e26 / spriceAB));
-        spriceBC = spriceBC == 0 ? int256(1) : spriceBC;
+        vm.expectRevert(); // Revert with EVM overflows
+        priceConverterOracle.getLatestAnswer();
 
-        dataFeedAB.set(spriceAB, 0, 0, block.timestamp, 0);
-        dataFeedBC.set(spriceBC, 0, 0, block.timestamp, 0);
+        priceA = bound(priceA, 1, 1e18 - 1);
+        priceB = bound(priceB, 0, 1e18 / priceA - 1);
 
-        priceOracleAB.setAggregator(address(dataFeedAB), true);
-        priceOracleBC.setAggregator(address(dataFeedBC), true);
-
-        assertEq(
-            priceConverterOracle.getLatestAnswer(),
-            (10 ** (18 + 8) / uint256(spriceAB)) * (10 ** (18 + 18) / uint256(spriceBC)) / 1e18,
-            "test_Fuzz_GetLatestAnswer::2"
-        );
-    }
-
-    function test_Fuzz_Revert_GetLatestAnswer(int256 priceAB, int256 priceBC) public {
-        priceAB = bound(priceAB, 1, 1e8 - 1);
-        priceBC = bound(priceBC, 0, 1e18 / (1e10 * priceAB) - 1);
-        priceBC = priceBC == 0 ? int256(1) : priceBC;
-
-        dataFeedAB.set(priceAB, 0, 0, block.timestamp, 0);
-        dataFeedBC.set(priceBC, 0, 0, block.timestamp, 0);
-
-        priceOracleAB.setAggregator(address(dataFeedAB), false);
-        priceOracleBC.setAggregator(address(dataFeedBC), false);
-
-        priceConverterOracle.setBasePriceOracle(address(priceOracleAB));
-        priceConverterOracle.setQuotePriceOracle(address(priceOracleBC));
+        priceOracleA.setLatestAnswer(priceA);
+        priceOracleB.setLatestAnswer(priceB);
 
         vm.expectRevert(IPriceConverterOracle.PriceConverterOracleInvalidPrice.selector);
         priceConverterOracle.getLatestAnswer();
-    }
 
-    function test_Revert_GetLatestAnswer() public {
-        vm.expectRevert(IPriceConverterOracle.PriceConverterOracleNoOracle.selector);
-        priceConverterOracle.getLatestAnswer();
+        priceOracleA.setLatestAnswer(priceB);
+        priceOracleB.setLatestAnswer(priceA);
 
-        priceConverterOracle.setBasePriceOracle(address(priceOracleAB));
-
-        vm.expectRevert(IPriceConverterOracle.PriceConverterOracleNoOracle.selector);
-        priceConverterOracle.getLatestAnswer();
-
-        priceConverterOracle.setQuotePriceOracle(address(priceOracleBC));
-        priceConverterOracle.setBasePriceOracle(address(0));
-
-        vm.expectRevert(IPriceConverterOracle.PriceConverterOracleNoOracle.selector);
+        vm.expectRevert(IPriceConverterOracle.PriceConverterOracleInvalidPrice.selector);
         priceConverterOracle.getLatestAnswer();
     }
 }
