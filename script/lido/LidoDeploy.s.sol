@@ -12,7 +12,7 @@ import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
 import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
 import "../../contracts/adapters/BaseLegacyAdapterL1toL2.sol";
 import "../../contracts/automations/SyncAutomation.sol";
-import "../../contracts/utils/OraclePool.sol";
+import "../../contracts/utils/PausableImmutableOraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
 contract LidoDeployScript is ScriptHelper, LidoParameters {
@@ -117,7 +117,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             );
 
             arbContracts.oraclePool = address(
-                new OraclePool(
+                new PausableImmutableOraclePool(
                     _predictContractAddress(deployer, 2), // As we deploy this contract, the impementation and then the proxy, we need to increment the nonce by 2
                     ARBITRUM_WETH_TOKEN,
                     ARBITRUM_WSTETH_TOKEN,
@@ -168,7 +168,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             );
 
             optContracts.oraclePool = address(
-                new OraclePool(
+                new PausableImmutableOraclePool(
                     _predictContractAddress(deployer, 2), // As we deploy this contract, the impementation and then the proxy, we need to increment the nonce by 2
                     OPTIMISM_WETH_TOKEN,
                     OPTIMISM_WSTETH_TOKEN,
@@ -219,7 +219,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             );
 
             baseContracts.oraclePool = address(
-                new OraclePool(
+                new PausableImmutableOraclePool(
                     _predictContractAddress(deployer, 2), // As we deploy this contract, the impementation and then the proxy, we need to increment the nonce by 2
                     BASE_WETH_TOKEN,
                     BASE_WSTETH_TOKEN,
@@ -301,7 +301,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             syncAutomation.setDelay(ARBITRUM_MIN_SYNC_DELAY);
 
             if (ARBITRUM_OWNER != address(0)) {
-                OraclePool(arbContracts.oraclePool).transferOwnership(ARBITRUM_OWNER);
+                PausableImmutableOraclePool(arbContracts.oraclePool).transferOwnership(ARBITRUM_OWNER);
                 syncAutomation.transferOwnership(ARBITRUM_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), ARBITRUM_OWNER);
@@ -334,7 +334,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             syncAutomation.setDelay(OPTIMISM_MIN_SYNC_DELAY);
 
             if (OPTIMISM_OWNER != address(0)) {
-                OraclePool(optContracts.oraclePool).transferOwnership(OPTIMISM_OWNER);
+                PausableImmutableOraclePool(optContracts.oraclePool).transferOwnership(OPTIMISM_OWNER);
                 syncAutomation.transferOwnership(OPTIMISM_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), OPTIMISM_OWNER);
@@ -366,7 +366,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             syncAutomation.setDelay(BASE_MIN_SYNC_DELAY);
 
             if (BASE_OWNER != address(0)) {
-                OraclePool(baseContracts.oraclePool).transferOwnership(BASE_OWNER);
+                PausableImmutableOraclePool(baseContracts.oraclePool).transferOwnership(BASE_OWNER);
                 syncAutomation.transferOwnership(BASE_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), BASE_OWNER);
@@ -469,7 +469,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
                 "_verifyDeployments::29"
             );
 
-            OraclePool oraclePool = OraclePool(l2Contracts[0].oraclePool);
+            PausableImmutableOraclePool oraclePool = PausableImmutableOraclePool(l2Contracts[0].oraclePool);
 
             require(oraclePool.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::30");
             require(oraclePool.TOKEN_IN() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::31");
@@ -544,7 +544,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
                 "_verifyDeployments::59"
             );
 
-            OraclePool oraclePool = OraclePool(l2Contracts[1].oraclePool);
+            PausableImmutableOraclePool oraclePool = PausableImmutableOraclePool(l2Contracts[1].oraclePool);
 
             require(oraclePool.SENDER() == l2Contracts[1].sender.proxy, "_verifyDeployments::60");
             require(oraclePool.TOKEN_IN() == OPTIMISM_WETH_TOKEN, "_verifyDeployments::61");
@@ -615,7 +615,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
                 "_verifyDeployments::89"
             );
 
-            OraclePool oraclePool = OraclePool(l2Contracts[2].oraclePool);
+            PausableImmutableOraclePool oraclePool = PausableImmutableOraclePool(l2Contracts[2].oraclePool);
 
             require(oraclePool.SENDER() == l2Contracts[2].sender.proxy, "_verifyDeployments::90");
             require(oraclePool.TOKEN_IN() == BASE_WETH_TOKEN, "_verifyDeployments::91");
