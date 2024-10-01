@@ -13,9 +13,9 @@ contract LidoParameters {
     address internal constant ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE = 0x9de443AdC5A411E83F1878Ef24C3F52C61571e72;
     address internal constant ETHEREUM_OWNER = address(0); // If left as address(0), the owner will be the deployer
     /* Origin to Destination Fee Parameters */
-    uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 1e18; // Max fee used by the automation contract when calling sync
+    uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 20e18; // Max fee used by the automation contract when calling sync
     bool internal constant ETHEREUM_DESTINATION_PAY_IN_LINK = true; // Whether the automation contract should pay the fee in LINK or ETH
-    uint32 internal constant ETHEREUM_DESTINATION_GAS_LIMIT = 1_000_000; // Gas limit used by the automation contract when calling sync
+    uint32 internal constant ETHEREUM_DESTINATION_GAS_LIMIT = 400_000; // Gas limit used by the automation contract when calling sync
     /* Deployment */
     address internal constant ETHEREUM_RECEIVER_PROXY = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
     address internal constant ETHEREUM_RECEIVER_PROXY_ADMIN = 0x88a45d2760b63c1500E3D2E3552b28e5Cdaa37BD;
