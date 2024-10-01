@@ -40,7 +40,7 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
     address public deployer;
 
     function setUp() public {
-        ethereumForkId = vm.createFork(vm.rpcUrl("ethereum"));
+        ethereumForkId = vm.createFork(vm.rpcUrl("mainnet"));
         arbitrumForkId = vm.createFork(vm.rpcUrl("arbitrum"));
     }
 
@@ -140,7 +140,7 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
             vm.stopBroadcast();
         }
 
-        // Set up contracts on ethereum
+        // Set up contracts on Ethereum
         {
             vm.selectFork(ethereumForkId);
             vm.startBroadcast(deployerPrivateKey);

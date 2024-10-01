@@ -46,7 +46,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
     address public deployer;
 
     function setUp() public {
-        ethereumForkId = vm.createFork(vm.rpcUrl("ethereum"));
+        ethereumForkId = vm.createFork(vm.rpcUrl("mainnet"));
         arbitrumForkId = vm.createFork(vm.rpcUrl("arbitrum"));
         optimismForkId = vm.createFork(vm.rpcUrl("optimism"));
         baseForkId = vm.createFork(vm.rpcUrl("base"));
@@ -251,7 +251,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.stopBroadcast();
         }
 
-        // Set up contracts on ethereum
+        // Set up contracts on Ethereum
         {
             vm.selectFork(ethereumForkId);
             vm.startBroadcast(deployerPrivateKey);

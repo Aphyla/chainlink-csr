@@ -27,7 +27,7 @@ contract shanghai_fork_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
     address alice = makeAddr("alice");
 
     function setUp() public {
-        ethForkId = vm.createFork(vm.rpcUrl("ethereum"), ETHEREUM_FORK_BLOCK);
+        ethForkId = vm.createFork(vm.rpcUrl("mainnet"), ETHEREUM_FORK_BLOCK);
         arbForkId = vm.createFork(vm.rpcUrl("arbitrum"), ARBITRUM_FORK_BLOCK);
 
         // Deployments

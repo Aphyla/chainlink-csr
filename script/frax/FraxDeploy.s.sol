@@ -42,7 +42,7 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
     address public deployer;
 
     function setUp() public {
-        ethereumForkId = vm.createFork(vm.rpcUrl("ethereum"));
+        ethereumForkId = vm.createFork(vm.rpcUrl("mainnet"));
         arbitrumForkId = vm.createFork(vm.rpcUrl("arbitrum"));
         optimismForkId = vm.createFork(vm.rpcUrl("optimism"));
     }
@@ -203,7 +203,7 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
             vm.stopBroadcast();
         }
 
-        // Set up contracts on ethereum
+        // Set up contracts on Ethereum
         {
             vm.selectFork(ethereumForkId);
             vm.startBroadcast(deployerPrivateKey);
