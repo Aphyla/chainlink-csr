@@ -31,4 +31,5 @@ interface ISyncAutomation is AutomationCompatibleInterface {
     function setFeeDtoO(bytes memory fee) external;
     function setFeeOtoD(bytes memory fee) external;
     function setForwarder(address forwarder) external;
+    function sweep(address token, address recipient, uint256 amount) external;
 }

@@ -164,7 +164,7 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
             vm.startBroadcast(deployerPrivateKey);
 
             CustomSender sender = CustomSender(arbContracts.sender.proxy);
-            SyncAutomation syncAutomation = SyncAutomation(arbContracts.syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(arbContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
 
@@ -276,7 +276,7 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
                 "_verifyDeployments::32"
             );
 
-            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(l2Contracts[0].syncAutomation);
 
             require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::33");
             require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::34");

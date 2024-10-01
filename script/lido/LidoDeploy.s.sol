@@ -280,7 +280,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.startBroadcast(deployerPrivateKey);
 
             CustomSender sender = CustomSender(arbContracts.sender.proxy);
-            SyncAutomation syncAutomation = SyncAutomation(arbContracts.syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(arbContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
 
@@ -302,7 +302,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
 
             if (ARBITRUM_OWNER != address(0)) {
                 PausableImmutableOraclePool(arbContracts.oraclePool).transferOwnership(ARBITRUM_OWNER);
-                syncAutomation.transferOwnership(ARBITRUM_OWNER);
+                Ownable(address(syncAutomation)).transferOwnership(ARBITRUM_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), ARBITRUM_OWNER);
                 sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
@@ -317,7 +317,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.startBroadcast(deployerPrivateKey);
 
             CustomSender sender = CustomSender(optContracts.sender.proxy);
-            SyncAutomation syncAutomation = SyncAutomation(optContracts.syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(optContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
 
@@ -335,7 +335,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
 
             if (OPTIMISM_OWNER != address(0)) {
                 PausableImmutableOraclePool(optContracts.oraclePool).transferOwnership(OPTIMISM_OWNER);
-                syncAutomation.transferOwnership(OPTIMISM_OWNER);
+                Ownable(address(syncAutomation)).transferOwnership(OPTIMISM_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), OPTIMISM_OWNER);
                 sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
@@ -350,7 +350,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.startBroadcast(deployerPrivateKey);
 
             CustomSender sender = CustomSender(baseContracts.sender.proxy);
-            SyncAutomation syncAutomation = SyncAutomation(baseContracts.syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(baseContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
 
@@ -367,7 +367,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
 
             if (BASE_OWNER != address(0)) {
                 PausableImmutableOraclePool(baseContracts.oraclePool).transferOwnership(BASE_OWNER);
-                syncAutomation.transferOwnership(BASE_OWNER);
+                Ownable(address(syncAutomation)).transferOwnership(BASE_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), BASE_OWNER);
                 sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
@@ -500,7 +500,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
                 "_verifyDeployments::45"
             );
 
-            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(l2Contracts[0].syncAutomation);
 
             require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::46");
             require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::47");
@@ -575,7 +575,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
                 "_verifyDeployments::75"
             );
 
-            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[1].syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(l2Contracts[1].syncAutomation);
 
             require(syncAutomation.SENDER() == l2Contracts[1].sender.proxy, "_verifyDeployments::76");
             require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::77");
@@ -646,7 +646,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
                 "_verifyDeployments::105"
             );
 
-            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[2].syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(l2Contracts[2].syncAutomation);
 
             require(syncAutomation.SENDER() == l2Contracts[2].sender.proxy, "_verifyDeployments::106");
             require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::107");

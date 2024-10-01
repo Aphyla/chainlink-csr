@@ -6,6 +6,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AutomationCompatible} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
 import {FeeCodec} from "../libraries/FeeCodec.sol";
+import {TokenHelper} from "../libraries/TokenHelper.sol";
 import {IOraclePool} from "../interfaces/IOraclePool.sol";
 import {ICustomSender} from "../interfaces/ICustomSender.sol";
 import {ISyncAutomation} from "../interfaces/ISyncAutomation.sol";
@@ -40,6 +41,11 @@ contract SyncAutomation is AutomationCompatible, Ownable, ISyncAutomation {
         if (msg.sender != _forwarder) revert SyncAutomationOnlyForwarder();
         _;
     }
+
+    /**
+     * @dev Allows the contract to receive native tokens.
+     */
+    receive() external payable {}
 
     /**
      * @dev Sets the immutable values for {SENDER}, {DEST_CHAIN_SELECTOR} and set the initial owner.
@@ -220,6 +226,16 @@ contract SyncAutomation is AutomationCompatible, Ownable, ISyncAutomation {
      */
     function setFeeDtoO(bytes calldata fee) public virtual onlyOwner {
         _setFeeDtoO(fee);
+    }
+
+    /**
+     * @dev Transfers `amount` of `token` to `recipient`.
+     *
+     * Requirements:
+     * - `msg.sender` must be the owner.
+     */
+    function sweep(address token, address recipient, uint256 amount) public virtual onlyOwner {
+        TokenHelper.transfer(token, recipient, amount);
     }
 
     /**

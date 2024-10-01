@@ -415,6 +415,29 @@ contract SyncAutomationTest is Test {
         vm.expectRevert(ISyncAutomation.SyncAutomationNoUpkeepNeeded.selector);
         syncAutomation.performUpkeep(performData);
     }
+
+    function test_Sweep() public {
+        address alice = makeAddr("alice");
+
+        payable(address(syncAutomation)).transfer(1e18);
+
+        syncAutomation.sweep(address(0), alice, 1e18);
+
+        assertEq(alice.balance, 1e18, "test_Sweep::1");
+
+        wnative.deposit{value: 1e18}();
+        wnative.transfer(address(syncAutomation), 1e18);
+
+        syncAutomation.sweep(address(wnative), alice, 1e18);
+
+        assertEq(wnative.balanceOf(alice), 1e18, "test_Sweep::2");
+
+        link.mint(address(syncAutomation), 1e18);
+
+        syncAutomation.sweep(address(link), alice, 1e18);
+
+        assertEq(link.balanceOf(alice), 1e18, "test_Sweep::3");
+    }
 }
 
 contract MockSender {

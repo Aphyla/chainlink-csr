@@ -230,7 +230,7 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
             vm.startBroadcast(deployerPrivateKey);
 
             CustomSender sender = CustomSender(arbContracts.sender.proxy);
-            SyncAutomation syncAutomation = SyncAutomation(arbContracts.syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(arbContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
 
@@ -248,7 +248,7 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
 
             if (ARBITRUM_OWNER != address(0)) {
                 OraclePool(arbContracts.oraclePool).transferOwnership(ARBITRUM_OWNER);
-                syncAutomation.transferOwnership(ARBITRUM_OWNER);
+                Ownable(address(syncAutomation)).transferOwnership(ARBITRUM_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), ARBITRUM_OWNER);
                 sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
@@ -263,7 +263,7 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
             vm.startBroadcast(deployerPrivateKey);
 
             CustomSender sender = CustomSender(optContracts.sender.proxy);
-            SyncAutomation syncAutomation = SyncAutomation(optContracts.syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(optContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
 
@@ -281,7 +281,7 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
 
             if (OPTIMISM_OWNER != address(0)) {
                 OraclePool(optContracts.oraclePool).transferOwnership(OPTIMISM_OWNER);
-                syncAutomation.transferOwnership(OPTIMISM_OWNER);
+                Ownable(address(syncAutomation)).transferOwnership(OPTIMISM_OWNER);
 
                 sender.grantRole(sender.DEFAULT_ADMIN_ROLE(), OPTIMISM_OWNER);
                 sender.renounceRole(sender.DEFAULT_ADMIN_ROLE(), deployer);
@@ -388,12 +388,12 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
                 "_verifyDeployments::36"
             );
 
-            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[0].syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(l2Contracts[0].syncAutomation);
 
             require(syncAutomation.SENDER() == l2Contracts[0].sender.proxy, "_verifyDeployments::37");
             require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::38");
             require(syncAutomation.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::39");
-            require(syncAutomation.owner() == deployer, "_verifyDeployments::40");
+            _checkOwner(address(syncAutomation), deployer, ARBITRUM_OWNER, "_verifyDeployments::40");
             require(syncAutomation.getLastExecution() == block.timestamp, "_verifyDeployments::41");
             require(syncAutomation.getDelay() == ARBITRUM_MIN_SYNC_DELAY, "_verifyDeployments::42");
             require(
@@ -459,12 +459,12 @@ contract FraxDeployScript is ScriptHelper, FraxParameters {
                 "_verifyDeployments::67"
             );
 
-            SyncAutomation syncAutomation = SyncAutomation(l2Contracts[1].syncAutomation);
+            ISyncAutomation syncAutomation = ISyncAutomation(l2Contracts[1].syncAutomation);
 
             require(syncAutomation.SENDER() == l2Contracts[1].sender.proxy, "_verifyDeployments::68");
             require(syncAutomation.DEST_CHAIN_SELECTOR() == ETHEREUM_CCIP_CHAIN_SELECTOR, "_verifyDeployments::69");
             require(syncAutomation.WNATIVE() == OPTIMISM_WETH_TOKEN, "_verifyDeployments::70");
-            require(syncAutomation.owner() == deployer, "_verifyDeployments::71");
+            _checkOwner(address(syncAutomation), deployer, OPTIMISM_OWNER, "_verifyDeployments::71");
             require(syncAutomation.getLastExecution() == block.timestamp, "_verifyDeployments::72");
             require(syncAutomation.getDelay() == OPTIMISM_MIN_SYNC_DELAY, "_verifyDeployments::73");
             require(
