@@ -16,6 +16,13 @@ contract LidoParameters {
     uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 1e18; // Max fee used by the automation contract when calling sync
     bool internal constant ETHEREUM_DESTINATION_PAY_IN_LINK = true; // Whether the automation contract should pay the fee in LINK or ETH
     uint32 internal constant ETHEREUM_DESTINATION_GAS_LIMIT = 1_000_000; // Gas limit used by the automation contract when calling sync
+    /* Deployment */
+    address internal constant ETHEREUM_RECEIVER_PROXY = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
+    address internal constant ETHEREUM_RECEIVER_PROXY_ADMIN = 0x88a45d2760b63c1500E3D2E3552b28e5Cdaa37BD;
+    address internal constant ETHEREUM_RECEIVER_IMPLEMENTATION = 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367;
+    address internal constant ETHEREUM_ARBITRUM_ADAPTER = 0xBf96561e4519182CFA4cebBf95494D9CA5a316f9;
+    address internal constant ETHEREUM_OPTIMISM_ADAPTER = 0x328de900860816d29D1367F6903a24D8ed40C997;
+    address internal constant ETHEREUM_BASE_ADAPTER = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
 
     uint64 internal constant ARBITRUM_FORK_BLOCK = 219083410;
     uint64 internal constant ARBITRUM_CCIP_CHAIN_SELECTOR = 4949039107694359620;
@@ -37,6 +44,13 @@ contract LidoParameters {
     uint128 internal constant ARBITRUM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
     uint128 internal constant ARBITRUM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
     uint48 internal constant ARBITRUM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    /* Deployment */
+    address internal constant ARBITRUM_SENDER_PROXY = 0x72229141D4B016682d3618ECe47c046f30Da4AD1;
+    address internal constant ARBITRUM_SENDER_PROXY_ADMIN = 0x5B42aEbFe95247f1d22e282831e2A513bF050217;
+    address internal constant ARBITRUM_SENDER_IMPLEMENTATION = 0x33A7c97577912c6e7588520CC5E4B5Fba2679851;
+    address internal constant ARBITRUM_PRICE_ORACLE = 0x328de900860816d29D1367F6903a24D8ed40C997;
+    address internal constant ARBITRUM_ORACLE_POOL = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
+    address internal constant ARBITRUM_SYNC_AUTOMATION = 0xFe44d50771F469fbFCFB117247937eC50706f881;
 
     uint64 internal constant OPTIMISM_FORK_BLOCK = 121425199;
     uint64 internal constant OPTIMISM_CCIP_CHAIN_SELECTOR = 3734403246176062136;
@@ -56,6 +70,13 @@ contract LidoParameters {
     uint128 internal constant OPTIMISM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
     uint128 internal constant OPTIMISM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
     uint48 internal constant OPTIMISM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    /* Deployment */
+    address internal constant OPTIMISM_SENDER_PROXY = 0x328de900860816d29D1367F6903a24D8ed40C997;
+    address internal constant OPTIMISM_SENDER_PROXY_ADMIN = 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192;
+    address internal constant OPTIMISM_SENDER_IMPLEMENTATION = 0xBf96561e4519182CFA4cebBf95494D9CA5a316f9;
+    address internal constant OPTIMISM_PRICE_ORACLE = 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367;
+    address internal constant OPTIMISM_ORACLE_POOL = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
+    address internal constant OPTIMISM_SYNC_AUTOMATION = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
 
     uint64 internal constant BASE_FORK_BLOCK = 18811140;
     uint64 internal constant BASE_CCIP_CHAIN_SELECTOR = 15971525489660198786;
@@ -75,4 +96,11 @@ contract LidoParameters {
     uint128 internal constant BASE_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
     uint128 internal constant BASE_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
     uint48 internal constant BASE_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    /* Deployment */
+    address internal constant BASE_SENDER_PROXY = 0x328de900860816d29D1367F6903a24D8ed40C997;
+    address internal constant BASE_SENDER_PROXY_ADMIN = 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192;
+    address internal constant BASE_SENDER_IMPLEMENTATION = 0xBf96561e4519182CFA4cebBf95494D9CA5a316f9;
+    address internal constant BASE_PRICE_ORACLE = 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367;
+    address internal constant BASE_ORACLE_POOL = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
+    address internal constant BASE_SYNC_AUTOMATION = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
 }
