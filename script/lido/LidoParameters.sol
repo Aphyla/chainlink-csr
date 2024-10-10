@@ -36,10 +36,10 @@ contract LidoParameters {
     bool internal constant ARBITRUM_WSTETH_STETH_DATAFEED_IS_INVERSE = false; // If the data feed is inverted, i.e. the price returned is the inverse of the price wanted
     uint32 internal constant ARBITRUM_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours; // The maximum time between data feed updates
     uint96 internal constant ARBITRUM_ORACLE_POOL_FEE = 0; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
-    uint128 internal constant ARBITRUM_ORIGIN_MAX_SUBMISSION_COST = 0.1e18; // The maximum amount of ETH to be paid for submitting the ticket to the arbitrum bridge
     /* Destination to Origin Fee Parameters */
+    uint128 internal constant ARBITRUM_ORIGIN_MAX_SUBMISSION_COST = 0.001e18; // The maximum amount of ETH to be paid for submitting the ticket to the arbitrum bridge
     uint32 internal constant ARBITRUM_ORIGIN_MAX_GAS = 100_000; // The maximum amount of gas used to cover the L2 execution cost
-    uint64 internal constant ARBITRUM_ORIGIN_GAS_PRICE_BID = 1e9; // The gas price bid for the L2 execution cost
+    uint64 internal constant ARBITRUM_ORIGIN_GAS_PRICE_BID = 0.05e9; // The gas price bid for the L2 execution cost
     /* Sync Automation Parameters */
     uint128 internal constant ARBITRUM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
     uint128 internal constant ARBITRUM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
