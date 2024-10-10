@@ -24,6 +24,7 @@ interface ISyncAutomation is AutomationCompatibleInterface {
     function getDelay() external view returns (uint48);
     function getFeeDtoO() external view returns (bytes memory);
     function getFeeOtoD() external view returns (bytes memory);
+    function getMaxFees() external view returns (uint256 maxNativeFee, uint256 maxLinkFee);
     function getForwarder() external view returns (address);
     function getLastExecution() external view returns (uint48);
     function setAmounts(uint128 minAmount, uint128 maxAmount) external;
