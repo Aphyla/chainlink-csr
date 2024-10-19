@@ -57,7 +57,7 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
         uint256 maxFee,
         uint256 gasLimit,
         bytes memory data
-    ) internal virtual returns (bytes32) {
+    ) internal virtual returns (bytes32, uint256) {
         if (receiver.length == 0) revert CCIPSenderEmptyReceiver();
 
         uint256 length = tokenAmounts.length;
@@ -91,6 +91,9 @@ abstract contract CCIPSenderUpgradeable is CCIPBaseUpgradeable, ICCIPSenderUpgra
             nativeFee = fee;
         }
 
-        return IRouterClient(CCIP_ROUTER).ccipSend{value: nativeFee}(destChainSelector, message);
+        uint64 destChainSelector_ = destChainSelector; // Prevents stack too deep error
+        bytes32 messageId = IRouterClient(CCIP_ROUTER).ccipSend{value: nativeFee}(destChainSelector_, message);
+
+        return (messageId, maxFee - fee);
     }
 }

@@ -14,5 +14,7 @@ interface ICustomReceiver is ICCIPDefensiveReceiverUpgradeable {
     event AdapterSet(uint64 indexed destChainSelector, address adapter);
 
     function getAdapter(uint64 destChainSelector) external view returns (address);
+    function getExcess(address token) external view returns (uint256);
     function setAdapter(uint64 destChainSelector, address adapter) external;
+    function claimExcess(address token) external returns (uint256);
 }
