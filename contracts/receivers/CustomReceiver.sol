@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {CCIPDefensiveReceiverUpgradeable, Client} from "../ccip/CCIPDefensiveReceiverUpgradeable.sol";
@@ -20,13 +19,12 @@ import {ICustomReceiver} from "../interfaces/ICustomReceiver.sol";
  * The contract uses the EIP-7201 to prevent storage collisions.
  */
 abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomReceiver {
-    using SafeERC20 for IERC20;
-
     address public immutable WNATIVE;
 
     /* @custom:storage-location erc7201:ccip-csr.storage.CustomReceiver */
     struct CustomReceiverStorage {
         mapping(uint64 destChainSelector => address adapter) adapters;
+        mapping(address token => uint256) excess;
     }
 
     // keccak256(abi.encode(uint256(keccak256("ccip-csr.storage.CustomReceiver")) - 1)) & ~bytes32(uint256(0xff))
@@ -76,6 +74,13 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
     }
 
     /**
+     * @dev Returns the excess token balance.
+     */
+    function getExcess(address token) public view virtual override returns (uint256) {
+        return _getCustomReceiverStorage().excess[token];
+    }
+
+    /**
      * @dev Sets the adapter for the destination chain selector.
      *
      * Requirements:
@@ -86,6 +91,24 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
      */
     function setAdapter(uint64 destChainSelector, address adapter) public override onlyRole(DEFAULT_ADMIN_ROLE) {
         _setAdapter(destChainSelector, adapter);
+    }
+
+    /**
+     * @dev Claims the excess token balance.
+     *
+     * Requirements:
+     *
+     * - The caller must have the `DEFAULT_ADMIN_ROLE`.
+     */
+    function claimExcess(address token) public virtual override onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
+        CustomReceiverStorage storage $ = _getCustomReceiverStorage();
+
+        uint256 amount = $.excess[token];
+        $.excess[token] = 0;
+
+        TokenHelper.transfer(token, msg.sender, amount);
+
+        return amount;
     }
 
     /**
@@ -144,7 +167,11 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
 
         uint256 staked = _stakeToken(amount);
 
-        _sendToken(message.sourceChainSelector, recipient, staked, feeData);
+        (address feeToken, uint256 excess) = _sendToken(message.sourceChainSelector, recipient, staked, feeData);
+
+        if (excess > 0) {
+            _getCustomReceiverStorage().excess[feeToken] += excess;
+        }
     }
 
     /**
@@ -158,14 +185,17 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
     function _sendToken(uint64 sourceChainSelector, address recipient, uint256 amount, bytes calldata feeData)
         internal
         virtual
+        returns (address feeToken, uint256 excess)
     {
         address adapter = getAdapter(sourceChainSelector);
         if (adapter == address(0)) revert CustomReceiverNoAdapter(sourceChainSelector);
 
-        Address.functionDelegateCall(
+        bytes memory data = Address.functionDelegateCall(
             adapter,
             abi.encodeWithSelector(IBridgeAdapter.sendToken.selector, sourceChainSelector, recipient, amount, feeData)
         );
+
+        (feeToken, excess) = abi.decode(data, (address, uint256));
     }
 
     /**

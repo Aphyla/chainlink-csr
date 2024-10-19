@@ -42,7 +42,7 @@ contract FraxFerryAdapterL1toL2 is BridgeAdapter {
      *
      * - The fee amount must be equal to the expected fee amount (always 0).
      */
-    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override {
+    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override returns (address, uint256) {
         (uint256 feeAmount, bool payInLink) = FeeCodec.decodeFraxFerryL1toL2(feeData);
 
         if (payInLink) revert FraxFerryAdapterL1toL2InvalidFeeToken();
@@ -53,5 +53,8 @@ contract FraxFerryAdapterL1toL2 is BridgeAdapter {
         IFraxFerry(FRAX_FERRY).embarkWithRecipient(amount, to);
 
         emit FraxFerryL1toL2MessageSent();
+
+        return (address(0), 0);
+
     }
 }

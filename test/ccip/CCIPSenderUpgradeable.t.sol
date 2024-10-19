@@ -186,8 +186,9 @@ contract MockCCIPSender is CCIPSenderUpgradeable {
         uint256 maxFee,
         uint32 gasLimit,
         bytes memory data
-    ) external payable returns (bytes32) {
-        return _ccipSendTo(destChainSelector, msg.sender, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
+    ) external payable returns (bytes32 messageId) {
+        (messageId,) =
+            _ccipSendTo(destChainSelector, msg.sender, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
     }
 
     // Force foundry to ignore this contract from coverage

@@ -49,16 +49,19 @@ contract CCIPAdapter is BridgeAdapter, CCIPSenderUpgradeable {
     function _sendToken(uint64 destChainSelector, address to, uint256 amount, bytes calldata feeData)
         internal
         override
+        returns (address, uint256)
     {
         (uint256 maxFee, bool payInLink, uint256 gasLimit) = FeeCodec.decodeCCIP(feeData);
 
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({token: L1_TOKEN, amount: amount});
 
-        bytes32 messageId = _ccipSendTo(
+        (bytes32 messageId, uint256 excess) = _ccipSendTo(
             destChainSelector, address(this), abi.encode(to), tokenAmounts, payInLink, maxFee, gasLimit, new bytes(0)
         );
 
         emit CCIPMessageSent(messageId);
+
+        return (payInLink ? LINK_TOKEN : address(0), excess);
     }
 }
