@@ -116,30 +116,24 @@ Do not forget to replace `<NAME_OF_THE_CONTRACT>` with the name of the contract,
 
 #### Bridge Adapter
 
-If the bridge is not supported (currently, only OPTIMISM, ARBITRUM, BASE, FRAX_FERRY, CCIP bridges are supported), inherit the [BridgeAdapter](contracts/adapaters/BridgeAdapter.sol) contract and implement the `_sendToken` function.
+If the bridge is not supported (currently, only the following bridges are supported: CCIP, Optimism native bridge, Arbitrum Native Bridge, Base native bridge and Frax Ferry), then the protocol needs to inherit the [BridgeAdapter](contracts/adapaters/BridgeAdapter.sol) contract and implement the `_sendToken` function.
 
 Note that bridge adapters should not store any data in storage, as this would lead to storage collisions.
 
-## Important Revert Conditions and associated errors:
-
-- `OraclePoolInsufficientAmountOut(amountOut, minAmountOut)`: The OraclePool is not able to send the required amount of tokens to the user. If this error is thrown, the amount of token calculated to be received is probably wrong, or the price was updated between the calculation and the execution of the transaction.
-- `OraclePoolInsufficientTokenOut(amountOut, balance)`: The OraclePool does not have enough tokens to send to the user. This can happen if the OraclePool is not refilled or if the user is trying to swap way too much tokens. Consider using the `slowStake` function in this case as it has fewer limitations (only the CCIP bucket limit).
-
 ## Frequently Asked Questions / Troubleshooting:
 
-#### Fast Stake - What do we pass to minAmountOut when calling this from the front end?
-
-This is the minimum amount of the LST (wstETH) that you want from the oracle pool for the amount of ETH. This could be done as a dex where you input a « slippage » and that’s it, but if you want to be more precise, it could be set to `amountOut = amountIn * (1e18 - oraclePoolFee) / oraclePrice` and adding a slight wiggle room of 1 rebalance (in case the oracle gets updated in between, so something like `minAmountOut = amountIn * (1e18 - oraclePoolFee) / (oraclePrice * (1e18 + 3.18e18 / 365) / 1e18)` (assuming a 3.18% APR))
+### PROTOCOL OPERATORS:
 
 #### As an operator, what is the routine maintenance I need to take care of?
 
-Refilling liquidity in the Oracle Pool to make sure that sufficient tokens are available for the fast stake process. This can be done by simply transferring the tokens to the Oracle Pool contract.
-
 Keeping the Chainlink upkeep funded:
 
-- Needs LINK (on the contract itself if CCIP fee is paid in link, and the upkeep contract, using the Chainlink frontend)
+- The upkeep on automation.chain.link should be funded with enough LINK to perform the necessary upkeeps
 - Needs ETH (if using native bridge) in this contract
 - Max cost of 1 bridging \* number of transactions expected (depends on the trigger parameters - delay)
+
+Ensuring there are no errors in the `automation` / `performUpkeep` logic.
+Refilling bootstrapping liquidity (if needed).
 
 #### How does fee work? What are OtoD and DtoO fees and how should I set them?
 
@@ -177,6 +171,27 @@ Here, CCIP bridge is used for bridging, CCIP fee can be directly estimated using
 - When Frax bridge L1 -> L2 is used, `encodeFraxFerryL1toL2` is used. In the case of Frax Ferry, fees are 0 at the moment and require no parameters.
 - When CCIP bridge is used for bridging from L1 -> L2 (example: for EigenPie), CCIP fee can be directly estimated using `getFee()` on the router. and should be encoded using the `encodeCCIP` before being passed into the `ccipSend()` function. A slight buffer should be added to the fee to account for any changes in the fee between the calculation and the execution of the transaction. Note that any excess fee will be refunded to the sender, which is the custom receiver contract in this case.
 
+#### Can I, as a protocol operator, change the trigger parameters of the automation upkeep?
+
+Yes. The schedule for the upkeep can be updated via the `setDelay` on the [SyncAutomation.sol](contracts/automations/SyncAutomation.sol) contract.
+The minimum amount of WETH that needs to be in the OraclePool to initiate a sync as well as the maximum amount of WETH that can be sync’d at a given time can both be updated via the `setAmounts` parameter. Care should be taken to ensure that the max is less than the max pool capacity for WETH transfers via CCIP. The CCIP Supported Networks page provides details on the max capacity for WETH transfers on a given lane. This can also be queried using the `getCurrentOutboundRateLimiterState` function on the WETH pool address. The function returns the max capacity (4th output in the result set) as well as the current capacity (capacity at a given timestamp - 1st output in the result set)
+
+#### As an operator do I need to set up automation jobs for fast staking?
+
+As an operator, there are two ways to batch transfer WETH from L2 to L1 : Automated and manual.
+
+- Automated: We recommend setting up an automation upkeep using Chainlink Automation. Here are the steps:
+
+  1. After the SyncAutomation contract has been deployed, register a custom upkeep using Chainlink Automation.
+  2. The SyncAutomation contract should be used as the Target contract for the custom logic upkeep
+  3. Fund the upkeep with LINK
+  4. The values in your deployment parameters determine the initial values for the trigger conditions ; however this can be changed later using the SyncAutomation contract
+  5. The forwarder of the upkeep needs to be assigned a SYNC_ROLE in the CustomSender contract
+
+- Manual: There is also an option to manually trigger a WETH transfer using the sync() function in the CustomSender contract
+
+### FRONT-END OPERATORS:
+
 #### Where do we get the exchange rate to show the user how many LST tokens they will receive for depositing a certain amount of (W)ETH?
 
 Use the [PriceOracle](contracts/utils/PriceOracle.sol). Note that if the user is paying fees with ETH (and not LINK), then that should be deducted. If LINK is used for payment, then the fee in LINK is separately approved so the entire amount of ETH can be used for deposit
@@ -187,50 +202,28 @@ It will revert with a `OraclePoolInsufficientTokenOut` if the balance of the ora
 
 #### How do we track the request status for Fast Stake?
 
-Fast stake is atomic, so the user will either receive the LST token directly in its wallet, or the transaction will revert. The user can check the transaction status on any blockchain explorer.
+From a user / operator’s perspective, Fast Stake is instant, so either the user gets the token in the wallet or it would revert
 
 #### How do we track the request status for Slow Stake? <need to udpate>
 
-#### Slashing:
+For SlowStake:
 
-In the event of a slashing event, the `OraclePool`[contracts/utils/OraclePool.sol] contract would be paused until the rate gets back to its previous value.
+- If the L1 -> L2 transfer is via native bridges: since the native bridges don't necessarily provide a message ID, it's not possible to completely track those. You can still track the L2 -> L1 leg of the journey. Typically we've seen BASE and OP L1 -> L2 bridges finish in roughly 3 mins and ARB bridge seems to be taking ~ 8-9 mins.
+- If the L1 -> L2 transfer is via CCIP, then its still possible to track the status based on the original message ID since the L1 -> L2 CCIP message is called within the receiver logic of the L2 -> L1 message
 
-If pausing should be enforced, one can use the `setPriceOracle` function in the `OraclePool` contract to set the price oracle to `0x00` (which would effectively pause the contract). This can be done by the operator in the event of a slashing event.
+#### For Fast Stake, what do we pass to minAmountOut when calling this from the front end?
+
+This is the minimum amount of the LST (wstETH) that you want from the oracle pool for the amount of ETH. This could be done as a dex where you input a « slippage » and that’s it, but if you want to be more precise, it could be set to amountIn _ (1e18 - oraclePoolFee) / oraclePrice and adding a slight wiggle room of 1 rebalance (in case the oracle gets updated in between, so something like `amountIn _ (1e18 - oraclePoolFee) / (oraclePrice \* (1e18 + 318e16 / 365) / 1e18)` (assuming a 3.18% APR))
 
 #### If the front-end needs to know if fast stake is not possible, is there a way they could monitor it?
 
-Yes, they can query the `OraclePool`’s balance to check this.
+Yes, they can query the OraclePool’s balance to check this.
 
-#### Can I, as a protocol operator change the trigger parameters of the automation upkeep?
+#### Important notes for front ends:
 
-Yes, this can be updated via the `setDelay` and `setAmounts` on the `SyncAutomation` contract.
+Use the proxy address for the custom sender contract (not implementation) to avoid errors during integration.
 
-#### As an operator do I need to set up automation jobs for fast staking?
-
-As an operator, there are two ways to batch transfer WETH from L2 to L1 : Automated and manual.
-
-##### Automated:
-
-We recommend setting up an automation upkeep using Chainlink Automation. Here are the steps:
-
-After the `SyncAutomation` contract has been deployed, register a custom upkeep using Chainlink Automation.
-
-The `SyncAutomation` contract should be used as the Target contract for the custom logic upkeep
-Fund the upkeep with LINK
-
-The values in your deployment parameters determine the initial values for the trigger conditions ; however this can be changed later
-
-The forwarder of the upkeep needs to be assigned a `SYNC_ROLE` in the `CustomSender` contract
-
-##### Manual:
-
-There is also an option to manually trigger a WETH transfer using the `sync()` function in the `CustomSender` contract, as long as the sender has the `SYNC_ROLE` in the `CustomSender` contract.
-
-#### My `fastStake` or `slowStake` reverts with an unknown error, what should I do?
-
-Make sure to use the proxy address for the custom sender contract and not its implementation address.
-
-If you are using the proxy address and the transaction still reverts, please check the error message and the error code. If the error message is not clear, please open an issue on the repository with the error and the transaction hash.
+If the OraclePool reverts with an `OraclePoolInvalidPrice` error code, then the system should be paused for that protocol. This is to catch the condition of when the exchange rate reported is less than the previously reported exchange rate., which could happen in the case of a slashing condition.
 
 ## Usage
 
