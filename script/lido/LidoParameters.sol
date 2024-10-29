@@ -13,8 +13,8 @@ contract LidoParameters {
     address internal constant ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE = 0x9de443AdC5A411E83F1878Ef24C3F52C61571e72;
     address internal constant ETHEREUM_OWNER = address(0); // If left as address(0), the owner will be the deployer
     /* Origin to Destination Fee Parameters */
-    uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 20e18; // Max fee used by the automation contract when calling sync
-    bool internal constant ETHEREUM_DESTINATION_PAY_IN_LINK = true; // Whether the automation contract should pay the fee in LINK or ETH
+    uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 0.1e18; // Max fee used by the automation contract when calling sync
+    bool internal constant ETHEREUM_DESTINATION_PAY_IN_LINK = false; // Whether the automation contract should pay the fee in LINK or ETH
     uint32 internal constant ETHEREUM_DESTINATION_GAS_LIMIT = 400_000; // Gas limit used by the automation contract when calling sync
     /* Deployment */
     address internal constant ETHEREUM_RECEIVER_PROXY = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
@@ -41,9 +41,9 @@ contract LidoParameters {
     uint32 internal constant ARBITRUM_ORIGIN_MAX_GAS = 100_000; // The maximum amount of gas used to cover the L2 execution cost
     uint64 internal constant ARBITRUM_ORIGIN_GAS_PRICE_BID = 0.05e9; // The gas price bid for the L2 execution cost
     /* Sync Automation Parameters */
-    uint128 internal constant ARBITRUM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
-    uint128 internal constant ARBITRUM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
-    uint48 internal constant ARBITRUM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    uint128 internal constant ARBITRUM_MIN_SYNC_AMOUNT = 5e18; // The minimum amount of ETH required to start the sync process by the automation contract
+    uint128 internal constant ARBITRUM_MAX_SYNC_AMOUNT = 100e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint48 internal constant ARBITRUM_MIN_SYNC_DELAY = 12 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
     /* Deployment */
     address internal constant ARBITRUM_SENDER_PROXY = 0x72229141D4B016682d3618ECe47c046f30Da4AD1;
     address internal constant ARBITRUM_SENDER_PROXY_ADMIN = 0x5B42aEbFe95247f1d22e282831e2A513bF050217;
@@ -67,9 +67,9 @@ contract LidoParameters {
     /* Destination to Origin Fee Parameters */
     uint32 internal constant OPTIMISM_ORIGIN_L2_GAS = 100_000; // The amount of gas used to cover the L2 execution cost
     /* Sync Automation Parameters */
-    uint128 internal constant OPTIMISM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
-    uint128 internal constant OPTIMISM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
-    uint48 internal constant OPTIMISM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    uint128 internal constant OPTIMISM_MIN_SYNC_AMOUNT = 5e18; // The minimum amount of ETH required to start the sync process by the automation contract
+    uint128 internal constant OPTIMISM_MAX_SYNC_AMOUNT = 100e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint48 internal constant OPTIMISM_MIN_SYNC_DELAY = 12 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
     /* Deployment */
     address internal constant OPTIMISM_SENDER_PROXY = 0x328de900860816d29D1367F6903a24D8ed40C997;
     address internal constant OPTIMISM_SENDER_PROXY_ADMIN = 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192;
@@ -93,9 +93,9 @@ contract LidoParameters {
     /* Destination to Origin Fee Parameters */
     uint32 internal constant BASE_ORIGIN_L2_GAS = 100_000; // The amount of gas used to cover the L2 execution cost
     /* Sync Automation Parameters */
-    uint128 internal constant BASE_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
-    uint128 internal constant BASE_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
-    uint48 internal constant BASE_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    uint128 internal constant BASE_MIN_SYNC_AMOUNT = 5e18; // The minimum amount of ETH required to start the sync process by the automation contract
+    uint128 internal constant BASE_MAX_SYNC_AMOUNT = 100e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint48 internal constant BASE_MIN_SYNC_DELAY = 12 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
     /* Deployment */
     address internal constant BASE_SENDER_PROXY = 0x328de900860816d29D1367F6903a24D8ed40C997;
     address internal constant BASE_SENDER_PROXY_ADMIN = 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192;
