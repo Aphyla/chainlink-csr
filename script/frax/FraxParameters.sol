@@ -13,9 +13,15 @@ contract FraxParameters {
     address internal constant ETHEREUM_TO_OPTIMISM_FRAX_FERRY = 0x04ba20D2Cc47C63bce1166C2864F0241e4D0a0CC;
     address internal constant ETHEREUM_OWNER = address(0); // If left as address(0), the owner will be the deployer
     /* Origin to Destination Fee Parameters */
-    uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 1e18; // Max fee used by the automation contract when calling sync
-    bool internal constant ETHEREUM_DESTINATION_PAY_IN_LINK = true; // Whether the automation contract should pay the fee in LINK or ETH
-    uint32 internal constant ETHEREUM_DESTINATION_GAS_LIMIT = 1_000_000; // Gas limit used by the automation contract when calling sync
+    uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 0.1e18; // Max fee used by the automation contract when calling sync
+    bool internal constant ETHEREUM_DESTINATION_PAY_IN_LINK = false; // Whether the automation contract should pay the fee in LINK or ETH
+    uint32 internal constant ETHEREUM_DESTINATION_GAS_LIMIT = 300_000; // Gas limit used by the automation contract when calling sync
+    /* Deployment */
+    address internal constant ETHEREUM_RECEIVER_PROXY = 0x7ff9aEba5749f9f336A7B100E5bFb13704D339Ab;
+    address internal constant ETHEREUM_RECEIVER_PROXY_ADMIN = 0xeDfA64765272cB76F4fc2d14a3A201635F87E16D;
+    address internal constant ETHEREUM_RECEIVER_IMPLEMENTATION = 0xB0D662C567ac064E1Bc34603aD63fFCE3CFf2998;
+    address internal constant ETHEREUM_ARBITRUM_ADAPTER = 0x6f11a62e0A478b515aa5B428678920D0aeB14CB9;
+    address internal constant ETHEREUM_OPTIMISM_ADAPTER = 0x7c5e25AB3A05167481dD1EB6e04285d6188aeB37;
 
     uint64 internal constant ARBITRUM_FORK_BLOCK = 240011124;
     uint64 internal constant ARBITRUM_CCIP_CHAIN_SELECTOR = 4949039107694359620;
@@ -31,8 +37,15 @@ contract FraxParameters {
     uint96 internal constant ARBITRUM_ORACLE_POOL_FEE = 0.01e18; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
     /* Sync Automation Parameters */
     uint128 internal constant ARBITRUM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
-    uint128 internal constant ARBITRUM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint128 internal constant ARBITRUM_MAX_SYNC_AMOUNT = 100e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
     uint48 internal constant ARBITRUM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    /* Deployment */
+    address internal constant ARBITRUM_SENDER_PROXY = 0x7c5e25AB3A05167481dD1EB6e04285d6188aeB37;
+    address internal constant ARBITRUM_SENDER_PROXY_ADMIN = 0x0a3Ae8476B7D3905FCFAd6Ef19f47E0b4B50cb82;
+    address internal constant ARBITRUM_SENDER_IMPLEMENTATION = 0x6f11a62e0A478b515aa5B428678920D0aeB14CB9;
+    address internal constant ARBITRUM_PRICE_ORACLE = 0xB0D662C567ac064E1Bc34603aD63fFCE3CFf2998;
+    address internal constant ARBITRUM_ORACLE_POOL = 0x7ff9aEba5749f9f336A7B100E5bFb13704D339Ab;
+    address internal constant ARBITRUM_SYNC_AUTOMATION = 0x797B7fF9eA559c7B21194492c040F3b7082FB6f5;
 
     uint64 internal constant OPTIMISM_FORK_BLOCK = 123671836;
     uint64 internal constant OPTIMISM_CCIP_CHAIN_SELECTOR = 3734403246176062136;
@@ -48,6 +61,13 @@ contract FraxParameters {
     uint96 internal constant OPTIMISM_ORACLE_POOL_FEE = 0.01e18; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
     /* Sync Automation Parameters */
     uint128 internal constant OPTIMISM_MIN_SYNC_AMOUNT = 1e18; // The minimum amount of ETH required to start the sync process by the automation contract
-    uint128 internal constant OPTIMISM_MAX_SYNC_AMOUNT = 1_000e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint128 internal constant OPTIMISM_MAX_SYNC_AMOUNT = 100e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
     uint48 internal constant OPTIMISM_MIN_SYNC_DELAY = 4 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    /* Deployment */
+    address internal constant OPTIMISM_SENDER_PROXY = 0x7c5e25AB3A05167481dD1EB6e04285d6188aeB37;
+    address internal constant OPTIMISM_SENDER_PROXY_ADMIN = 0x0a3Ae8476B7D3905FCFAd6Ef19f47E0b4B50cb82;
+    address internal constant OPTIMISM_SENDER_IMPLEMENTATION = 0x6f11a62e0A478b515aa5B428678920D0aeB14CB9;
+    address internal constant OPTIMISM_PRICE_ORACLE = 0xB0D662C567ac064E1Bc34603aD63fFCE3CFf2998;
+    address internal constant OPTIMISM_ORACLE_POOL = 0x7ff9aEba5749f9f336A7B100E5bFb13704D339Ab;
+    address internal constant OPTIMISM_SYNC_AUTOMATION = 0x797B7fF9eA559c7B21194492c040F3b7082FB6f5;
 }
