@@ -45,7 +45,7 @@ contract EigenpieDeployScript is ScriptHelper, EigenpieParameters {
     }
 
     function run() public returns (L1Contracts memory l1Contracts, L2Contracts[] memory l2Contracts) {
-        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        uint256 deployerPrivateKey = vm.envUint("EIGENPIE_DEPLOYER_PRIVATE_KEY");
         deployer = vm.addr(deployerPrivateKey);
 
         l1Contracts.chainName = "Ethereum";
