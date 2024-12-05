@@ -45,7 +45,7 @@ contract ArbitrumLegacyAdapterL1toL2 is BridgeAdapter {
      *
      * - The fee amount must be equal to the expected fee amount (maxSubmissionCost + gasPriceBid * maxGas).
      */
-    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override {
+    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override returns (address, uint256) {
         (uint256 feeAmount, bool payInLink, uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid) =
             FeeCodec.decodeArbitrumL1toL2(feeData);
 
@@ -58,5 +58,7 @@ contract ArbitrumLegacyAdapterL1toL2 is BridgeAdapter {
         );
 
         emit ArbitrumL1toL2MessageSent(abi.decode(messageId, (bytes32)));
+
+        return (address(0), 0);
     }
 }

@@ -20,6 +20,11 @@ contract MockCCIPRouter {
         _nativeFee = nativeFee;
     }
 
+    function setFee(uint256 linkFee, uint256 nativeFee) public {
+        _linkFee = linkFee;
+        _nativeFee = nativeFee;
+    }
+
     function getFee(uint64, Client.EVM2AnyMessage calldata message) public view returns (uint256) {
         return message.feeToken == address(0) ? _nativeFee : _linkFee;
     }

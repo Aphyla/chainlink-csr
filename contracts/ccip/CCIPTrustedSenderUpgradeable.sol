@@ -100,10 +100,11 @@ abstract contract CCIPTrustedSenderUpgradeable is CCIPSenderUpgradeable, ICCIPTr
         uint256 maxFee,
         uint256 gasLimit,
         bytes memory data
-    ) internal virtual returns (bytes32) {
+    ) internal virtual returns (bytes32 messageId) {
         bytes memory receiver = getReceiver(destChainSelector);
         if (receiver.length == 0) revert CCIPTrustedSenderUnsupportedChain(destChainSelector);
 
-        return _ccipSendTo(destChainSelector, msg.sender, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
+        (messageId,) =
+            _ccipSendTo(destChainSelector, msg.sender, receiver, tokenAmounts, payInLink, maxFee, gasLimit, data);
     }
 }

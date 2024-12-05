@@ -45,7 +45,11 @@ contract OptimismLegacyAdapterL1toL2 is BridgeAdapter {
      *
      * - The fee amount must be equal to the expected fee amount (always 0).
      */
-    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData) internal override {
+    function _sendToken(uint64, address to, uint256 amount, bytes calldata feeData)
+        internal
+        override
+        returns (address, uint256)
+    {
         (uint256 feeAmount, bool payInLink, uint32 l2Gas) = FeeCodec.decodeOptimismL1toL2(feeData);
 
         if (payInLink) revert OptimismLegacyAdapterL1toL2InvalidFeeToken();
@@ -56,5 +60,7 @@ contract OptimismLegacyAdapterL1toL2 is BridgeAdapter {
         IOptimismL1ERC20TokenBridge(L1_ERC20_BRIDGE).depositERC20To(L1_TOKEN, L2_TOKEN, to, amount, l2Gas, new bytes(0));
 
         emit OptimismL1toL2MessageSent();
+
+        return (address(0), 0);
     }
 }

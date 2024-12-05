@@ -7,8 +7,10 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "../mocks/MockERC20.sol";
 import "../mocks/MockWNative.sol";
+import "../mocks/MockCCIPRouter.sol";
 
 import "../../contracts/receivers/CustomReceiver.sol";
+import "../../contracts/adapters/CCIPAdapter.sol";
 import "../../contracts/ccip/CCIPBaseUpgradeable.sol";
 import "../../contracts/interfaces/ICCIPDefensiveReceiverUpgradeable.sol";
 
@@ -17,17 +19,20 @@ contract CustomReceiverTest is Test {
     MockVault vault;
     MockERC20 link;
     MockWNative wnative;
-    MockAdapter adapter;
+    MockCCIPRouter ccipRouter;
+    CCIPAdapter adapter;
 
-    address ccipRouter = makeAddr("CCIP Router");
     address l2Sender = makeAddr("L2 Sender");
 
+    receive() external payable {}
+
     function setUp() public {
-        adapter = new MockAdapter();
         link = new MockERC20("Link", "LINK", 18);
         wnative = new MockWNative();
         vault = new MockVault(address(wnative));
+        ccipRouter = new MockCCIPRouter(address(link), 1, 2);
         receiver = new MockReceiver(address(vault), address(wnative), address(ccipRouter), address(this));
+        adapter = new CCIPAdapter(address(vault), address(ccipRouter), address(link), address(receiver));
 
         vault.depositNative{value: 1e18}(address(1));
 
@@ -103,17 +108,23 @@ contract CustomReceiverTest is Test {
         bytes memory sender,
         uint256 amountIn,
         uint128 feeDtoO,
-        bool payInLinkDtoO
+        bool payInLinkDtoO,
+        uint128 excess
     ) public {
         vm.assume(sender.length > 0);
 
-        amountIn = bound(amountIn, 0, 100e18);
+        amountIn = bound(amountIn, 1e4, 100e18); // Prevents rounding errors leading to zero amount and errors
         feeDtoO = uint128(bound(feeDtoO, 0, 1e18));
+        excess = uint128(bound(excess, 0, 1e17));
+
+        ccipRouter.setFee(payInLinkDtoO ? feeDtoO : 0, payInLinkDtoO ? 0 : feeDtoO);
 
         receiver.setAdapter(sourceChainSelector, address(adapter));
         receiver.setSender(sourceChainSelector, sender);
 
         Client.EVMTokenAmount[] memory tokenAmounts;
+
+        feeDtoO += excess;
 
         if (!payInLinkDtoO || feeDtoO == 0) {
             tokenAmounts = new Client.EVMTokenAmount[](1);
@@ -137,34 +148,45 @@ contract CustomReceiverTest is Test {
             messageId: messageId,
             sourceChainSelector: sourceChainSelector,
             sender: sender,
-            data: FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO, payInLinkDtoO)),
+            data: FeeCodec.encodePackedDataMemory(l2Sender, amountIn, FeeCodec.encodeCCIP(feeDtoO, payInLinkDtoO, 100_000)),
             destTokenAmounts: tokenAmounts
         });
 
         uint256 shares = vault.previewDeposit(amountIn);
 
-        vm.prank(ccipRouter);
+        Client.EVMTokenAmount[] memory tokenAmountsOut = new Client.EVMTokenAmount[](1);
+        tokenAmountsOut[0] = Client.EVMTokenAmount({token: address(vault), amount: shares});
+
+        Client.EVM2AnyMessage memory messageOut = Client.EVM2AnyMessage({
+            receiver: abi.encode(l2Sender),
+            data: new bytes(0),
+            tokenAmounts: tokenAmountsOut,
+            feeToken: payInLinkDtoO ? address(link) : address(0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 100_000}))
+        });
+
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(receiver.getFailedMessageHash(messageId), 0, "test_Fuzz_CCIPReceive::1");
         assertEq(wnative.balanceOf(address(receiver)), 0, "test_Fuzz_CCIPReceive::2");
         assertEq(wnative.balanceOf(address(vault)), 2e18 + amountIn, "test_Fuzz_CCIPReceive::3");
-        assertEq(vault.balanceOf(address(receiver)), shares, "test_Fuzz_CCIPReceive::4");
+        assertEq(vault.balanceOf(address(ccipRouter)), shares, "test_Fuzz_CCIPReceive::4");
 
-        MockBridge bridge = MockBridge(adapter.BRIDGE());
+        assertEq(ccipRouter.data(), abi.encode(sourceChainSelector, messageOut), "test_Fuzz_CCIPReceive::5");
+        assertEq(ccipRouter.value(), payInLinkDtoO ? 0 : feeDtoO - excess, "test_Fuzz_CCIPReceive::6");
 
-        assertEq(
-            bridge.data(),
-            abi.encodeWithSelector(
-                IBridgeAdapter.sendToken.selector,
-                sourceChainSelector,
-                l2Sender,
-                shares,
-                abi.encodePacked(feeDtoO, payInLinkDtoO)
-            ),
-            "test_Fuzz_CCIPReceive::5"
-        );
-        assertEq(bridge.value(), payInLinkDtoO ? 0 : feeDtoO, "test_Fuzz_CCIPReceive::6");
+        assertEq(receiver.getExcess(address(0)), payInLinkDtoO ? 0 : excess, "test_Fuzz_CCIPReceive::7");
+        assertEq(receiver.getExcess(address(link)), payInLinkDtoO ? excess : 0, "test_Fuzz_CCIPReceive::8");
+
+        uint256 balance = address(this).balance;
+
+        receiver.claimExcess(payInLinkDtoO ? address(link) : address(0));
+
+        assertEq(receiver.getExcess(address(0)), 0, "test_Fuzz_CCIPReceive::9");
+        assertEq(receiver.getExcess(address(link)), 0, "test_Fuzz_CCIPReceive::10");
+        assertEq(address(this).balance, balance + (payInLinkDtoO ? 0 : excess), "test_Fuzz_CCIPReceive::11");
+        assertEq(link.balanceOf(address(this)), payInLinkDtoO ? excess : 0, "test_Fuzz_CCIPReceive::12");
     }
 
     function test_Fuzz_Revert_CCIPReceive(
@@ -193,7 +215,7 @@ contract CustomReceiverTest is Test {
         vm.expectRevert(ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverOnlyCCIPRouter.selector);
         receiver.ccipReceive(message);
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         vm.expectRevert(
             abi.encodeWithSelector(
                 ICCIPDefensiveReceiverUpgradeable.CCIPDefensiveReceiverUnsupportedChain.selector, sourceChainSelector
@@ -205,7 +227,7 @@ contract CustomReceiverTest is Test {
 
         message.destTokenAmounts = new Client.EVMTokenAmount[](0);
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -217,7 +239,7 @@ contract CustomReceiverTest is Test {
 
         message.destTokenAmounts = new Client.EVMTokenAmount[](3);
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -230,7 +252,7 @@ contract CustomReceiverTest is Test {
         message.destTokenAmounts = tokenAmounts;
         message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn + 1, abi.encodePacked(feeDtoO, false));
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -246,7 +268,7 @@ contract CustomReceiverTest is Test {
 
         message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO + 1, false));
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -267,7 +289,7 @@ contract CustomReceiverTest is Test {
         message.destTokenAmounts = tokenAmounts;
         message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn + 1, abi.encodePacked(feeDtoO, true));
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -281,7 +303,7 @@ contract CustomReceiverTest is Test {
 
         message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO + 1, true));
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -295,7 +317,7 @@ contract CustomReceiverTest is Test {
 
         message.data = FeeCodec.encodePackedDataMemory(l2Sender, amountIn, abi.encodePacked(feeDtoO, false));
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -312,7 +334,7 @@ contract CustomReceiverTest is Test {
         wnative.deposit{value: amountIn + feeDtoO}();
         wnative.transfer(address(receiver), amountIn + feeDtoO);
 
-        vm.prank(ccipRouter);
+        vm.prank(address(ccipRouter));
         receiver.ccipReceive(message);
 
         assertEq(
@@ -331,22 +353,6 @@ contract MockBridge {
     function sendToken(uint64, address, uint256, bytes memory) public payable {
         data = msg.data;
         value = msg.value;
-    }
-
-    // Force foundry to ignore this contract from coverage
-    function test() public pure {}
-}
-
-contract MockAdapter {
-    address public immutable BRIDGE;
-
-    constructor() {
-        BRIDGE = address(new MockBridge());
-    }
-
-    fallback() external {
-        (bool s,) = BRIDGE.call{value: address(this).balance}(msg.data);
-        require(s);
     }
 
     // Force foundry to ignore this contract from coverage

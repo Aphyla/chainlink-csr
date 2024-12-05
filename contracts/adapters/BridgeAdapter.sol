@@ -43,8 +43,9 @@ abstract contract BridgeAdapter is IBridgeAdapter {
         external
         override
         onlyDelegatedByDelegator
+        returns (address feeToken, uint256 excessAmount)
     {
-        _sendToken(destChainSelector, recipient, amount, feeData);
+        return _sendToken(destChainSelector, recipient, amount, feeData);
     }
 
     /**
@@ -52,5 +53,6 @@ abstract contract BridgeAdapter is IBridgeAdapter {
      */
     function _sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes calldata feeData)
         internal
-        virtual;
+        virtual
+        returns (address feeToken, uint256 excessAmount);
 }
