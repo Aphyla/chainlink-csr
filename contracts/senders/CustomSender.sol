@@ -150,7 +150,7 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
      * Emits a {FastStake} event.
      */
     function fastStake(address token, uint256 amount, uint256 minAmountOut)
-        external
+        public
         payable
         virtual
         returns (uint256 amountOut)
