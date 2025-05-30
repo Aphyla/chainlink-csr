@@ -22,7 +22,7 @@ contract fork_LidoUpgradeL2ToCustomSenderReferralScriptTest is Test, LidoParamet
 
         {
             vm.selectFork(script.arbitrumForkId());
-            assertEq(l2Contracts[0].chainName, "test_Deploy::1");
+            assertEq(l2Contracts[0].chainName, "Arbitrum", "test_Deploy::1");
 
             vm.deal(alice, 1e18);
 
@@ -35,7 +35,7 @@ contract fork_LidoUpgradeL2ToCustomSenderReferralScriptTest is Test, LidoParamet
 
         {
             vm.selectFork(script.optimismForkId());
-            assertEq(l2Contracts[1].chainName, "test_Deploy::3");
+            assertEq(l2Contracts[1].chainName, "Optimism", "test_Deploy::3");
 
             vm.deal(alice, 1e18);
 
@@ -48,7 +48,7 @@ contract fork_LidoUpgradeL2ToCustomSenderReferralScriptTest is Test, LidoParamet
 
         {
             vm.selectFork(script.baseForkId());
-            assertEq(l2Contracts[2].chainName, "test_Deploy::5");
+            assertEq(l2Contracts[2].chainName, "Base", "test_Deploy::5");
 
             vm.deal(alice, 1e18);
 

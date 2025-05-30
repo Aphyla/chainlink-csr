@@ -439,11 +439,13 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
 
             require(optAdapter.L1_ERC20_BRIDGE() == ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE, "_verifyDeployments::18");
             require(
-                optAdapter.L1_TOKEN() == IOptimismL1ERC20TokenBridge(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE).l1Token(),
+                optAdapter.L1_TOKEN()
+                    == IOptimismL1ERC20TokenBridge(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE).L1_TOKEN_NON_REBASABLE(),
                 "_verifyDeployments::19"
             );
             require(
-                optAdapter.L2_TOKEN() == IOptimismL1ERC20TokenBridge(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE).l2Token(),
+                optAdapter.L2_TOKEN()
+                    == IOptimismL1ERC20TokenBridge(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE).L2_TOKEN_NON_REBASABLE(),
                 "_verifyDeployments::20"
             );
             require(optAdapter.DELEGATOR() == l1Contracts.receiver.proxy, "_verifyDeployments::21");

@@ -49,6 +49,12 @@ contract CCIPSenderUpgradeableTest is Test {
     ) public {
         vm.assume(receiver.length > 0);
 
+        if (tokenAmounts.length > 16) {
+            assembly {
+                mstore(tokenAmounts, 16) // Limit the number of token amounts to 16
+            }
+        }
+
         uint256 fee;
         if (payInLink) {
             fee = LINK_FEE;
@@ -70,7 +76,9 @@ contract CCIPSenderUpgradeableTest is Test {
 
             vm.etch(address(token), tokenCode);
 
-            amount = bound(amount, 1, type(uint256).max - _sent[token] - tokenAmounts.length);
+            unchecked {
+                amount = bound(amount, 1, type(uint256).max - _sent[token] + i + 1 - tokenAmounts.length);
+            }
 
             tokenAmounts[i] = Client.EVMTokenAmount({token: token, amount: amount});
             _sent[token] += amount;

@@ -12,6 +12,14 @@ contract FeeCodecHelper {
         return FeeCodec.encodePackedData(recipient, amount, feeData);
     }
 
+    function encodePackedDataMemory(address recipient, uint256 amount, bytes memory feeData)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return FeeCodec.encodePackedDataMemory(recipient, amount, feeData);
+    }
+
     function decodePackedData(bytes calldata packedData)
         public
         pure
@@ -20,8 +28,20 @@ contract FeeCodecHelper {
         return FeeCodec.decodePackedData(packedData);
     }
 
+    function decodePackedDataMemory(bytes memory packedData)
+        public
+        pure
+        returns (address recipient, uint256 amount, bytes memory feeData)
+    {
+        return FeeCodec.decodePackedDataMemory(packedData);
+    }
+
     function decodeFee(bytes calldata feeData) public pure returns (uint128 feeAmount, bool payInLink) {
         return FeeCodec.decodeFee(feeData);
+    }
+
+    function decodeFeeMemory(bytes memory feeData) public pure returns (uint128 feeAmount, bool payInLink) {
+        return FeeCodec.decodeFeeMemory(feeData);
     }
 
     function encodeCCIP(uint128 maxFee, bool payInLink, uint32 gasLimit) public pure returns (bytes memory) {
@@ -34,6 +54,14 @@ contract FeeCodecHelper {
         returns (uint256 feeAmount, bool payInLink, uint32 gasLimit)
     {
         return FeeCodec.decodeCCIP(feeData);
+    }
+
+    function decodeCCIPMemory(bytes memory feeData)
+        public
+        pure
+        returns (uint256 feeAmount, bool payInLink, uint32 gasLimit)
+    {
+        return FeeCodec.decodeCCIPMemory(feeData);
     }
 
     function encodeArbitrumL1toL2(uint128 maxSubmissionCost, uint32 maxGas, uint64 gasPriceBid)
@@ -52,6 +80,14 @@ contract FeeCodecHelper {
         return FeeCodec.decodeArbitrumL1toL2(feeData);
     }
 
+    function decodeArbitrumL1toL2Memory(bytes memory feeData)
+        public
+        pure
+        returns (uint256 feeAmount, bool payInLink, uint256 maxSubmissionCost, uint256 maxGas, uint256 gasPriceBid)
+    {
+        return FeeCodec.decodeArbitrumL1toL2Memory(feeData);
+    }
+
     function encodeOptimismL1toL2(uint32 l2Gas) public pure returns (bytes memory) {
         return FeeCodec.encodeOptimismL1toL2(l2Gas);
     }
@@ -62,6 +98,14 @@ contract FeeCodecHelper {
         returns (uint256 feeAmount, bool payInLink, uint32 l2Gas)
     {
         return FeeCodec.decodeOptimismL1toL2(feeData);
+    }
+
+    function decodeOptimismL1toL2Memory(bytes memory feeData)
+        public
+        pure
+        returns (uint256 feeAmount, bool payInLink, uint32 l2Gas)
+    {
+        return FeeCodec.decodeOptimismL1toL2Memory(feeData);
     }
 
     function encodeBaseL1toL2(uint32 l2Gas) public pure returns (bytes memory) {
@@ -76,12 +120,28 @@ contract FeeCodecHelper {
         return FeeCodec.decodeBaseL1toL2(feeData);
     }
 
+    function decodeBaseL1toL2Memory(bytes memory feeData)
+        public
+        pure
+        returns (uint256 feeAmount, bool payInLink, uint32 l2Gas)
+    {
+        return FeeCodec.decodeBaseL1toL2Memory(feeData);
+    }
+
     function encodeFraxFerryL1toL2() public pure returns (bytes memory) {
         return FeeCodec.encodeFraxFerryL1toL2();
     }
 
     function decodeFraxFerryL1toL2(bytes calldata feeData) public pure returns (uint256 feeAmount, bool payInLink) {
         return FeeCodec.decodeFraxFerryL1toL2(feeData);
+    }
+
+    function decodeFraxFerryL1toL2Memory(bytes memory feeData)
+        public
+        pure
+        returns (uint256 feeAmount, bool payInLink)
+    {
+        return FeeCodec.decodeFraxFerryL1toL2Memory(feeData);
     }
 
     // Force foundry to ignore this contract from coverage

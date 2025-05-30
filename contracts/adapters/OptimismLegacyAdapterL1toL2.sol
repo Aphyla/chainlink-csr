@@ -34,8 +34,8 @@ contract OptimismLegacyAdapterL1toL2 is BridgeAdapter {
         if (l1ERC20Bridge == address(0)) revert OptimismLegacyAdapterL1toL2InvalidParameters();
 
         L1_ERC20_BRIDGE = l1ERC20Bridge;
-        L1_TOKEN = IOptimismL1ERC20TokenBridge(l1ERC20Bridge).l1Token();
-        L2_TOKEN = IOptimismL1ERC20TokenBridge(l1ERC20Bridge).l2Token();
+        L1_TOKEN = IOptimismL1ERC20TokenBridge(l1ERC20Bridge).L1_TOKEN_NON_REBASABLE();
+        L2_TOKEN = IOptimismL1ERC20TokenBridge(l1ERC20Bridge).L2_TOKEN_NON_REBASABLE();
     }
 
     /**
