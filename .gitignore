@@ -24,3 +24,8 @@ docs/
 
 # Node
 node_modules/
+
+# TypeScript build artifacts
+offchain/dist/
+offchain/src/generated/
+*.tsbuildinfo

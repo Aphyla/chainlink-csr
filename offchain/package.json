@@ -1,0 +1,44 @@
+{
+  "name": "@chainlink-csr/offchain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev": "tsx watch src/index.ts",
+    "example:lido:estimate": "tsx src/examples/lido/estimateExample.ts",
+    "example:lido:pool": "tsx src/examples/lido/poolBalanceExample.ts",
+    "example:lido:trading": "tsx src/examples/lido/tradingRateExample.ts",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:staged": "prettier --write --list-different",
+    "code:check": "yarn typecheck && yarn lint && yarn format:check",
+    "code:fix": "yarn format && yarn lint:fix",
+    "typecheck": "tsc --noEmit",
+    "typechain": "typechain --target ethers-v6 --out-dir src/generated/typechain '../abis/*.json'",
+    "clean": "rimraf dist src/generated"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "ethers": "^6.14.3"
+  },
+  "devDependencies": {
+    "@typechain/ethers-v6": "^0.5.1",
+    "@types/node": "^24.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.34.0",
+    "@typescript-eslint/parser": "^8.34.0",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.20.1",
+    "typechain": "^8.3.2",
+    "typescript": "^5.8.3"
+  }
+}
