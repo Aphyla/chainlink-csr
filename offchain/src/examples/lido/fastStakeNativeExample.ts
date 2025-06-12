@@ -27,7 +27,7 @@ async function runExample(): Promise<void> {
     console.log(`📱 Using wallet: ${wallet.address}`);
 
     // Transaction parameters
-    const amountIn = parseEther('0.01'); // Stake 0.01 ETH (small amount for testing)
+    const amountIn = parseEther('0.001'); // Stake 0.001 ETH (small amount for testing)
     const referralAddress = wallet.address; // Use own address as referral for simplicity
     const slippageTolerance = 0.02; // 2% slippage tolerance
 
@@ -130,7 +130,10 @@ async function runExample(): Promise<void> {
     console.log('');
   } catch (error) {
     console.error('❌ FastStake execution failed:');
-    console.error(`   ${error instanceof Error ? error.message : error}`);
+    console.error('');
+    console.error('🔍 Error Details:');
+    console.error(error);
+    console.error('');
     console.error(
       '💡 Check wallet balance, network connection, and pool liquidity before retrying.'
     );

@@ -27,7 +27,7 @@ async function runExample(): Promise<void> {
     console.log(`📱 Using wallet: ${wallet.address}`);
 
     // Transaction parameters
-    const amountIn = parseEther('0.01'); // Stake 0.01 WETH (small amount for testing)
+    const amountIn = parseEther('0.0001'); // Stake 0.0001 WETH (small amount for testing)
     const referralAddress = wallet.address; // Use own address as referral for simplicity
     const slippageTolerance = 0.02; // 2% slippage tolerance
     const autoApproveUnlimited = true; // Approve unlimited allowance for convenience
@@ -61,9 +61,14 @@ async function runExample(): Promise<void> {
     // Allowance Management (only for wrapped payments)
     if (result.allowance.checked) {
       console.log('🔐 Allowance Management:');
-      console.log(
-        `  Initial Allowance: ${formatEther(result.allowance.initialAllowance)} WETH`
-      );
+
+      if (result.allowance.initialAllowance === MaxUint256) {
+        console.log('  Initial Allowance: Unlimited (MaxUint256)');
+      } else {
+        console.log(
+          `  Initial Allowance: ${formatEther(result.allowance.initialAllowance)} WETH`
+        );
+      }
 
       if (result.allowance.approvalNeeded) {
         console.log('  ✅ Approval Required and Completed');
@@ -81,9 +86,14 @@ async function runExample(): Promise<void> {
         }
       } else {
         console.log('  ✅ Sufficient Allowance Already Existed');
-        console.log(
-          `  Current Allowance: ${formatEther(result.allowance.finalAllowance)} WETH`
-        );
+
+        if (result.allowance.finalAllowance === MaxUint256) {
+          console.log('  Current Allowance: Unlimited (MaxUint256)');
+        } else {
+          console.log(
+            `  Current Allowance: ${formatEther(result.allowance.finalAllowance)} WETH`
+          );
+        }
       }
       console.log('');
     }
@@ -169,7 +179,10 @@ async function runExample(): Promise<void> {
     console.log('');
   } catch (error) {
     console.error('❌ FastStake execution failed:');
-    console.error(`   ${error instanceof Error ? error.message : error}`);
+    console.error('');
+    console.error('🔍 Error Details:');
+    console.error(error);
+    console.error('');
     console.error(
       '💡 Check wallet balance, network connection, and pool liquidity before retrying.'
     );

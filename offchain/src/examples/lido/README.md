@@ -20,8 +20,8 @@ yarn example:lido:estimate      # Fast stake estimation
 yarn example:lido:pool          # Pool balance monitoring
 yarn example:lido:trading       # Trading rate analysis
 yarn example:lido:allowance     # TOKEN allowance checking
-yarn example:lido:stake-native  # Execute fastStake with native ETH
-yarn example:lido:stake-wrapped # Execute fastStake with WETH
+yarn example:lido:fast-stake-native  # Execute fastStake with native ETH
+yarn example:lido:fast-stake-wrapped # Execute fastStake with WETH
 ```
 
 ## Examples
@@ -147,19 +147,59 @@ Executes complete fastStakeReferral transactions using native ETH payment.
 
 ```
 🚀 FastStake with Native ETH on Base
-📱 Using wallet: 0x742ccbb...
-💰 Staking amount: 0.01 ETH
+Explorer: https://basescan.org
+
+📱 Using wallet: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+💰 Staking amount: 0.001 ETH
+👥 Referral: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+🛡️ Slippage tolerance: 2%
+
+🔄 Executing fastStakeReferral with native ETH...
+📊 Estimating transaction parameters...
+✅ Estimation complete. Expected: 0.00082973950196012 wstETH
+🛡️ Min amount out (2% slippage): 0.000813144711920917 wstETH
+🚀 Executing fastStakeReferral with native payment...
+⏳ Transaction submitted: 0x5bd4366f22e1b1b8439a1e1f1fe05ee349653e91d990e41d396da231e7d1ff77
+📊 Waiting for confirmation...
+✅ Transaction confirmed in block 31470372
+
 🎉 Transaction Successful!
+════════════════════════════════════════════════════════════════════════════════
 📊 Transaction Details:
-  TX Hash: 0x1234567...
-  Gas Used: 150,000
+  TX Hash: 0x5bd4366f22e1b1b8439a1e1f1fe05ee349653e91d990e41d396da231e7d1ff77
+  Block: 31470372
+  Gas Used: 146,808
+  Gas Price: 0.00476877 gwei
+  Gas Cost: 0.00000070009358616 ETH
+  Explorer: https://basescan.org/tx/0x5bd4366f22e1b1b8439a1e1f1fe05ee349653e91d990e41d396da231e7d1ff77
+
 💱 Staking Summary:
-  Input: 0.01 ETH (native)
-  Output: 0.008297 wstETH
+  Input: 0.001 ETH (native)
+  Output: 0.00082973950196012 wstETH
+  Effective Rate: 0.82973950196012 wstETH/ETH
+
+💸 Fee Breakdown:
+  Pool Fee: 0%
+  Fee Amount: 0.0 WETH
+  Transaction Fee: 0.00000070009358616 ETH
+
 👥 Referral Event:
-  User: 0x742ccbb...
-  Referral: 0x742ccbb...
-  Amount Out: 0.008297 wstETH
+  User: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+  Referral: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+  Amount Out: 0.00082973950196012 wstETH
+
+🎯 Estimation vs Reality:
+  Estimated: 0.00082973950196012 wstETH
+  Actual: 0.00082973950196012 wstETH
+  Difference: 0.0 wstETH
+  Relative Performance: 100.00%
+
+📋 Contract Details:
+  CustomSender: 0x328de900860816d29D1367F6903a24D8ed40C997
+  OraclePool: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  PriceOracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367
+  Input Token: WETH (0x4200000000000000000000000000000000000006)
+  Output Token: wstETH (0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452)
 ```
 
 ### 6. FastStake Execution - Wrapped Token (`fastStakeWrappedExample.ts`)
@@ -181,19 +221,67 @@ Executes complete fastStakeReferral transactions using WETH payment with allowan
 
 ```
 🚀 FastStake with Wrapped Native Token on Base
-📱 Using wallet: 0x742ccbb...
-💰 Staking amount: 0.01 WETH
-🔐 Allowance Management:
-  Initial Allowance: 0.0 WETH
-  ✅ Approval Required and Completed
-  Approval TX: 0xabcd123...
-  Final Allowance: Unlimited (MaxUint256)
+Explorer: https://basescan.org
+
+📱 Using wallet: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+💰 Staking amount: 0.0001 WETH
+👥 Referral: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+🛡️ Slippage tolerance: 2%
+🔓 Auto-approve unlimited: Yes
+
+🔄 Executing fastStakeReferral with WETH...
+📊 Estimating transaction parameters...
+✅ Estimation complete. Expected: 0.000082967511843517 wstETH
+🛡️ Min amount out (2% slippage): 0.000081308161606646 wstETH
+🔐 Checking TOKEN allowance for wrapped payment...
+✅ Sufficient allowance already exists
+🚀 Executing fastStakeReferral with wrapped payment...
+⏳ Transaction submitted: 0xc16e46b21e14ac346dfe567d97a9e57aa81f35afb55b51457b1a0365eaedaf5a
+📊 Waiting for confirmation...
+✅ Transaction confirmed in block 31472367
+
 🎉 Transaction Successful!
+════════════════════════════════════════════════════════════════════════════════
+🔐 Allowance Management:
+  Initial Allowance: Unlimited (MaxUint256)
+  ✅ Sufficient Allowance Already Existed
+  Current Allowance: Unlimited (MaxUint256)
+
 📊 Transaction Details:
-  TX Hash: 0x1234567...
+  TX Hash: 0xc16e46b21e14ac346dfe567d97a9e57aa81f35afb55b51457b1a0365eaedaf5a
+  Block: 31472367
+  Gas Used: 133,306
+  Gas Price: 0.002498081 gwei
+  Gas Cost: 0.000000333009185786 ETH
+  Explorer: https://basescan.org/tx/0xc16e46b21e14ac346dfe567d97a9e57aa81f35afb55b51457b1a0365eaedaf5a
+
 💱 Staking Summary:
-  Input: 0.01 WETH (wrapped)
-  Output: 0.008297 wstETH
+  Input: 0.0001 WETH (wrapped)
+  Output: 0.000082967511843517 wstETH
+  Effective Rate: 0.82967511843517 wstETH/WETH
+
+💸 Fee Breakdown:
+  Pool Fee: 0%
+  Fee Amount: 0.0 WETH
+  Transaction Fee: 0.000000333009185786 ETH
+
+👥 Referral Event:
+  User: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+  Referral: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+  Amount Out: 0.000082967511843517 wstETH
+
+🎯 Estimation vs Reality:
+  Estimated: 0.000082967511843517 wstETH
+  Actual: 0.000082967511843517 wstETH
+  Difference: 0.0 wstETH
+  Relative Performance: 100.00%
+
+📋 Contract Details:
+  CustomSender: 0x328de900860816d29D1367F6903a24D8ed40C997
+  OraclePool: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  PriceOracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367
+  Input Token: WETH (0x4200000000000000000000000000000000000006)
+  Output Token: wstETH (0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452)
 ```
 
 ## Configuration

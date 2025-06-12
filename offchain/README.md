@@ -41,8 +41,8 @@ Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base ne
    yarn example:lido:pool          # Check pool balances
    yarn example:lido:trading       # View current trading rates
    yarn example:lido:allowance     # Check TOKEN allowances
-   yarn example:lido:stake-native  # Execute with native ETH
-   yarn example:lido:stake-wrapped # Execute with WETH
+   yarn example:lido:fast-stake-native  # Execute with native ETH
+   yarn example:lido:fast-stake-wrapped # Execute with WETH
    ```
 
 ## Examples

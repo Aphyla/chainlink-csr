@@ -32,8 +32,8 @@ src/examples/
   yarn example:lido:pool          # Pool balance queries
   yarn example:lido:trading       # Trading rate analysis
   yarn example:lido:allowance     # TOKEN allowance checking
-  yarn example:lido:stake-native  # Execute with native ETH
-  yarn example:lido:stake-wrapped # Execute with WETH
+  yarn example:lido:fast-stake-native  # Execute with native ETH
+  yarn example:lido:fast-stake-wrapped # Execute with WETH
   ```
 
 ## Example Types
