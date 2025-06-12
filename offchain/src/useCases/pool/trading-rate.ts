@@ -1,14 +1,11 @@
 import { formatUnits } from 'ethers';
 import type { Address, SupportedChainId } from '@/types';
 import { setupLiquidStakingContracts } from '@/core/contracts/setup';
-import {
-  fetchOracleData,
-  calculateEffectivePrice,
-  formatFeePercentage,
-} from '@/core/oracle/pricing';
+import { fetchOracleData, formatFeePercentage } from '@/core/oracle/pricing';
 import { fetchTokensMetadata } from '@/core/tokens/metadata';
 import type { TokenInfo } from '@/core/tokens/interfaces';
 import type { ProtocolConfig } from '@/core/protocols/interfaces';
+import { estimateFastStake } from '@/useCases/fastStake/estimate';
 
 /**
  * Parameters accepted by {@link getTradingRate}.
@@ -24,7 +21,7 @@ export interface TradingRateParams {
  * Oracle pricing information.
  */
 export interface OraclePricing {
-  /** Current oracle price (TOKEN_OUT per TOKEN_IN, scaled by 1e18) */
+  /** Current oracle price (TOKEN_IN per TOKEN_OUT, scaled by 1e18) */
   readonly price: bigint;
   /** Formatted oracle price */
   readonly formattedPrice: string;
@@ -52,9 +49,9 @@ export interface FeeInfo {
  * Effective exchange rate after fees.
  */
 export interface EffectiveRate {
-  /** Raw exchange rate (before fees) */
+  /** Oracle rate showing cost (1 TOKEN_OUT = X TOKEN_IN) */
   readonly oracleRate: string;
-  /** Effective rate after fees */
+  /** Effective rate showing what you receive (1 TOKEN_IN = X TOKEN_OUT) */
   readonly effectiveRate: string;
   /** Rate description */
   readonly description: string;
@@ -90,10 +87,10 @@ export interface TradingRateResult {
  * This function retrieves:
  * - Oracle price (current market rate)
  * - Pool fees
- * - Effective exchange rate users would receive
+ * - Effective exchange rate users would receive (calculated using actual transaction math)
  *
- * Use this to show users the actual rate they'll get for fast staking,
- * not just the pool composition ratios.
+ * Uses estimateFastStake with 1 TOKEN_IN to ensure rate calculation matches
+ * actual transaction behavior exactly.
  */
 export async function getTradingRate(
   params: TradingRateParams
@@ -114,15 +111,22 @@ export async function getTradingRate(
   // Safe destructuring - we know there are exactly 2 tokens
   const [tokenInInfo, tokenOutInfo] = tokensMetadata as [TokenInfo, TokenInfo];
 
-  // 3. Calculate rates using core utilities
+  // 3. Calculate ACTUAL effective rate using real transaction math
+  const oneTokenIn = 10n ** 18n; // 1 TOKEN_IN
+  const estimate = await estimateFastStake({
+    chainKey,
+    amountIn: oneTokenIn,
+    protocol,
+  });
+
+  // 4. Format rates using core utilities
   const oracleRateFormatted = formatUnits(
     oracleData.price,
     oracleData.decimals
   );
-  const effectivePrice = calculateEffectivePrice(oracleData.price, feeRate);
   const effectiveRateFormatted = formatUnits(
-    effectivePrice,
-    oracleData.decimals
+    estimate.amountOut, // This is the TRUE effective rate
+    tokenOutInfo.decimals
   );
   const feePercentage = formatFeePercentage(feeRate);
 
@@ -144,9 +148,9 @@ export async function getTradingRate(
       percentage: feePercentage,
     },
     rate: {
-      oracleRate: `1 ${tokenInInfo.symbol} = ${oracleRateFormatted} ${tokenOutInfo.symbol}`,
+      oracleRate: `1 ${tokenOutInfo.symbol} = ${oracleRateFormatted} ${tokenInInfo.symbol}`,
       effectiveRate: `1 ${tokenInInfo.symbol} = ${effectiveRateFormatted} ${tokenOutInfo.symbol}`,
-      description: `After ${feePercentage} fee`,
+      description: `After ${feePercentage} fee${estimate.pool.hasSufficientLiquidity ? '' : ' (⚠️ Low liquidity)'}`,
     },
   };
 }

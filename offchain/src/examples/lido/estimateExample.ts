@@ -82,7 +82,7 @@ async function runExample(): Promise<void> {
       // Pricing Information
       console.log(`📈 Pricing:`);
       console.log(
-        `  Oracle Price: ${formatEther(result.pricing.price)} (1e18 scale)`
+        `  Oracle Price: ${formatEther(result.pricing.price)} (${result.contracts.tokenIn.symbol} per ${result.contracts.tokenOut.symbol})`
       );
       console.log(`  Is Inverse: ${result.pricing.isInverse}`);
       console.log(`  Heartbeat: ${result.pricing.heartbeat} seconds`);
@@ -151,10 +151,13 @@ async function runExample(): Promise<void> {
   console.log(`   3. Liquidity Check: amountOut <= availableBalance`);
   console.log('');
   console.log(
-    `🔗 The oracle price represents the exchange rate from TOKEN_IN to TOKEN_OUT.`
+    `🔗 The oracle price represents the cost in TOKEN_IN to buy 1 TOKEN_OUT.`
   );
   console.log(
-    `   For Lido: WETH → wstETH conversion rate from Chainlink price feeds.`
+    `   For Lido: How much WETH it costs to buy 1 wstETH (currently ~1.205 WETH)`
+  );
+  console.log(
+    `   Therefore: 1 WETH buys 1/oraclePrice wstETH (currently ~0.829 wstETH)`
   );
 }
 

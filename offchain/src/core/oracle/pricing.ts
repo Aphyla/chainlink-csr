@@ -83,22 +83,6 @@ export function formatHeartbeat(seconds: bigint): string {
 }
 
 /**
- * Calculate effective price after applying fees.
- * Used for trading rate calculations.
- *
- * @param oraclePrice - Raw oracle price
- * @param feeRate - Fee rate (1e18 scale)
- * @returns Effective price after fees with same decimals as oracle
- */
-export function calculateEffectivePrice(
-  oraclePrice: bigint,
-  feeRate: bigint
-): bigint {
-  const feeAdjustment = 10n ** 18n - feeRate;
-  return (oraclePrice * feeAdjustment) / 10n ** 18n;
-}
-
-/**
  * Calculate fee percentage from fee rate.
  *
  * @param feeRate - Fee rate (1e18 scale)

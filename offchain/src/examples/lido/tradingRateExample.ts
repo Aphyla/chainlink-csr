@@ -45,7 +45,7 @@ async function runTradingRateExample(): Promise<void> {
       // Oracle information
       console.log(`🔮 Oracle Information:`);
       console.log(
-        `  Current Price: ${result.oracle.formattedPrice} ${result.tokenOut.symbol}/${result.tokenIn.symbol}`
+        `  Oracle Price: ${result.oracle.formattedPrice} (${result.tokenIn.symbol} per ${result.tokenOut.symbol})`
       );
       console.log(
         `  Heartbeat: ${result.oracle.heartbeat} seconds (${formatHeartbeat(result.oracle.heartbeat)})`
@@ -67,15 +67,16 @@ async function runTradingRateExample(): Promise<void> {
       console.log(`  Impact: ${result.rate.description}`);
       console.log('');
 
-      // Calculate example amounts (1 TOKEN_IN input)
+      // Calculate example amounts using CORRECT contract math
       const inputAmount = 1; // 1 TOKEN_IN
-      const oracleRateNum = Number(result.oracle.formattedPrice);
+      const oraclePrice = Number(result.oracle.formattedPrice);
       const feeRateNum = Number(result.fee.rate) / 1e18;
 
       // Fee is applied to TOKEN_IN (as per OraclePool.sol logic)
       const feeAmountInTokenIn = inputAmount * feeRateNum;
       const amountAfterFee = inputAmount - feeAmountInTokenIn;
-      const finalOutput = amountAfterFee * oracleRateNum;
+      // Contract formula: amountOut = amountAfterFee * 1e18 / price
+      const finalOutput = amountAfterFee / oraclePrice;
 
       console.log(`📖 Example (1 ${result.tokenIn.symbol}):`);
       console.log(
@@ -90,6 +91,14 @@ async function runTradingRateExample(): Promise<void> {
       console.log(
         `  Final output: ${finalOutput.toFixed(6)} ${result.tokenOut.symbol}`
       );
+      const effectiveRateValue = result.rate.effectiveRate
+        .split(' = ')[1]
+        ?.split(' ')[0];
+      if (effectiveRateValue) {
+        console.log(
+          `  ✅ Matches effective rate: ${Number(effectiveRateValue).toFixed(6)}`
+        );
+      }
     } catch (error) {
       console.error(`❌ Error querying ${chainKey}:`);
       console.error(`   ${error instanceof Error ? error.message : error}`);
