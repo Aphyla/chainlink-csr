@@ -5,6 +5,8 @@
  * providing type-safe access and clear documentation of required variables.
  */
 
+import 'dotenv/config';
+
 /**
  * Environment configuration interface defining all supported environment variables.
  */

@@ -19,6 +19,7 @@ Lido protocol allows users to stake ETH and receive wstETH (wrapped staked ETH) 
 yarn example:lido:estimate   # Fast stake estimation
 yarn example:lido:pool       # Pool balance monitoring
 yarn example:lido:trading    # Trading rate analysis
+yarn example:lido:allowance  # TOKEN allowance checking
 ```
 
 ## Examples
@@ -91,6 +92,41 @@ Oracle Rate: 1 WETH = 1.205197 wstETH
 Effective Rate: 1 WETH = 1.205197 wstETH (0% fee)
 ```
 
+### 4. TOKEN Allowance Checking (`allowanceExample.ts`)
+
+Checks TOKEN allowances for users across all supported networks.
+
+**What it does**:
+
+- Retrieves TOKEN address from CustomSender contracts
+- Checks user's current allowance to CustomSender
+- Shows user balance and allowance status
+- Provides actionable guidance for approvals
+
+**Use case**: Prepare for fastStakeReferral operations
+
+**Configuration**:
+
+- Set `PRIVATE_KEY` environment variable to use your wallet automatically
+- Or manually override `userAddress` in the code for testing with specific addresses
+
+**Sample output**:
+
+```
+📱 Using current signer address: 0x742CCbb...
+🔍 Checking Lido TOKEN Allowances for User: 0x742CCbb...
+🌐 Base (Chain ID: 8453)
+🪙 TOKEN Information:
+  Token: WETH (Wrapped Ether)
+  Address: 0x4200000000000000000000000000000000000006
+💰 User Balance: 2.5 WETH
+🔐 Allowance Status:
+  ❌ NO ALLOWANCE
+  User must approve WETH to use fastStakeReferral
+🎯 Required Actions:
+  📝 Approve WETH allowance to CustomSender
+```
+
 ## Configuration
 
 All examples use the Lido protocol configuration:
@@ -135,11 +171,13 @@ const result = await estimateFastStake({
 
 ## Integration Tips
 
-1. **Check liquidity first**: Use pool balance queries before large transactions
-2. **Monitor pool health**: High WETH ratios indicate pools need sync operations
-3. **Handle rate changes**: Oracle rates update daily and may fluctuate
-4. **Use Base for testing**: Generally has good liquidity and lower gas costs
-5. **Factor gas costs**: Consider L2 transaction costs in profitability calculations
+1. **Set up environment**: Create `.env` file with `PRIVATE_KEY=your_private_key_here` for automatic wallet usage
+2. **Check liquidity first**: Use pool balance queries before large transactions
+3. **Monitor pool health**: High WETH ratios indicate pools need sync operations
+4. **Handle rate changes**: Oracle rates update daily and may fluctuate
+5. **Use Base for testing**: Generally has good liquidity and lower gas costs
+6. **Factor gas costs**: Consider L2 transaction costs in profitability calculations
+7. **Allowance management**: Check TOKEN allowances before fastStakeReferral operations
 
 ## Common Issues
 

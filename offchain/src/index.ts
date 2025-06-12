@@ -2,6 +2,7 @@
 export { estimateFastStake } from '@/useCases/fastStake/estimate';
 export { getPoolBalances } from '@/useCases/pool/balance';
 export { getTradingRate } from '@/useCases/pool/trading-rate';
+export { checkTokenAllowance } from '@/useCases/allowance/check';
 
 // Core infrastructure
 export { setupLiquidStakingContracts } from '@/core/contracts/setup';
@@ -90,3 +91,8 @@ export type {
   FeeInfo,
   EffectiveRate,
 } from '@/useCases/pool/trading-rate';
+export type {
+  CheckTokenAllowanceParams,
+  CheckTokenAllowanceResult,
+  TokenAllowanceInfo,
+} from '@/useCases/allowance/check';

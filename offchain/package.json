@@ -12,6 +12,7 @@
     "example:lido:estimate": "tsx src/examples/lido/estimateExample.ts",
     "example:lido:pool": "tsx src/examples/lido/poolBalanceExample.ts",
     "example:lido:trading": "tsx src/examples/lido/tradingRateExample.ts",
+    "example:lido:allowance": "tsx src/examples/lido/allowanceExample.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write .",
