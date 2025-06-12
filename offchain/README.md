@@ -43,6 +43,7 @@ Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base ne
    yarn example:lido:allowance     # Check TOKEN allowances
    yarn example:lido:fast-stake-native  # Execute with native ETH
    yarn example:lido:fast-stake-wrapped # Execute with WETH
+   yarn example:lido:estimate-slowstake   # SlowStake fee estimation (multi-chain)
    ```
 
 ## Examples

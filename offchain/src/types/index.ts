@@ -7,6 +7,7 @@ export type Address = string;
  * Supported chain IDs for Lido CSR operations.
  */
 export type SupportedChainId =
+  | 'ETHEREUM_MAINNET'
   | 'OPTIMISM_MAINNET'
   | 'ARBITRUM_ONE'
   | 'BASE_MAINNET';

@@ -1,17 +1,13 @@
 import { ZeroAddress, parseUnits, formatUnits, MaxUint256 } from 'ethers';
 import type { Wallet, TransactionReceipt } from 'ethers';
 import type { Address, SupportedChainId } from '@/types';
+import type { PaymentMethod, SlippageTolerance } from '@/config';
+import { NUMBER_BLOCKS_TO_WAIT, DEFAULT_SLIPPAGE_TOLERANCE } from '@/config';
 import { setupLiquidStakingContracts } from '@/core/contracts/setup';
 import { checkTokenAllowance } from '@/useCases/allowance/check';
 import { estimateFastStake } from './estimate';
 import type { ProtocolConfig } from '@/core/protocols/interfaces';
 import { CustomSenderReferral__factory } from '@/generated/typechain';
-import { NUMBER_BLOCKS_TO_WAIT } from '@/config/transactions';
-
-/**
- * Payment method for fastStakeReferral operation.
- */
-export type PaymentMethod = 'native' | 'wrapped';
 
 /**
  * Parameters accepted by {@link executeFastStakeReferral}.
@@ -30,7 +26,7 @@ export interface ExecuteFastStakeReferralParams {
   /** Protocol configuration to use. */
   readonly protocol: ProtocolConfig;
   /** Optional slippage tolerance (default: 1% = 0.01). */
-  readonly slippageTolerance?: number;
+  readonly slippageTolerance?: SlippageTolerance;
   /** Whether to auto-approve unlimited allowance for wrapped tokens (default: false). */
   readonly autoApproveUnlimited?: boolean;
 }
@@ -131,7 +127,7 @@ export async function executeFastStakeReferral(
     paymentMethod,
     referralAddress,
     protocol,
-    slippageTolerance = 0.01, // 1% default slippage
+    slippageTolerance = DEFAULT_SLIPPAGE_TOLERANCE, // Use centralized default
     autoApproveUnlimited = false,
   } = params;
 

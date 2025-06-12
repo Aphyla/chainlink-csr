@@ -1,8 +1,37 @@
+/**
+ * Protocol Configuration for Chainlink CSR Framework.
+ *
+ * Consolidates protocol definitions, addresses, and related utilities
+ * to provide a single source of truth for all protocol configurations.
+ */
+
+import type { Address, SupportedChainId } from '@/types';
 import type {
   ProtocolConfig,
   ProtocolRegistry,
 } from '@/core/protocols/interfaces';
-import { LIDO_CUSTOM_SENDER } from './addresses';
+
+/**
+ * Protocol Addresses
+ */
+
+/**
+ * Lido Protocol CustomSender contract addresses per chain.
+ */
+export const LIDO_CUSTOM_SENDER: Record<SupportedChainId, Address> = {
+  // Ethereum mainnet (receiver, not sender)
+  ETHEREUM_MAINNET: '0x0000000000000000000000000000000000000000', // Placeholder - use actual receiver address
+  // Optimism mainnet
+  OPTIMISM_MAINNET: '0x328de900860816d29D1367F6903a24D8ed40C997',
+  // Arbitrum One
+  ARBITRUM_ONE: '0x72229141D4B016682d3618ECe47c046f30Da4AD1',
+  // Base mainnet
+  BASE_MAINNET: '0x328de900860816d29D1367F6903a24D8ed40C997',
+} as const;
+
+/**
+ * Protocol Configurations
+ */
 
 /**
  * Lido Protocol Configuration
@@ -19,7 +48,7 @@ export const LIDO_PROTOCOL: ProtocolConfig = {
  * Registry of all supported liquid staking protocols.
  *
  * To add a new protocol:
- * 1. Add protocol addresses to `addresses.ts`
+ * 1. Add protocol addresses above in this file
  * 2. Create protocol configuration following the `ProtocolConfig` interface
  * 3. Add it to this registry
  *
@@ -34,11 +63,11 @@ export const LIDO_PROTOCOL: ProtocolConfig = {
  */
 export const SUPPORTED_PROTOCOLS: ProtocolRegistry = {
   LIDO: LIDO_PROTOCOL,
-  // Future protocols will be added here:
-  // ROCKET_POOL: ROCKET_POOL_PROTOCOL,
-  // FRAX: FRAX_PROTOCOL,
-  // STAKEWISE: STAKEWISE_PROTOCOL,
 } as const;
+
+/**
+ * Protocol Utilities
+ */
 
 /**
  * Get protocol configuration by name.
@@ -69,4 +98,16 @@ export function isProtocolSupportedOnChain(
   chainKey: string
 ): boolean {
   return chainKey in protocol.customSenderAddresses;
+}
+
+/**
+ * Get protocol addresses for a specific protocol and chain.
+ * Provides type-safe access to protocol contract addresses.
+ */
+export function getProtocolAddress(
+  protocolName: string,
+  chainKey: SupportedChainId
+): Address | undefined {
+  const protocol = getProtocol(protocolName);
+  return protocol?.customSenderAddresses[chainKey];
 }

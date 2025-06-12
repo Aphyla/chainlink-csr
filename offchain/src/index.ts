@@ -43,8 +43,13 @@ export {
   ARBITRUM_ONE,
   BASE_MAINNET,
 } from '@/config/networks';
-export { LIDO_CUSTOM_SENDER } from '@/config/addresses';
-export { NUMBER_BLOCKS_TO_WAIT } from '@/config/transactions';
+export { isSlowStakeSupported } from '@/config/ccip';
+export { LIDO_CUSTOM_SENDER } from '@/config/protocols';
+export {
+  NUMBER_BLOCKS_TO_WAIT,
+  DEFAULT_SLIPPAGE_TOLERANCE,
+  TESTING_AMOUNTS,
+} from '@/config';
 
 // Types
 export type { Address, SupportedChainId, ChainConfig } from '@/types';
@@ -101,8 +106,14 @@ export type {
 export type {
   ExecuteFastStakeReferralParams,
   ExecuteFastStakeReferralResult,
-  PaymentMethod,
   AllowanceInfo,
   TransactionInfo,
   ReferralEventInfo,
 } from '@/useCases/fastStake/execute';
+
+// Centralized types
+export type {
+  PaymentMethod,
+  CCIPFeePaymentMethod,
+  SlippageTolerance,
+} from '@/config';

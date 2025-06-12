@@ -1,12 +1,14 @@
-import { parseEther, formatEther, formatUnits, MaxUint256 } from 'ethers';
+import { formatEther, formatUnits, MaxUint256 } from 'ethers';
 import {
   executeFastStakeReferral,
   LIDO_PROTOCOL,
   getNetworkConfig,
   createWallet,
   BASE_MAINNET,
+  TESTING_AMOUNTS,
 } from '@/index';
 import { pathToFileURL } from 'node:url';
+import type { SlippageTolerance } from '@/index';
 
 /**
  * Example: Execute fastStakeReferral with wrapped native token (WETH) payment.
@@ -27,9 +29,9 @@ async function runExample(): Promise<void> {
     console.log(`📱 Using wallet: ${wallet.address}`);
 
     // Transaction parameters
-    const amountIn = parseEther('0.0001'); // Stake 0.0001 WETH (small amount for testing)
+    const amountIn = TESTING_AMOUNTS.TINY; // Use centralized test amount (0.0001 WETH)
     const referralAddress = wallet.address; // Use own address as referral for simplicity
-    const slippageTolerance = 0.02; // 2% slippage tolerance
+    const slippageTolerance: SlippageTolerance = 0.02; // 2% slippage tolerance (from centralized type)
     const autoApproveUnlimited = true; // Approve unlimited allowance for convenience
 
     console.log(`💰 Staking amount: ${formatEther(amountIn)} WETH`);

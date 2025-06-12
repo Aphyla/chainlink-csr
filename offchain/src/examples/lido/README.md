@@ -17,6 +17,7 @@ Lido protocol allows users to stake ETH and receive wstETH (wrapped staked ETH) 
 
 ```bash
 yarn example:lido:estimate      # Fast stake estimation
+yarn example:lido:estimate-slowstake   # SlowStake fee estimation (multi-chain)
 yarn example:lido:pool          # Pool balance monitoring
 yarn example:lido:trading       # Trading rate analysis
 yarn example:lido:allowance     # TOKEN allowance checking

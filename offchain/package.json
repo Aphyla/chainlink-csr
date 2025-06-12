@@ -15,6 +15,7 @@
     "example:lido:allowance": "tsx src/examples/lido/allowanceExample.ts",
     "example:lido:fast-stake-native": "tsx src/examples/lido/fastStakeNativeExample.ts",
     "example:lido:fast-stake-wrapped": "tsx src/examples/lido/fastStakeWrappedExample.ts",
+    "example:lido:estimate-slowstake": "tsx src/examples/lido/slowStakeEstimateExample.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write .",

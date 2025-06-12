@@ -1,7 +1,6 @@
 import { JsonRpcProvider, Wallet } from 'ethers';
 import type { SupportedChainId } from '@/types';
-import { getNetworkConfig } from './networks';
-import { ENV } from './environment';
+import { getNetworkConfig, ENV } from './networks';
 
 /**
  * Create a wallet instance for a specific chain using private key from environment.

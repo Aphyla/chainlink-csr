@@ -6,23 +6,19 @@
  */
 
 // Core configuration modules
-export * from './addresses';
-export * from './environment';
+export * from './ccip';
+export * from './constants';
 export * from './networks';
 export * from './protocols';
-export * from './transactions';
+export * from './types';
 export * from './wallet';
 
 // Re-export commonly used functions with clear naming
 export {
-  // Environment utilities
+  // Environment and Network utilities (consolidated)
   ENV,
   getEnvironmentInfo,
   getRpcUrlFromEnv,
-} from './environment';
-
-// Network utilities
-export {
   getNetworkConfig,
   getRpcUrl,
   getChainId,
@@ -35,6 +31,7 @@ export {
   getProtocol,
   getAvailableProtocols,
   isProtocolSupportedOnChain,
+  getProtocolAddress,
   LIDO_PROTOCOL,
   SUPPORTED_PROTOCOLS,
 } from './protocols';
@@ -42,5 +39,26 @@ export {
 // Wallet utilities
 export { createWallet, createProvider, isValidPrivateKey } from './wallet';
 
+// Type utilities
+export { isValidPaymentMethod, isValidCCIPFeePaymentMethod } from './types';
+
 // Configuration constants
-export { OPTIMISM_MAINNET, ARBITRUM_ONE, BASE_MAINNET } from './networks';
+export {
+  ETHEREUM_MAINNET,
+  OPTIMISM_MAINNET,
+  ARBITRUM_ONE,
+  BASE_MAINNET,
+} from './networks';
+
+// Application constants
+export {
+  NUMBER_BLOCKS_TO_WAIT,
+  DEFAULT_SLIPPAGE_TOLERANCE,
+  TESTING_AMOUNTS,
+  // SlowStake constants
+  SLOWSTAKE_GAS_LIMIT_MULTIPLIER,
+  SLOWSTAKE_FEE_BUFFER,
+  // CCIP constants
+  CCIP_EXTRA_ARGS_V1_VERSION,
+  CCIP_FEE_ESTIMATION_PLACEHOLDER_RECIPIENT,
+} from './constants';

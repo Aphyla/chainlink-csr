@@ -34,6 +34,7 @@ src/examples/
   yarn example:lido:allowance     # TOKEN allowance checking
   yarn example:lido:fast-stake-native  # Execute with native ETH
   yarn example:lido:fast-stake-wrapped # Execute with WETH
+  yarn example:lido:estimate-slowstake   # SlowStake fee estimation
   ```
 
 ## Example Types
