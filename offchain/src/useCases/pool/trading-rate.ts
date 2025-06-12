@@ -1,11 +1,10 @@
 import { formatUnits } from 'ethers';
 import type { Address, SupportedChainId } from '@/types';
 import { setupLiquidStakingContracts } from '@/core/contracts/setup';
-import { fetchOracleData, formatFeePercentage } from '@/core/oracle/pricing';
-import { fetchTokensMetadata } from '@/core/tokens/metadata';
+import { formatFeePercentage } from '@/core/oracle/pricing';
+import { fetchTokenBalance } from '@/core/tokens/metadata';
 import type { TokenInfo } from '@/core/tokens/interfaces';
 import type { ProtocolConfig } from '@/core/protocols/interfaces';
-import { estimateFastStake } from '@/useCases/fastStake/estimate';
 
 /**
  * Parameters accepted by {@link getTradingRate}.
@@ -27,8 +26,6 @@ export interface OraclePricing {
   readonly formattedPrice: string;
   /** Oracle heartbeat in seconds (how often it updates) */
   readonly heartbeat: bigint;
-  /** Whether the oracle price is inverted */
-  readonly inverted: boolean;
   /** Oracle output decimals (should be 18 for PriceOracle) */
   readonly decimals: number;
 }
@@ -79,8 +76,6 @@ export interface TradingRateResult {
   readonly rate: EffectiveRate;
 }
 
-// formatHeartbeat is now imported from @/core/oracle/pricing
-
 /**
  * Protocol-agnostic function to get current trading rates for fast staking.
  *
@@ -89,8 +84,8 @@ export interface TradingRateResult {
  * - Pool fees
  * - Effective exchange rate users would receive (calculated using actual transaction math)
  *
- * Uses estimateFastStake with 1 TOKEN_IN to ensure rate calculation matches
- * actual transaction behavior exactly.
+ * Optimized to minimize RPC calls by fetching only essential data
+ * and breaking calls into smaller batches to avoid provider limits.
  */
 export async function getTradingRate(
   params: TradingRateParams
@@ -101,32 +96,47 @@ export async function getTradingRate(
   const setup = await setupLiquidStakingContracts({ chainKey, protocol });
   const { addresses, contracts, provider } = setup;
 
-  // 2. Fetch oracle data, fee rate, and token metadata in parallel
-  const [oracleData, feeRate, tokensMetadata] = await Promise.all([
-    fetchOracleData(addresses.priceOracle, provider),
-    contracts.oraclePool.getFee(),
-    fetchTokensMetadata([addresses.tokenIn, addresses.tokenOut], provider),
+  // 2. Fetch only essential data in smaller batches to avoid RPC limits
+  // Batch 1: Oracle data (3 calls)
+  const [oraclePrice, oracleHeartbeat, oracleDecimals] = await Promise.all([
+    contracts.priceOracle.getLatestAnswer(),
+    contracts.priceOracle.HEARTBEAT(),
+    contracts.priceOracle.DECIMALS(),
   ]);
 
-  // Safe destructuring - we know there are exactly 2 tokens
-  const [tokenInInfo, tokenOutInfo] = tokensMetadata as [TokenInfo, TokenInfo];
+  // Batch 2: Pool data (3 calls)
+  const [feeRate, tokenInDecimals, tokenOutDecimals] = await Promise.all([
+    contracts.oraclePool.getFee(),
+    contracts.tokenIn.decimals(),
+    contracts.tokenOut.decimals(),
+  ]);
 
-  // 3. Calculate ACTUAL effective rate using real transaction math
+  // Batch 3: Token symbols and pool balance (3 calls)
+  const [tokenInSymbol, tokenOutSymbol, availableOut] = await Promise.all([
+    contracts.tokenIn.symbol(),
+    contracts.tokenOut.symbol(),
+    fetchTokenBalance(addresses.tokenOut, addresses.oraclePool, provider),
+  ]);
+
+  // 3. Calculate ACTUAL effective rate using the same math as OraclePool.swap
   const oneTokenIn = 10n ** 18n; // 1 TOKEN_IN
-  const estimate = await estimateFastStake({
-    chainKey,
-    amountIn: oneTokenIn,
-    protocol,
-  });
+  const PRECISION = 10n ** 18n;
+
+  // Contract math: feeAmount = amountIn * fee / 1e18
+  const feeAmount = (oneTokenIn * feeRate) / PRECISION;
+  const amountAfterFee = oneTokenIn - feeAmount;
+
+  // Contract math: amountOut = (amountIn - feeAmount) * 1e18 / price
+  const amountOut = (amountAfterFee * PRECISION) / oraclePrice;
+
+  // Check liquidity sufficiency
+  const hasSufficientLiquidity = amountOut <= availableOut;
 
   // 4. Format rates using core utilities
-  const oracleRateFormatted = formatUnits(
-    oracleData.price,
-    oracleData.decimals
-  );
+  const oracleRateFormatted = formatUnits(oraclePrice, Number(oracleDecimals));
   const effectiveRateFormatted = formatUnits(
-    estimate.amountOut, // This is the TRUE effective rate
-    tokenOutInfo.decimals
+    amountOut,
+    Number(tokenOutDecimals)
   );
   const feePercentage = formatFeePercentage(feeRate);
 
@@ -134,23 +144,32 @@ export async function getTradingRate(
     poolAddress: addresses.oraclePool,
     senderAddress: addresses.customSender,
     oracleAddress: addresses.priceOracle,
-    tokenIn: tokenInInfo,
-    tokenOut: tokenOutInfo,
+    tokenIn: {
+      address: addresses.tokenIn,
+      symbol: tokenInSymbol,
+      name: tokenInSymbol, // Use symbol as name to avoid extra call
+      decimals: Number(tokenInDecimals),
+    },
+    tokenOut: {
+      address: addresses.tokenOut,
+      symbol: tokenOutSymbol,
+      name: tokenOutSymbol, // Use symbol as name to avoid extra call
+      decimals: Number(tokenOutDecimals),
+    },
     oracle: {
-      price: oracleData.price,
+      price: oraclePrice,
       formattedPrice: oracleRateFormatted,
-      heartbeat: oracleData.heartbeat,
-      inverted: oracleData.isInverse,
-      decimals: oracleData.decimals,
+      heartbeat: oracleHeartbeat,
+      decimals: Number(oracleDecimals),
     },
     fee: {
       rate: feeRate,
       percentage: feePercentage,
     },
     rate: {
-      oracleRate: `1 ${tokenOutInfo.symbol} = ${oracleRateFormatted} ${tokenInInfo.symbol}`,
-      effectiveRate: `1 ${tokenInInfo.symbol} = ${effectiveRateFormatted} ${tokenOutInfo.symbol}`,
-      description: `After ${feePercentage} fee${estimate.pool.hasSufficientLiquidity ? '' : ' (⚠️ Low liquidity)'}`,
+      oracleRate: `1 ${tokenOutSymbol} = ${oracleRateFormatted} ${tokenInSymbol}`,
+      effectiveRate: `1 ${tokenInSymbol} = ${effectiveRateFormatted} ${tokenOutSymbol}`,
+      description: `After ${feePercentage} fee${hasSufficientLiquidity ? '' : ' (⚠️ Low liquidity)'}`,
     },
   };
 }

@@ -50,7 +50,6 @@ async function runTradingRateExample(): Promise<void> {
       console.log(
         `  Heartbeat: ${result.oracle.heartbeat} seconds (${formatHeartbeat(result.oracle.heartbeat)})`
       );
-      console.log(`  Is Inverted: ${result.oracle.inverted ? 'Yes' : 'No'}`);
       console.log(`  Decimals: ${result.oracle.decimals}`);
       console.log('');
 
