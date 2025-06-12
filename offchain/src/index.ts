@@ -1,5 +1,6 @@
 // Protocol-agnostic use cases
 export { estimateFastStake } from '@/useCases/fastStake/estimate';
+export { executeFastStakeReferral } from '@/useCases/fastStake/execute';
 export { getPoolBalances } from '@/useCases/pool/balance';
 export { getTradingRate } from '@/useCases/pool/trading-rate';
 export { checkTokenAllowance } from '@/useCases/allowance/check';
@@ -43,6 +44,7 @@ export {
   BASE_MAINNET,
 } from '@/config/networks';
 export { LIDO_CUSTOM_SENDER } from '@/config/addresses';
+export { NUMBER_BLOCKS_TO_WAIT } from '@/config/transactions';
 
 // Types
 export type { Address, SupportedChainId, ChainConfig } from '@/types';
@@ -96,3 +98,11 @@ export type {
   CheckTokenAllowanceResult,
   TokenAllowanceInfo,
 } from '@/useCases/allowance/check';
+export type {
+  ExecuteFastStakeReferralParams,
+  ExecuteFastStakeReferralResult,
+  PaymentMethod,
+  AllowanceInfo,
+  TransactionInfo,
+  ReferralEventInfo,
+} from '@/useCases/fastStake/execute';

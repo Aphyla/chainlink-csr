@@ -16,10 +16,12 @@ Lido protocol allows users to stake ETH and receive wstETH (wrapped staked ETH) 
 ## Quick Start
 
 ```bash
-yarn example:lido:estimate   # Fast stake estimation
-yarn example:lido:pool       # Pool balance monitoring
-yarn example:lido:trading    # Trading rate analysis
-yarn example:lido:allowance  # TOKEN allowance checking
+yarn example:lido:estimate      # Fast stake estimation
+yarn example:lido:pool          # Pool balance monitoring
+yarn example:lido:trading       # Trading rate analysis
+yarn example:lido:allowance     # TOKEN allowance checking
+yarn example:lido:stake-native  # Execute fastStake with native ETH
+yarn example:lido:stake-wrapped # Execute fastStake with WETH
 ```
 
 ## Examples
@@ -127,6 +129,73 @@ Checks TOKEN allowances for users across all supported networks.
   📝 Approve WETH allowance to CustomSender
 ```
 
+### 5. FastStake Execution - Native ETH (`fastStakeNativeExample.ts`)
+
+Executes complete fastStakeReferral transactions using native ETH payment.
+
+**What it does**:
+
+- Creates wallet instance and validates parameters
+- Estimates transaction and calculates slippage protection
+- Executes fastStakeReferral with native ETH payment
+- Monitors transaction confirmation and decodes events
+- Provides comprehensive results and accuracy analysis
+
+**Use case**: Live fastStakeReferral execution for testing and integration
+
+**Sample output**:
+
+```
+🚀 FastStake with Native ETH on Base
+📱 Using wallet: 0x742ccbb...
+💰 Staking amount: 0.01 ETH
+🎉 Transaction Successful!
+📊 Transaction Details:
+  TX Hash: 0x1234567...
+  Gas Used: 150,000
+💱 Staking Summary:
+  Input: 0.01 ETH (native)
+  Output: 0.008297 wstETH
+👥 Referral Event:
+  User: 0x742ccbb...
+  Referral: 0x742ccbb...
+  Amount Out: 0.008297 wstETH
+```
+
+### 6. FastStake Execution - Wrapped Token (`fastStakeWrappedExample.ts`)
+
+Executes complete fastStakeReferral transactions using WETH payment with allowance management.
+
+**What it does**:
+
+- Creates wallet instance and validates parameters
+- Checks and manages WETH allowance automatically
+- Estimates transaction and calculates slippage protection
+- Executes fastStakeReferral with WETH payment
+- Monitors both approval and stake transactions
+- Provides detailed allowance and execution analysis
+
+**Use case**: Live fastStakeReferral execution with wrapped tokens
+
+**Sample output**:
+
+```
+🚀 FastStake with Wrapped Native Token on Base
+📱 Using wallet: 0x742ccbb...
+💰 Staking amount: 0.01 WETH
+🔐 Allowance Management:
+  Initial Allowance: 0.0 WETH
+  ✅ Approval Required and Completed
+  Approval TX: 0xabcd123...
+  Final Allowance: Unlimited (MaxUint256)
+🎉 Transaction Successful!
+📊 Transaction Details:
+  TX Hash: 0x1234567...
+💱 Staking Summary:
+  Input: 0.01 WETH (wrapped)
+  Output: 0.008297 wstETH
+```
+
 ## Configuration
 
 All examples use the Lido protocol configuration:
@@ -172,17 +241,24 @@ const result = await estimateFastStake({
 ## Integration Tips
 
 1. **Set up environment**: Create `.env` file with `PRIVATE_KEY=your_private_key_here` for automatic wallet usage
-2. **Check liquidity first**: Use pool balance queries before large transactions
-3. **Monitor pool health**: High WETH ratios indicate pools need sync operations
-4. **Handle rate changes**: Oracle rates update daily and may fluctuate
-5. **Use Base for testing**: Generally has good liquidity and lower gas costs
-6. **Factor gas costs**: Consider L2 transaction costs in profitability calculations
-7. **Allowance management**: Check TOKEN allowances before fastStakeReferral operations
+2. **Choose payment method**: Native ETH for simplicity, WETH for precision and integration
+3. **Check liquidity first**: Use pool balance queries before large transactions
+4. **Verify allowances**: Check TOKEN allowances before wrapped token operations
+5. **Monitor pool health**: High WETH ratios indicate pools need sync operations
+6. **Handle rate changes**: Oracle rates update daily and may fluctuate
+7. **Set slippage tolerance**: 1-3% typical for stable conditions, higher during volatility
+8. **Use Base for testing**: Generally has good liquidity and lower gas costs
+9. **Factor gas costs**: Consider L2 transaction costs and approval overhead
+10. **Test small amounts**: Start with small stakes (0.01 ETH) for testing
 
 ## Common Issues
 
 **Insufficient liquidity**: Pool may not have enough wstETH for large swaps
 **Stale oracle data**: Check heartbeat to ensure recent price updates
+**Insufficient allowance**: WETH operations require token approval first
+**High slippage**: Transaction fails if actual rate exceeds minAmountOut
+**Gas estimation errors**: Network congestion can cause gas estimation failures
+**Private key missing**: Execution examples require PRIVATE_KEY environment variable
 **RPC rate limits**: Use dedicated RPC providers for production usage
 **Network differences**: Each chain has different pool liquidity levels
 

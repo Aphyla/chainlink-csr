@@ -9,6 +9,8 @@ This library provides off-chain tools to interact with liquid staking pools acro
 - **Fast stake estimation** - Preview swap amounts and fees before transactions
 - **Pool balance monitoring** - Check liquidity across supported chains
 - **Trading rate analysis** - Get current exchange rates and oracle data
+- **Transaction execution** - Execute fastStakeReferral with native ETH or WETH
+- **Allowance management** - Check and approve ERC20 token allowances
 
 Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base networks.
 
@@ -35,9 +37,12 @@ Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base ne
 
 4. **Run examples**
    ```bash
-   yarn example:lido:estimate   # Test fast stake estimation
-   yarn example:lido:pool       # Check pool balances
-   yarn example:lido:trading    # View current trading rates
+   yarn example:lido:estimate      # Test fast stake estimation
+   yarn example:lido:pool          # Check pool balances
+   yarn example:lido:trading       # View current trading rates
+   yarn example:lido:allowance     # Check TOKEN allowances
+   yarn example:lido:stake-native  # Execute with native ETH
+   yarn example:lido:stake-wrapped # Execute with WETH
    ```
 
 ## Examples

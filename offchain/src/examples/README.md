@@ -8,12 +8,15 @@ Examples are organized by protocol:
 
 ```
 src/examples/
-├── lido/                    # Lido liquid staking examples
-│   ├── estimateExample.ts   # Fast stake estimation
-│   ├── poolBalanceExample.ts # Pool balance monitoring
-│   ├── tradingRateExample.ts # Trading rate analysis
-│   └── README.md           # Lido-specific documentation
-└── README.md               # This file
+├── lido/                        # Lido liquid staking examples
+│   ├── estimateExample.ts       # Fast stake estimation
+│   ├── poolBalanceExample.ts    # Pool balance monitoring
+│   ├── tradingRateExample.ts    # Trading rate analysis
+│   ├── allowanceExample.ts      # TOKEN allowance checking
+│   ├── fastStakeNativeExample.ts  # Execute with native ETH
+│   ├── fastStakeWrappedExample.ts # Execute with WETH
+│   └── README.md               # Lido-specific documentation
+└── README.md                   # This file
 ```
 
 ## Available Protocols
@@ -25,14 +28,17 @@ src/examples/
 - **Documentation**: [lido/README.md](./lido/README.md)
 - **Run examples**:
   ```bash
-  yarn example:lido:estimate   # Fast stake estimation
-  yarn example:lido:pool       # Pool balance queries
-  yarn example:lido:trading    # Trading rate analysis
+  yarn example:lido:estimate      # Fast stake estimation
+  yarn example:lido:pool          # Pool balance queries
+  yarn example:lido:trading       # Trading rate analysis
+  yarn example:lido:allowance     # TOKEN allowance checking
+  yarn example:lido:stake-native  # Execute with native ETH
+  yarn example:lido:stake-wrapped # Execute with WETH
   ```
 
 ## Example Types
 
-Each protocol includes three types of examples:
+Each protocol includes several types of examples:
 
 ### 1. Fast Stake Estimation
 
@@ -69,6 +75,42 @@ Each protocol includes three types of examples:
 - Pool fees and effective rates
 - Price feed freshness (heartbeat)
 - Calculation breakdowns
+
+### 4. Allowance Checking
+
+**File**: `allowanceExample.ts`
+**Purpose**: Check ERC20 token allowances for wrapped token operations
+
+**Shows**:
+
+- Current user allowances to CustomSender contracts
+- Token balance information
+- Required approval actions
+- Multi-chain allowance status
+
+### 5. Transaction Execution - Native ETH
+
+**File**: `fastStakeNativeExample.ts`
+**Purpose**: Execute complete fastStakeReferral transactions using native ETH
+
+**Shows**:
+
+- Live transaction execution and monitoring
+- Native ETH payment flow (no allowances needed)
+- Event decoding and result analysis
+- Performance comparison vs estimates
+
+### 6. Transaction Execution - Wrapped Tokens
+
+**File**: `fastStakeWrappedExample.ts`
+**Purpose**: Execute complete fastStakeReferral transactions using wrapped tokens
+
+**Shows**:
+
+- Automatic allowance management and approval
+- Wrapped token payment flow with approvals
+- Transaction monitoring for both approval and execution
+- Comprehensive gas cost analysis
 
 ## Protocol Configuration
 

@@ -10,6 +10,7 @@ export * from './addresses';
 export * from './environment';
 export * from './networks';
 export * from './protocols';
+export * from './transactions';
 export * from './wallet';
 
 // Re-export commonly used functions with clear naming
