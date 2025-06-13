@@ -37,7 +37,7 @@ Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base ne
 
 4. **Run examples**
    ```bash
-   yarn example:lido:estimate      # Test fast stake estimation
+   yarn example:lido:estimate-faststake      # Test fast stake estimation
    yarn example:lido:pool          # Check pool balances
    yarn example:lido:trading       # View current trading rates
    yarn example:lido:allowance     # Check TOKEN allowances

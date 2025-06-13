@@ -8,6 +8,8 @@
  * Any changes to the Solidity implementation must be reflected here.
  */
 
+import { toBeHex, zeroPadValue, concat, hexlify } from 'ethers';
+
 /**
  * CCIP fee parameters for encoding
  */
@@ -41,6 +43,11 @@ export interface GenericFeeParams {
   readonly payInLink: boolean;
 }
 
+// Constants for validation
+const UINT32_MAX = 0xffffffff;
+const UINT64_MAX = 0xffffffffffffffffn;
+const UINT128_MAX = 0xffffffffffffffffffffffffffffffffn;
+
 /**
  * Encodes CCIP fee data exactly matching FeeCodec.encodeCCIP
  *
@@ -54,16 +61,18 @@ export interface GenericFeeParams {
  *
  * @param params CCIP fee parameters
  * @returns Encoded fee data as hex string
- * @throws Error if maxFee exceeds uint128 or gasLimit exceeds uint32
+ * @throws Error if parameters exceed their respective type bounds
  */
 export function encodeCCIPFee(params: CCIPFeeParams): string {
   validateCCIPParams(params);
 
-  const maxFeeHex = params.maxFee.toString(16).padStart(32, '0');
-  const payInLinkHex = params.payInLink ? '01' : '00';
-  const gasLimitHex = params.gasLimit.toString(16).padStart(8, '0');
-
-  return '0x' + maxFeeHex + payInLinkHex + gasLimitHex;
+  return hexlify(
+    concat([
+      zeroPadValue(toBeHex(params.maxFee), 16), // uint128 (16 bytes)
+      toBeHex(params.payInLink ? 1 : 0, 1), // bool as uint8 (1 byte)
+      zeroPadValue(toBeHex(params.gasLimit), 4), // uint32 (4 bytes)
+    ])
+  );
 }
 
 /**
@@ -80,21 +89,32 @@ export function encodeCCIPFee(params: CCIPFeeParams): string {
  *
  * @param params Arbitrum bridge fee parameters
  * @returns Encoded fee data as hex string
+ * @throws Error if parameters exceed their respective type bounds or if feeAmount overflows
  */
 export function encodeArbitrumL1toL2Fee(
   params: ArbitrumL1toL2FeeParams
 ): string {
   validateArbitrumParams(params);
 
+  // Calculate feeAmount exactly as Solidity does
   const feeAmount =
     params.maxSubmissionCost + params.gasPriceBid * BigInt(params.maxGas);
 
-  const feeAmountHex = feeAmount.toString(16).padStart(32, '0');
-  const payInLinkHex = '00'; // Always native for bridges
-  const maxGasHex = params.maxGas.toString(16).padStart(8, '0');
-  const gasPriceBidHex = params.gasPriceBid.toString(16).padStart(16, '0');
+  // Validate that feeAmount doesn't overflow uint128
+  if (feeAmount > UINT128_MAX) {
+    throw new Error(
+      `Calculated feeAmount (${feeAmount}) exceeds uint128 maximum`
+    );
+  }
 
-  return '0x' + feeAmountHex + payInLinkHex + maxGasHex + gasPriceBidHex;
+  return hexlify(
+    concat([
+      zeroPadValue(toBeHex(feeAmount), 16), // uint128 feeAmount (16 bytes)
+      toBeHex(0, 1), // uint8 payInLink = false (1 byte)
+      zeroPadValue(toBeHex(params.maxGas), 4), // uint32 maxGas (4 bytes)
+      zeroPadValue(toBeHex(params.gasPriceBid), 8), // uint64 gasPriceBid (8 bytes)
+    ])
+  );
 }
 
 /**
@@ -102,28 +122,42 @@ export function encodeArbitrumL1toL2Fee(
  *
  * Solidity equivalent:
  * ```solidity
- * function encodeOptimismL1toL2(uint32 l2Gas) internal pure returns (bytes memory)
+ * function encodeOptimismL1toL2(uint32 l2Gas) internal pure returns (bytes memory) {
+ *     return abi.encodePacked(uint136(0), l2Gas);
+ * }
  * ```
  *
- * Layout: feeAmount (16 bytes, always 0) + payInLink (1 byte, always false) + l2Gas (4 bytes) = 21 bytes
+ * Layout: uint136(0) + l2Gas (uint32) = 17 + 4 = 21 bytes
+ * Note: We encode this as feeAmount(16) + payInLink(1) + l2Gas(4) which produces identical bytes
  *
  * @param params Optimism bridge fee parameters
  * @returns Encoded fee data as hex string
+ * @throws Error if l2Gas exceeds uint32 bounds
  */
 export function encodeOptimismL1toL2Fee(
   params: OptimismL1toL2FeeParams
 ): string {
   validateOptimismParams(params);
 
-  const feeAmountHex = '0'.repeat(32); // Always 0 for Optimism
-  const payInLinkHex = '00'; // Always native
-  const l2GasHex = params.l2Gas.toString(16).padStart(8, '0');
-
-  return '0x' + feeAmountHex + payInLinkHex + l2GasHex;
+  // This produces identical bytes to abi.encodePacked(uint136(0), l2Gas)
+  return hexlify(
+    concat([
+      zeroPadValue(toBeHex(0), 16), // feeAmount = 0 (16 bytes)
+      toBeHex(0, 1), // payInLink = false (1 byte)
+      zeroPadValue(toBeHex(params.l2Gas), 4), // uint32 l2Gas (4 bytes)
+    ])
+  );
 }
 
 /**
  * Encodes Base L1→L2 fee data exactly matching FeeCodec.encodeBaseL1toL2
+ *
+ * Solidity equivalent:
+ * ```solidity
+ * function encodeBaseL1toL2(uint32 l2Gas) internal pure returns (bytes memory) {
+ *     return abi.encodePacked(uint136(0), l2Gas);
+ * }
+ * ```
  *
  * Note: Base uses the same format as Optimism
  *
@@ -134,39 +168,186 @@ export function encodeBaseL1toL2Fee(params: OptimismL1toL2FeeParams): string {
   return encodeOptimismL1toL2Fee(params);
 }
 
-// Validation functions
-function validateCCIPParams(params: CCIPFeeParams): void {
-  if (params.maxFee >= 2n ** 128n) {
-    throw new Error('maxFee exceeds uint128 maximum');
+// ============================================================================
+// VALIDATION FUNCTIONS
+// ============================================================================
+
+/**
+ * Validates CCIP fee parameters
+ * @param params Parameters to validate
+ * @throws Error if parameters are invalid
+ */
+export function validateCCIPParams(params: CCIPFeeParams): void {
+  if (!isValidCCIPParams(params)) {
+    throw new Error('Invalid CCIP parameters structure');
   }
-  if (params.gasLimit >= 2 ** 32) {
-    throw new Error('gasLimit exceeds uint32 maximum');
+
+  if (params.maxFee > UINT128_MAX) {
+    throw new Error(`maxFee (${params.maxFee}) exceeds uint128 maximum`);
   }
+
+  if (params.gasLimit > UINT32_MAX) {
+    throw new Error(`gasLimit (${params.gasLimit}) exceeds uint32 maximum`);
+  }
+
   if (params.gasLimit < 0) {
     throw new Error('gasLimit must be non-negative');
   }
 }
 
-function validateArbitrumParams(params: ArbitrumL1toL2FeeParams): void {
-  if (params.maxSubmissionCost >= 2n ** 128n) {
-    throw new Error('maxSubmissionCost exceeds uint128 maximum');
+/**
+ * Validates Arbitrum fee parameters
+ * @param params Parameters to validate
+ * @throws Error if parameters are invalid
+ */
+export function validateArbitrumParams(params: ArbitrumL1toL2FeeParams): void {
+  if (!isValidArbitrumParams(params)) {
+    throw new Error('Invalid Arbitrum parameters structure');
   }
-  if (params.maxGas >= 2 ** 32) {
-    throw new Error('maxGas exceeds uint32 maximum');
+
+  if (params.maxSubmissionCost > UINT128_MAX) {
+    throw new Error(
+      `maxSubmissionCost (${params.maxSubmissionCost}) exceeds uint128 maximum`
+    );
   }
-  if (params.gasPriceBid >= 2n ** 64n) {
-    throw new Error('gasPriceBid exceeds uint64 maximum');
+
+  if (params.maxGas > UINT32_MAX) {
+    throw new Error(`maxGas (${params.maxGas}) exceeds uint32 maximum`);
   }
+
+  if (params.gasPriceBid > UINT64_MAX) {
+    throw new Error(
+      `gasPriceBid (${params.gasPriceBid}) exceeds uint64 maximum`
+    );
+  }
+
   if (params.maxGas < 0) {
     throw new Error('maxGas must be non-negative');
   }
+
+  if (params.maxSubmissionCost < 0n) {
+    throw new Error('maxSubmissionCost must be non-negative');
+  }
+
+  if (params.gasPriceBid < 0n) {
+    throw new Error('gasPriceBid must be non-negative');
+  }
 }
 
-function validateOptimismParams(params: OptimismL1toL2FeeParams): void {
-  if (params.l2Gas >= 2 ** 32) {
-    throw new Error('l2Gas exceeds uint32 maximum');
+/**
+ * Validates Optimism fee parameters
+ * @param params Parameters to validate
+ * @throws Error if parameters are invalid
+ */
+export function validateOptimismParams(params: OptimismL1toL2FeeParams): void {
+  if (!isValidOptimismParams(params)) {
+    throw new Error('Invalid Optimism parameters structure');
   }
+
+  if (params.l2Gas > UINT32_MAX) {
+    throw new Error(`l2Gas (${params.l2Gas}) exceeds uint32 maximum`);
+  }
+
   if (params.l2Gas < 0) {
     throw new Error('l2Gas must be non-negative');
+  }
+}
+
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+/**
+ * Type guard for CCIP fee parameters
+ * @param params Object to validate
+ * @returns True if params is a valid CCIPFeeParams object
+ */
+export function isValidCCIPParams(params: unknown): params is CCIPFeeParams {
+  return (
+    typeof params === 'object' &&
+    params !== null &&
+    typeof (params as Record<string, unknown>).maxFee === 'bigint' &&
+    typeof (params as Record<string, unknown>).payInLink === 'boolean' &&
+    typeof (params as Record<string, unknown>).gasLimit === 'number'
+  );
+}
+
+/**
+ * Type guard for Arbitrum fee parameters
+ * @param params Object to validate
+ * @returns True if params is a valid ArbitrumL1toL2FeeParams object
+ */
+export function isValidArbitrumParams(
+  params: unknown
+): params is ArbitrumL1toL2FeeParams {
+  return (
+    typeof params === 'object' &&
+    params !== null &&
+    typeof (params as Record<string, unknown>).maxSubmissionCost === 'bigint' &&
+    typeof (params as Record<string, unknown>).maxGas === 'number' &&
+    typeof (params as Record<string, unknown>).gasPriceBid === 'bigint'
+  );
+}
+
+/**
+ * Type guard for Optimism/Base fee parameters
+ * @param params Object to validate
+ * @returns True if params is a valid OptimismL1toL2FeeParams object
+ */
+export function isValidOptimismParams(
+  params: unknown
+): params is OptimismL1toL2FeeParams {
+  return (
+    typeof params === 'object' &&
+    params !== null &&
+    typeof (params as Record<string, unknown>).l2Gas === 'number'
+  );
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Calculates the total fee for Arbitrum without encoding
+ * Useful for fee estimation before encoding
+ *
+ * @param params Arbitrum fee parameters
+ * @returns Calculated fee amount
+ */
+export function calculateArbitrumFeeAmount(
+  params: ArbitrumL1toL2FeeParams
+): bigint {
+  validateArbitrumParams(params);
+  const feeAmount =
+    params.maxSubmissionCost + params.gasPriceBid * BigInt(params.maxGas);
+
+  if (feeAmount > UINT128_MAX) {
+    throw new Error(
+      `Calculated feeAmount (${feeAmount}) exceeds uint128 maximum`
+    );
+  }
+
+  return feeAmount;
+}
+
+/**
+ * Gets the byte length for each bridge type
+ * @param bridgeType The type of bridge
+ * @returns Expected byte length of encoded fee data
+ */
+export function getExpectedByteLength(
+  bridgeType: 'ccip' | 'arbitrum' | 'optimism' | 'base'
+): number {
+  switch (bridgeType) {
+    case 'ccip':
+      return 21;
+    case 'arbitrum':
+      return 29;
+    case 'optimism':
+    case 'base':
+      return 21;
+    default:
+      throw new Error(`Unknown bridge type: ${bridgeType}`);
   }
 }

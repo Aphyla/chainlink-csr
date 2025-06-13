@@ -13,8 +13,12 @@ import { formatEther, ZeroAddress } from 'ethers';
 import type { SupportedChainId } from '@/types';
 import type { PaymentMethod, CCIPFeePaymentMethod } from '@/config';
 import { setupLiquidStakingContracts } from '@/core/contracts/setup';
-import { isSlowStakeSupported, getCCIPChainSelector } from '@/config/ccip';
-import { ETHEREUM_MAINNET, SLOWSTAKE_GAS_LIMIT_MULTIPLIER } from '@/config';
+import { getCCIPChainSelector } from '@/config/ccip';
+import {
+  ETHEREUM_MAINNET,
+  isProtocolSupportedOnChain,
+  SLOWSTAKE_GAS_LIMIT_MULTIPLIER,
+} from '@/config';
 import type { ProtocolConfig } from '@/core/protocols/interfaces';
 
 // Import calculation functions
@@ -145,7 +149,7 @@ export async function estimateSlowStakeFees(
   } = params;
 
   // Validate slowStake support
-  if (!isSlowStakeSupported(chainKey)) {
+  if (!isProtocolSupportedOnChain(protocol, chainKey)) {
     throw new Error(
       `SlowStake not supported on ${chainKey}. Only available on L2 chains.`
     );

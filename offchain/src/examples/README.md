@@ -28,7 +28,7 @@ src/examples/
 - **Documentation**: [lido/README.md](./lido/README.md)
 - **Run examples**:
   ```bash
-  yarn example:lido:estimate      # Fast stake estimation
+  yarn example:lido:estimate-faststake      # Fast stake estimation
   yarn example:lido:pool          # Pool balance queries
   yarn example:lido:trading       # Trading rate analysis
   yarn example:lido:allowance     # TOKEN allowance checking

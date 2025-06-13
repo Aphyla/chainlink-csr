@@ -9,13 +9,14 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "dev": "tsx watch src/index.ts",
-    "example:lido:estimate": "tsx src/examples/lido/estimateExample.ts",
+    "example:lido:estimate-faststake": "tsx src/examples/lido/estimateExample.ts",
     "example:lido:pool": "tsx src/examples/lido/poolBalanceExample.ts",
     "example:lido:trading": "tsx src/examples/lido/tradingRateExample.ts",
     "example:lido:allowance": "tsx src/examples/lido/allowanceExample.ts",
     "example:lido:fast-stake-native": "tsx src/examples/lido/fastStakeNativeExample.ts",
     "example:lido:fast-stake-wrapped": "tsx src/examples/lido/fastStakeWrappedExample.ts",
     "example:lido:estimate-slowstake": "tsx src/examples/lido/slowStakeEstimateExample.ts",
+    "test:run": "vitest run",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write .",
@@ -43,6 +44,7 @@
     "rimraf": "^6.0.1",
     "tsx": "^4.20.1",
     "typechain": "^8.3.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
   }
 }

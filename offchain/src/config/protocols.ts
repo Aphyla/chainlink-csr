@@ -10,6 +10,7 @@ import type {
   ProtocolConfig,
   ProtocolRegistry,
 } from '@/core/protocols/interfaces';
+import { ZeroAddress } from 'ethers';
 
 /**
  * Protocol Addresses
@@ -19,8 +20,8 @@ import type {
  * Lido Protocol CustomSender contract addresses per chain.
  */
 export const LIDO_CUSTOM_SENDER: Record<SupportedChainId, Address> = {
-  // Ethereum mainnet (receiver, not sender)
-  ETHEREUM_MAINNET: '0x0000000000000000000000000000000000000000', // Placeholder - use actual receiver address
+  // Ethereum mainnet
+  ETHEREUM_MAINNET: ZeroAddress,
   // Optimism mainnet
   OPTIMISM_MAINNET: '0x328de900860816d29D1367F6903a24D8ed40C997',
   // Arbitrum One
@@ -92,12 +93,17 @@ export function getAvailableProtocols(): string[] {
 
 /**
  * Validate if a protocol is supported on a specific chain.
+ * Checks both that the chain key exists AND that it has a valid non-zero address.
  */
 export function isProtocolSupportedOnChain(
   protocol: ProtocolConfig,
-  chainKey: string
+  chainKey: SupportedChainId
 ): boolean {
-  return chainKey in protocol.customSenderAddresses;
+  const address =
+    protocol.customSenderAddresses[
+      chainKey as keyof typeof protocol.customSenderAddresses
+    ];
+  return address !== undefined && address !== ZeroAddress;
 }
 
 /**

@@ -3,6 +3,7 @@ import {
   LIDO_PROTOCOL,
   getNetworkConfig,
   SUPPORTED_CHAIN_KEYS,
+  isProtocolSupportedOnChain,
 } from '@/index';
 import { formatHeartbeat } from '@/core/oracle/pricing';
 import { pathToFileURL } from 'node:url';
@@ -16,8 +17,18 @@ async function runTradingRateExample(): Promise<void> {
   console.log('═'.repeat(60));
   console.log('');
 
-  // Type-safe iteration over all supported chains
-  for (const chainKey of SUPPORTED_CHAIN_KEYS) {
+  // Filter to only chains where Lido protocol is actually deployed
+  const supportedChains = SUPPORTED_CHAIN_KEYS.filter(chainKey =>
+    isProtocolSupportedOnChain(LIDO_PROTOCOL, chainKey)
+  );
+
+  console.log(
+    `🔍 Found ${supportedChains.length} chains with Lido protocol support`
+  );
+  console.log('');
+
+  // Type-safe iteration over supported chains only
+  for (const chainKey of supportedChains) {
     try {
       const network = getNetworkConfig(chainKey);
       console.log(`🔍 Checking ${network.name} (Chain ID: ${network.chainId})`);

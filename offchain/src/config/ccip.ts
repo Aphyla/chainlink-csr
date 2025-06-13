@@ -65,13 +65,3 @@ export function getBridgeConfig(chainKey: SupportedChainId): {
 } {
   return BRIDGE_CONFIGS[chainKey];
 }
-
-/**
- * Check if slowStake is supported (only L2 chains support it)
- */
-export function isSlowStakeSupported(chainKey: SupportedChainId): boolean {
-  return (
-    chainKey !== 'ETHEREUM_MAINNET' &&
-    BRIDGE_CONFIGS[chainKey].supportedReturnPath
-  );
-}

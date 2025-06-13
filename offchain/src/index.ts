@@ -43,7 +43,6 @@ export {
   ARBITRUM_ONE,
   BASE_MAINNET,
 } from '@/config/networks';
-export { isSlowStakeSupported } from '@/config/ccip';
 export { LIDO_CUSTOM_SENDER } from '@/config/protocols';
 export {
   NUMBER_BLOCKS_TO_WAIT,

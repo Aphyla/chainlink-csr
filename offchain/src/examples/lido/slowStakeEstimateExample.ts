@@ -22,7 +22,7 @@ import {
 } from '@/useCases/slowStake/estimate';
 import {
   getNetworkConfig,
-  isSlowStakeSupported,
+  isProtocolSupportedOnChain,
   LIDO_PROTOCOL,
   TESTING_AMOUNTS,
   SUPPORTED_CHAIN_KEYS,
@@ -104,7 +104,9 @@ async function runMultiChainComparison(
   console.log('='.repeat(65) + '\n');
 
   // Dynamically discover all chains that support slowStake
-  const supportedChains = SUPPORTED_CHAIN_KEYS.filter(isSlowStakeSupported);
+  const supportedChains = SUPPORTED_CHAIN_KEYS.filter(chainKey =>
+    isProtocolSupportedOnChain(LIDO_PROTOCOL, chainKey)
+  );
 
   console.log(
     `📋 Testing slowStake on ${supportedChains.length} supported chains:`
@@ -119,7 +121,7 @@ async function runMultiChainComparison(
   }> = [];
 
   for (const chainKey of supportedChains) {
-    if (isSlowStakeSupported(chainKey)) {
+    if (isProtocolSupportedOnChain(LIDO_PROTOCOL, chainKey)) {
       try {
         // Show detailed breakdown for each chain
         const result = await runSingleEstimation(
@@ -193,7 +195,9 @@ async function runExample(): Promise<void> {
   const paymentMethod: PaymentMethod = 'native';
 
   // Show supported chains
-  const supportedChains = SUPPORTED_CHAIN_KEYS.filter(isSlowStakeSupported);
+  const supportedChains = SUPPORTED_CHAIN_KEYS.filter(chainKey =>
+    isProtocolSupportedOnChain(LIDO_PROTOCOL, chainKey)
+  );
   console.log(`🌐 SlowStake is supported on ${supportedChains.length} chains:`);
   supportedChains.forEach(chainKey => {
     console.log(`  • ${getNetworkConfig(chainKey).name}`);
