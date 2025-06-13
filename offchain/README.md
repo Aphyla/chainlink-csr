@@ -29,13 +29,19 @@ Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base ne
    # Edit .env with your RPC URLs
    ```
 
-3. **Build project**
+3. **Generate contract types**
+
+   ```bash
+   yarn typechain
+   ```
+
+4. **Build project**
 
    ```bash
    yarn build
    ```
 
-4. **Try examples**
+5. **Try examples**
 
    ```bash
    yarn example:lido:estimate-faststake      # Basic estimation example
