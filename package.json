@@ -2,13 +2,19 @@
   "name": "chainlink-csr",
   "version": "1.0.0",
   "author": "Aphyla <aphyla@aphyla.com>",
+  "private": true,
+  "workspaces": [
+    "offchain"
+  ],
   "devDependencies": {
     "forge-std": "github:foundry-rs/forge-std#v1.8.2"
   },
   "scripts": {
     "build": "yarn install && forge build",
     "test": "forge test --no-match-contract shanghai_; forge test --match-contract shanghai_ --evm-version shanghai",
-    "fast-test": "forge test --no-match-contract 'fork'"
+    "fast-test": "forge test --no-match-contract 'fork'",
+    "update-remappings": "forge remappings  >> remappings.txt",
+    "offchain:build": "yarn workspace @chainlink-csr/offchain build"
   },
   "dependencies": {
     "@chainlink/contracts": "^1.1.1",
