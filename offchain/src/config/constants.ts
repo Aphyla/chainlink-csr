@@ -68,6 +68,29 @@ export const SLOWSTAKE_FEE_BUFFER = {
 } as const;
 
 /**
+ * Gas Estimation Constants
+ */
+
+/**
+ * Fast stake gas estimation parameters based on real transaction data.
+ * Values derived from actual Base network transactions for accurate estimates.
+ */
+export const FAST_STAKE_GAS_ESTIMATION = {
+  /**
+   * Typical gas used for fast stake transactions.
+   * Based on real data: wrapped ~133k, native ~147k gas.
+   */
+  ESTIMATED_GAS_USED: 150000n,
+
+  /**
+   * Conservative gas price estimate in wei.
+   * Based on real Base network data showing ~2.5M wei actual prices.
+   * Using 5M wei as buffer for network congestion.
+   */
+  ESTIMATED_GAS_PRICE: 5000000n, // ~5M wei (0.005 Gwei)
+} as const;
+
+/**
  * CCIP Protocol Constants
  */
 

@@ -2,7 +2,11 @@ import { ZeroAddress, parseUnits, formatUnits, MaxUint256 } from 'ethers';
 import type { Wallet, TransactionReceipt } from 'ethers';
 import type { Address, SupportedChainId } from '@/types';
 import type { PaymentMethod, SlippageTolerance } from '@/config';
-import { NUMBER_BLOCKS_TO_WAIT, DEFAULT_SLIPPAGE_TOLERANCE } from '@/config';
+import {
+  NUMBER_BLOCKS_TO_WAIT,
+  DEFAULT_SLIPPAGE_TOLERANCE,
+  FAST_STAKE_GAS_ESTIMATION,
+} from '@/config';
 import { setupLiquidStakingContracts } from '@/core/contracts/setup';
 import { checkTokenAllowance } from '@/useCases/allowance/check';
 import { estimateFastStake } from './estimate';
@@ -167,7 +171,17 @@ export async function executeFastStakeReferral(
   const setup = await setupLiquidStakingContracts({ chainKey, protocol });
   const customSender = setup.contracts.customSender.connect(wallet);
 
-  // 4. Handle allowance for wrapped tokens
+  // 4. Check all required token balances before proceeding
+  console.log('💰 Checking token balances...');
+  await checkAllRequiredBalances({
+    amountIn,
+    paymentMethod,
+    walletAddress: wallet.address,
+    setup,
+    wallet,
+  });
+
+  // 5. Handle allowance for wrapped tokens
   let allowanceInfo: AllowanceInfo;
 
   if (paymentMethod === 'wrapped') {
@@ -223,7 +237,7 @@ export async function executeFastStakeReferral(
     };
   }
 
-  // 5. Determine token address and value based on payment method
+  // 6. Determine token address and value based on payment method
   const tokenAddress =
     paymentMethod === 'native' ? ZeroAddress : setup.addresses.tokenIn;
   const txValue = paymentMethod === 'native' ? amountIn : 0n;
@@ -232,7 +246,7 @@ export async function executeFastStakeReferral(
     `🚀 Executing fastStakeReferral with ${paymentMethod} payment...`
   );
 
-  // 6. Execute the fastStakeReferral transaction
+  // 7. Execute the fastStakeReferral transaction
   const tx = await customSender.fastStakeReferral(
     tokenAddress,
     amountIn,
@@ -244,7 +258,7 @@ export async function executeFastStakeReferral(
   console.log(`⏳ Transaction submitted: ${tx.hash}`);
   console.log(`📊 Waiting for confirmation...`);
 
-  // 7. Wait for transaction confirmation
+  // 8. Wait for transaction confirmation
   const receipt = await tx.wait(NUMBER_BLOCKS_TO_WAIT);
   if (!receipt) {
     throw new Error('Transaction failed - no receipt received');
@@ -252,14 +266,14 @@ export async function executeFastStakeReferral(
 
   console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
 
-  // 8. Decode the Referral event
+  // 9. Decode the Referral event
   const referralEvent = decodeReferralEvent(
     receipt,
     setup.addresses.customSender,
     estimation.contracts.tokenOut.decimals
   );
 
-  // 9. Build transaction info
+  // 10. Build transaction info
   const transactionInfo: TransactionInfo = {
     txHash: receipt.hash,
     gasUsed: receipt.gasUsed,
@@ -268,7 +282,7 @@ export async function executeFastStakeReferral(
     blockNumber: receipt.blockNumber,
   };
 
-  // 10. Calculate relative performance comparison
+  // 11. Calculate relative performance comparison
   const difference = referralEvent.amountOut - estimation.amountOut;
   const relativePerformance = Number(
     (referralEvent.amountOut * 10000n) / estimation.amountOut / 100n
@@ -335,4 +349,97 @@ function decodeReferralEvent(
   }
 
   throw new Error('Referral event not found in transaction receipt');
+}
+
+/**
+ * Checks all required token balances before execution
+ * @param params Balance check parameters
+ * @throws Error with specific balance information if insufficient
+ */
+async function checkAllRequiredBalances(params: {
+  amountIn: bigint;
+  paymentMethod: PaymentMethod;
+  walletAddress: Address;
+  setup: Awaited<ReturnType<typeof setupLiquidStakingContracts>>;
+  wallet: Wallet;
+}): Promise<void> {
+  const { amountIn, paymentMethod, walletAddress, setup, wallet } = params;
+
+  const errors: string[] = [];
+
+  // 1. Check ETH balance (always needed for gas and potentially for staking)
+  const ethBalance = await wallet.provider!.getBalance(walletAddress);
+
+  if (paymentMethod === 'native') {
+    // For native payments, need ETH for both staking amount and gas
+    // Use realistic gas estimation based on actual Base network data
+    const estimatedGasCost =
+      FAST_STAKE_GAS_ESTIMATION.ESTIMATED_GAS_USED *
+      FAST_STAKE_GAS_ESTIMATION.ESTIMATED_GAS_PRICE;
+    const ethRequired = amountIn + estimatedGasCost;
+
+    if (ethBalance < ethRequired) {
+      const shortfall = ethRequired - ethBalance;
+      errors.push(
+        `Insufficient ETH balance for native payment. Required: ${formatUnits(ethRequired, 18)} ETH ` +
+          `(${formatUnits(amountIn, 18)} ETH staking + ~${formatUnits(estimatedGasCost, 18)} ETH gas), ` +
+          `Available: ${formatUnits(ethBalance, 18)} ETH, ` +
+          `Shortfall: ${formatUnits(shortfall, 18)} ETH`
+      );
+    } else {
+      console.log(
+        `✅ ETH balance sufficient: ${formatUnits(ethBalance, 18)} ETH ` +
+          `(required: ${formatUnits(ethRequired, 18)} ETH including gas)`
+      );
+    }
+  } else {
+    // For wrapped payments, still need ETH for gas
+    const estimatedGasCost =
+      FAST_STAKE_GAS_ESTIMATION.ESTIMATED_GAS_USED *
+      FAST_STAKE_GAS_ESTIMATION.ESTIMATED_GAS_PRICE;
+
+    if (ethBalance < estimatedGasCost) {
+      const shortfall = estimatedGasCost - ethBalance;
+      errors.push(
+        `Insufficient ETH balance for gas fees. Required: ~${formatUnits(estimatedGasCost, 18)} ETH, ` +
+          `Available: ${formatUnits(ethBalance, 18)} ETH, ` +
+          `Shortfall: ${formatUnits(shortfall, 18)} ETH`
+      );
+    } else {
+      console.log(
+        `✅ ETH balance sufficient for gas: ${formatUnits(ethBalance, 18)} ETH`
+      );
+    }
+  }
+
+  // 2. Check WETH balance (if using wrapped payment for staking)
+  if (paymentMethod === 'wrapped') {
+    const wethContract = setup.contracts.tokenIn;
+    const [wethBalance, wethSymbol] = await Promise.all([
+      wethContract.balanceOf(walletAddress),
+      wethContract.symbol(),
+    ]);
+
+    if (wethBalance < amountIn) {
+      const shortfall = amountIn - wethBalance;
+      errors.push(
+        `Insufficient ${wethSymbol} balance. Required: ${formatUnits(amountIn, 18)} ${wethSymbol}, ` +
+          `Available: ${formatUnits(wethBalance, 18)} ${wethSymbol}, ` +
+          `Shortfall: ${formatUnits(shortfall, 18)} ${wethSymbol}`
+      );
+    } else {
+      console.log(
+        `✅ ${wethSymbol} balance sufficient: ${formatUnits(wethBalance, 18)} ${wethSymbol} ` +
+          `(required: ${formatUnits(amountIn, 18)} ${wethSymbol})`
+      );
+    }
+  }
+
+  // If any balance is insufficient, throw a detailed error
+  if (errors.length > 0) {
+    throw new Error(
+      `Insufficient token balance(s):\n\n${errors.map(err => `• ${err}`).join('\n')}\n\n` +
+        `Please ensure you have sufficient balances before retrying.`
+    );
+  }
 }

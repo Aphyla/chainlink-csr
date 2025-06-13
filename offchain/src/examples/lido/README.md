@@ -443,6 +443,7 @@ Executes complete fastStakeReferral transactions using native ETH payment.
 
 - Creates wallet instance and validates parameters
 - Estimates transaction and calculates slippage protection
+- Checks token balances to prevent failed transactions
 - Executes fastStakeReferral with native ETH payment
 - Monitors transaction confirmation and decodes events
 - Provides comprehensive results and accuracy analysis
@@ -462,41 +463,43 @@ Explorer: https://basescan.org
 
 🔄 Executing fastStakeReferral with native ETH...
 📊 Estimating transaction parameters...
-✅ Estimation complete. Expected: 0.00082973950196012 wstETH
-🛡️ Min amount out (2% slippage): 0.000813144711920917 wstETH
+✅ Estimation complete. Expected: 0.000829675118435172 wstETH
+🛡️ Min amount out (2% slippage): 0.000813081616066468 wstETH
+💰 Checking token balances...
+✅ ETH balance sufficient: 0.030215022981492234 ETH (required: 0.00100075 ETH including gas)
 🚀 Executing fastStakeReferral with native payment...
-⏳ Transaction submitted: 0x5bd4366f22e1b1b8439a1e1f1fe05ee349653e91d990e41d396da231e7d1ff77
+⏳ Transaction submitted: 0xb70e3baf935dc1784c38bf67972b45a51a969896695fd5478c1e61affc1e387e
 📊 Waiting for confirmation...
-✅ Transaction confirmed in block 31470372
+✅ Transaction confirmed in block 31511221
 
 🎉 Transaction Successful!
 ════════════════════════════════════════════════════════════════════════════════
 📊 Transaction Details:
-  TX Hash: 0x5bd4366f22e1b1b8439a1e1f1fe05ee349653e91d990e41d396da231e7d1ff77
-  Block: 31470372
-  Gas Used: 146,808
-  Gas Price: 0.00476877 gwei
-  Gas Cost: 0.00000070009358616 ETH
-  Explorer: https://basescan.org/tx/0x5bd4366f22e1b1b8439a1e1f1fe05ee349653e91d990e41d396da231e7d1ff77
+  TX Hash: 0xb70e3baf935dc1784c38bf67972b45a51a969896695fd5478c1e61affc1e387e
+  Block: 31511221
+  Gas Used: 130,780
+  Gas Price: 0.002182505 gwei
+  Gas Cost: 0.0000002854280039 ETH
+  Explorer: https://basescan.org/tx/0xb70e3baf935dc1784c38bf67972b45a51a969896695fd5478c1e61affc1e387e
 
 💱 Staking Summary:
   Input: 0.001 ETH (native)
-  Output: 0.00082973950196012 wstETH
-  Effective Rate: 0.82973950196012 wstETH/ETH
+  Output: 0.000829675118435172 wstETH
+  Effective Rate: 0.829675118435172 wstETH/ETH
 
 💸 Fee Breakdown:
   Pool Fee: 0%
   Fee Amount: 0.0 WETH
-  Transaction Fee: 0.00000070009358616 ETH
+  Transaction Fee: 0.0000002854280039 ETH
 
 👥 Referral Event:
   User: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
   Referral: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
-  Amount Out: 0.00082973950196012 wstETH
+  Amount Out: 0.000829675118435172 wstETH
 
 🎯 Estimation vs Reality:
-  Estimated: 0.00082973950196012 wstETH
-  Actual: 0.00082973950196012 wstETH
+  Estimated: 0.000829675118435172 wstETH
+  Actual: 0.000829675118435172 wstETH
   Difference: 0.0 wstETH
   Relative Performance: 100.00%
 
@@ -515,6 +518,7 @@ Executes complete fastStakeReferral transactions using WETH payment with allowan
 **What it does**:
 
 - Creates wallet instance and validates parameters
+- Checks token balances to prevent failed transactions
 - Checks and manages WETH allowance automatically
 - Estimates transaction and calculates slippage protection
 - Executes fastStakeReferral with WETH payment
@@ -539,12 +543,15 @@ Explorer: https://basescan.org
 📊 Estimating transaction parameters...
 ✅ Estimation complete. Expected: 0.000082967511843517 wstETH
 🛡️ Min amount out (2% slippage): 0.000081308161606646 wstETH
+💰 Checking token balances...
+✅ ETH balance sufficient for gas: 0.029214733005181353 ETH
+✅ WETH balance sufficient: 0.0003 WETH (required: 0.0001 WETH)
 🔐 Checking TOKEN allowance for wrapped payment...
 ✅ Sufficient allowance already exists
 🚀 Executing fastStakeReferral with wrapped payment...
-⏳ Transaction submitted: 0xc16e46b21e14ac346dfe567d97a9e57aa81f35afb55b51457b1a0365eaedaf5a
+⏳ Transaction submitted: 0xea13231ffe3716119d7bcb1ec1c2f06a6c0e8635626d9ba14712a433a5b3ba7b
 📊 Waiting for confirmation...
-✅ Transaction confirmed in block 31472367
+✅ Transaction confirmed in block 31511318
 
 🎉 Transaction Successful!
 ════════════════════════════════════════════════════════════════════════════════
@@ -554,12 +561,12 @@ Explorer: https://basescan.org
   Current Allowance: Unlimited (MaxUint256)
 
 📊 Transaction Details:
-  TX Hash: 0xc16e46b21e14ac346dfe567d97a9e57aa81f35afb55b51457b1a0365eaedaf5a
-  Block: 31472367
+  TX Hash: 0xea13231ffe3716119d7bcb1ec1c2f06a6c0e8635626d9ba14712a433a5b3ba7b
+  Block: 31511318
   Gas Used: 133,306
-  Gas Price: 0.002498081 gwei
-  Gas Cost: 0.000000333009185786 ETH
-  Explorer: https://basescan.org/tx/0xc16e46b21e14ac346dfe567d97a9e57aa81f35afb55b51457b1a0365eaedaf5a
+  Gas Price: 0.002420067 gwei
+  Gas Cost: 0.000000322609451502 ETH
+  Explorer: https://basescan.org/tx/0xea13231ffe3716119d7bcb1ec1c2f06a6c0e8635626d9ba14712a433a5b3ba7b
 
 💱 Staking Summary:
   Input: 0.0001 WETH (wrapped)
@@ -569,7 +576,7 @@ Explorer: https://basescan.org
 💸 Fee Breakdown:
   Pool Fee: 0%
   Fee Amount: 0.0 WETH
-  Transaction Fee: 0.000000333009185786 ETH
+  Transaction Fee: 0.000000322609451502 ETH
 
 👥 Referral Event:
   User: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
