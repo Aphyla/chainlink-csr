@@ -229,40 +229,54 @@ If the OraclePool reverts with an `OraclePoolInvalidPrice` error code, then the 
 
 This repository uses yarn for package management and foundry for smart contract development.
 
+### Offchain Library
+
+For TypeScript utilities and off-chain tools, see the **[Offchain README](offchain/README.md)** which provides:
+- TypeScript code for interacting with the contracts
+- Examples for liquid staking protocols (Lido)
+- Fast stake estimation and execution tools
+- Pool monitoring and trading rate analysis
+
 ## Foundry Documentation
 
 https://book.getfoundry.sh/
 
 ### Environment Setup
 
-First, copy the `.env.example` file to `.env`.
+First, install dependencies:
 
 ```shell
-$ cp .env.example .env
+yarn install
 ```
 
-Then, update the `.env` file with the appropriate values.
+Then, copy the `.env.example` file to `.env`:
+
+```shell
+cp .env.example .env
+```
+
+Finally, update the `.env` file with the appropriate values.
 
 ### Build
 
 ```shell
-$ yarn build
+yarn build
 ```
 
 ### Test
 
 ```shell
-$ yarn test
+yarn test
 ```
 
 ### Deploy
 
 ```shell
-$ forge script --broadcast --verify --multi <path-to-script>
+forge script --broadcast --verify --multi <path-to-script>
 ```
 
 If the deployment fails, you can resume the deployment from the last failed transaction by running the following command:
 
 ```shell
-$ forge script --broadcast --verify --multi --resume <path-to-script>
+forge script --broadcast --verify --multi --resume <path-to-script>
 ```
