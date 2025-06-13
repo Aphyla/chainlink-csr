@@ -35,16 +35,13 @@ Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base ne
    yarn build
    ```
 
-4. **Run examples**
+4. **Try examples**
+
    ```bash
-   yarn example:lido:estimate-faststake      # Test fast stake estimation
-   yarn example:lido:pool          # Check pool balances
-   yarn example:lido:trading       # View current trading rates
-   yarn example:lido:allowance     # Check TOKEN allowances
-   yarn example:lido:fast-stake-native  # Execute with native ETH
-   yarn example:lido:fast-stake-wrapped # Execute with WETH
-   yarn example:lido:estimate-slowstake   # SlowStake fee estimation (multi-chain)
+   yarn example:lido:estimate-faststake      # Basic estimation example
    ```
+
+   For complete examples and documentation, see [`src/examples/`](src/examples/)
 
 ## Documentation
 
