@@ -40,6 +40,8 @@ export const TESTING_AMOUNTS = {
   STANDARD: parseEther('0.01'),
   /** Larger test amount (0.1 ETH) */
   LARGE: parseEther('0.1'),
+  /** Large amount for testing (1 ETH) */
+  XLARGE: parseEther('1'),
 } as const;
 
 /**
@@ -59,8 +61,8 @@ export const SLOWSTAKE_GAS_LIMIT_MULTIPLIER = 13;
  * estimation and execution (10% buffer = 110/100).
  */
 export const SLOWSTAKE_FEE_BUFFER = {
-  /** Fee buffer percentage (110% = 10% buffer) */
-  PERCENTAGE: 110n,
+  /** Fee buffer percentage (120% = 20% buffer) */
+  PERCENTAGE: 120n,
   /** Divisor for percentage calculation */
   DIVISOR: 100n,
 } as const;

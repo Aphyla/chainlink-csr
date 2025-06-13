@@ -4,25 +4,38 @@ Examples for interacting with Lido's liquid staking protocol using the ChainLink
 
 ## Overview
 
-Lido protocol allows users to stake ETH and receive wstETH (wrapped staked ETH) in return. These examples demonstrate fast staking operations where users get wstETH immediately from a pool rather than waiting for L1 staking.
+Lido protocol allows users to stake ETH and receive wstETH (wrapped staked ETH) in return. These examples demonstrate two staking approaches:
+
+- **Fast Staking**: Instant swaps via oracle pools (when liquidity is available)
+- **Slow Staking**: Cross-chain operations via Chainlink CCIP (~50 minutes, always available)
 
 **Protocol Details**:
 
-- **Input Token**: WETH (Wrapped Ether)
+- **Input Token**: WETH (Wrapped Ether) or native ETH
 - **Output Token**: wstETH (Wrapped Staked Ether)
-- **Networks**: Optimism, Arbitrum One, Base
+- **Networks**: Optimism, Arbitrum One, Base → Ethereum → Origin
 - **Price Source**: Chainlink wstETH/WETH oracle
+- **Cross-chain**: Chainlink CCIP for slow staking
 
 ## Quick Start
 
 ```bash
+# Information & Analysis
 yarn example:lido:estimate-faststake      # Fast stake estimation
-yarn example:lido:estimate-slowstake   # SlowStake fee estimation (multi-chain)
-yarn example:lido:pool          # Pool balance monitoring
-yarn example:lido:trading       # Trading rate analysis
-yarn example:lido:allowance     # TOKEN allowance checking
-yarn example:lido:fast-stake-native  # Execute fastStake with native ETH
-yarn example:lido:fast-stake-wrapped # Execute fastStake with WETH
+yarn example:lido:estimate-slowstake      # Slow stake fee estimation
+yarn example:lido:pool                    # Pool balance monitoring
+yarn example:lido:trading                 # Trading rate analysis
+yarn example:lido:allowance               # TOKEN allowance checking
+
+# Fast Stake Execution (Instant via oracle pools)
+yarn example:lido:fast-stake-native       # Fast stake with native ETH
+yarn example:lido:fast-stake-wrapped      # Fast stake with WETH
+
+# Slow Stake Execution (Cross-chain via CCIP, ~50 min total)
+yarn example:lido:slow-stake-native       # Slow stake with native ETH
+yarn example:lido:slow-stake-native-link  # Slow stake with native ETH + LINK
+yarn example:lido:slow-stake-wrapped-native # Slow stake with WETH + native ETH
+yarn example:lido:slow-stake-wrapped-link      # Slow stake with WETH + LINK
 ```
 
 ## Examples
@@ -285,6 +298,245 @@ Explorer: https://basescan.org
   Output Token: wstETH (0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452)
 ```
 
+### 7. Slow Stake Fee Estimation (`slowStakeEstimateExample.ts`)
+
+Calculates cross-chain fees and requirements for slow stake operations.
+
+**What it does**:
+
+- Estimates CCIP fees for Origin → Destination bridging
+- Calculates bridge fees for Destination → Origin return
+- Shows total ETH/LINK requirements breakdown
+- Provides timing expectations (~50 minutes total)
+
+**Use case**: Calculate costs before cross-chain staking
+
+**Sample output**:
+
+```
+🐌 Slow Stake Fee Estimation for Lido on Base
+
+💸 Fee Breakdown:
+  Staking Amount: 0.001 ETH
+  CCIP Fee (O→D): 0.003055091568389173 ETH
+  Bridge Fee (D→O): 0.0 ETH
+  Total ETH Required: 0.004055091568389173 ETH
+
+⏰ Timing Expectations:
+  Origin → Destination: 10-20 minutes
+  Destination → Origin: 30-40 minutes
+  Total Round Trip: ~50 minutes
+```
+
+### 8. Slow Stake Execution - Native ETH (`slowStakeNativeExample.ts`)
+
+Executes complete cross-chain liquid staking using only native ETH.
+
+**What it does**:
+
+- Creates CCIP message for cross-chain execution
+- Pays all fees (staking + CCIP + bridge) in native ETH
+- Provides comprehensive tracking instructions
+- Monitors complete O→D→O journey
+
+**Use case**: Cross-chain staking with simple single-token payment
+
+**Sample output**:
+
+```
+🐌 SlowStake with Native ETH on Base
+📱 Using wallet: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+💰 Staking amount: 0.001 ETH
+🔗 CCIP fee payment: native ETH
+
+🎉 SlowStake Transaction Successful!
+📊 Transaction Details:
+  TX Hash: 0x4aa7d4e4ff650febe32aec89b3132efc582d7d30e42343ec1c99d1ac2dfe67e2
+  Message ID: 0x3e44ae54221139386ca4e22bcfe6600b7d47bc6af446e72ad549ede0a9a2c752
+
+📍 How to Track Your Cross-Chain Transaction:
+🔗 Step 1: Track CCIP Message (Origin → Destination)
+   Monitor: https://ccip.chain.link/msg/0x3e44ae54221139386ca4e22bcfe6600b7d47bc6af446e72ad549ede0a9a2c752
+   Wait for status to show "Success" (usually 10-20 minutes)
+
+🏛️ Step 2: Verify Ethereum Execution
+   Once CCIP shows "Success", click "View on Destination Chain"
+   Look for "BaseL1toL2MessageSent" event in the transaction logs
+
+🔄 Step 3: Wait for Return Bridge (Destination → Origin)
+   The canonical bridge will deliver wstETH back to you
+   This usually takes 30-40 additional minutes
+```
+
+### 9. Slow Stake Execution - Native + LINK (`slowStakeNativeLinkExample.ts`)
+
+Executes cross-chain staking with native ETH for staking and LINK for CCIP fees.
+
+**What it does**:
+
+- Uses native ETH for staking (simple, no conversion needed)
+- Pays CCIP fees with LINK tokens (potentially lower costs)
+- Manages LINK allowances automatically
+- Demonstrates cost optimization approach
+- Provides detailed fee structure analysis
+
+**Use case**: Cross-chain staking with simple native staking but optimized CCIP costs
+
+**Key features**:
+
+- Native ETH for staking amount (no allowance needed)
+- LINK for CCIP fees (potential cost savings)
+- ETH for bridge fees (standard)
+- Single allowance management (LINK only)
+- Comprehensive balance checking for both tokens
+
+**Sample output**:
+
+```
+🐌 SlowStake with Native ETH + LINK CCIP on Base
+📱 Using wallet: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+💰 Staking amount: 0.001 ETH
+🔗 CCIP fee payment: LINK tokens
+
+💰 Checking token balances...
+✅ ETH balance sufficient: 0.03121606974466467 ETH (required: 0.001 ETH)
+✅ LINK balance sufficient: 2.0 LINK (required: 0.803772622769855162 LINK)
+
+🎉 SlowStake Transaction Successful!
+📊 Transaction Details:
+  TX Hash: 0x8719c9332a04ac003a8d98a68d62b6df20ac2754996c6b612c548f25283bed41
+  Message ID: 0x11b0de23d60abda8d8c600885016191ca0efa36cc0791e68147f51e93b71c7cb
+
+💰 Fee Structure Analysis:
+  Staking Amount: 0.001 ETH
+  CCIP Fee (O→D): 0.803772622769855162 LINK
+  Bridge Fee (D→O): 0.0 ETH
+
+💡 Cost Comparison:
+  This Method (Native ETH + LINK):
+    ETH: 0.001 ETH (staking) + 0.0 ETH (bridge)
+    LINK: 0.803772622769855162 LINK (CCIP fees)
+  Alternative (All Native ETH): Would require 0 LINK but higher ETH costs
+  Alternative (WETH + LINK): Would require WETH approval and conversion
+```
+
+### 10. Slow Stake Execution - Wrapped + Native (`slowStakeWrappedNativeExample.ts`)
+
+Executes cross-chain staking with WETH for staking and native ETH for CCIP fees.
+
+**What it does**:
+
+- Uses WETH for precise staking amount
+- Pays CCIP fees with native ETH for simplicity
+- Manages WETH allowances automatically
+- Demonstrates hybrid payment approach
+- Provides detailed cross-chain tracking
+
+**Use case**: Cross-chain staking with wrapped tokens but simplified fee payment
+
+**Key features**:
+
+- WETH for staking amount (precise, no conversion)
+- Native ETH for CCIP fees (no allowance needed)
+- ETH for bridge fees (standard)
+- Single allowance management (WETH only)
+- Comprehensive cross-chain monitoring
+
+**Sample output**:
+
+```
+🐌 SlowStake with Wrapped Native + Native CCIP on Base
+📱 Using wallet: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+💰 Staking amount: 0.0001 WETH
+🔗 CCIP fee payment: NATIVE ETH
+
+💰 Checking token balances...
+✅ ETH balance sufficient: 0.034750654117750253 ETH (required: 0.004341398653008682 ETH)
+✅ WETH balance sufficient: 0.0005 WETH (required: 0.0001 WETH)
+
+🎉 SlowStake Transaction Successful!
+📊 Transaction Details:
+  TX Hash: 0x95c75479092391fb8718d964ee2d0f0773f83e63bd29ad4d6738b98627348b35
+  Message ID: 0x98666a1786fc2eb7cfef03507d62a02e79d3b799b08be61026d979f52e01bfdc
+
+📋 Contract Call Details:
+  Token: 0x4200000000000000000000000000000000000006 (WETH)
+  Amount: 0.0001 WETH
+  Total ETH Value: 0.004341398653008682 ETH (CCIP + bridge fees)
+
+💰 Fee Structure Analysis:
+  Staking Amount: 0.0001 WETH
+  CCIP Fee (O→D): 0.004241398653008682 ETH
+  Bridge Fee (D→O): 0.0 ETH
+
+💡 Cost Comparison:
+  This Method (WETH + Native CCIP):
+    WETH: 0.0001 WETH
+    ETH: 0.004341398653008682 ETH
+  Alternative (All Native ETH): Would require 0.004341398653008682 ETH total
+  Alternative (WETH + LINK): Would require WETH + LINK + bridge ETH
+```
+
+### 11. Slow Stake Execution - Wrapped + LINK (`slowStakeWrappedLinkExample.ts`)
+
+Executes cross-chain staking with WETH for staking and LINK for CCIP fees.
+
+**What it does**:
+
+- Manages dual-token allowances (WETH + LINK)
+- Splits fee payments across multiple tokens
+- Demonstrates complex cross-chain coordination
+- Provides detailed tracking for multi-token flows
+
+**Use case**: Advanced cross-chain staking with optimized fee payments
+
+**Key features**:
+
+- WETH for staking amount (precise, no conversion)
+- LINK for CCIP fees (potential cost savings)
+- ETH for bridge fees (standard)
+- Dual allowance management (WETH + LINK)
+- Comprehensive balance checking for all three tokens
+
+**Sample output**:
+
+```
+🐌 SlowStake with Wrapped Native + LINK on Base
+📱 Using wallet: 0x2Ae947aDC044091EE1b8D4FB8262308C6A4F34E0
+💰 Staking amount: 0.0001 WETH
+🔗 CCIP fee payment: LINK tokens
+
+💰 Checking token balances...
+✅ ETH balance sufficient: 0.030215541974439636 ETH (required: 0.0001 ETH)
+✅ WETH balance sufficient: 0.0004 WETH (required: 0.0001 WETH)
+✅ LINK balance sufficient: 1.330269620430506932 LINK (required: 0.803772622769855162 LINK)
+
+🎉 SlowStake Transaction Successful!
+📊 Transaction Details:
+  TX Hash: 0x3fcbd84718d85c7c39daf9b05f9d9370b4112af7afeae4c19e8e562581bca8aa
+  Message ID: 0x09fe306b48af4c02a0cdd940a6b29547c16a34c753a3be6eec434d5b594b6c7f
+
+🔐 Allowance Management Summary:
+  WETH Allowances:
+    Initial: Unlimited (MaxUint256)
+    ✅ Sufficient Allowance Existed
+  LINK Allowances:
+    Initial: Unlimited (MaxUint256)
+    ✅ Sufficient Allowance Existed
+
+💰 Fee Structure Analysis:
+  Staking Amount: 0.0001 WETH
+  CCIP Fee (O→D): 0.803772622769855162 LINK
+  Bridge Fee (D→O): 0.0 ETH
+
+💡 Cost Comparison:
+  This Method (WETH + LINK):
+    WETH: 0.0001 WETH
+    LINK: 0.803772622769855162 LINK
+    ETH: 0.0001 ETH
+  Alternative (All Native ETH): Would require 0.803872622769855162 ETH total
+```
+
 ## Configuration
 
 All examples use the Lido protocol configuration:
@@ -301,10 +553,19 @@ const result = await estimateFastStake({
 
 ## Contract Architecture
 
-**CustomSender**: Entry point for fast stake operations
+### Fast Stake Components
+
+**CustomSender**: Entry point for both fast and slow stake operations
 **OraclePool**: Manages WETH ↔ wstETH swaps and maintains liquidity
 **PriceOracle**: Chainlink price feed providing wstETH/WETH exchange rates
 **Tokens**: WETH (input) and wstETH (output) token contracts
+
+### Slow Stake Components
+
+**CCIP Router**: Chainlink cross-chain infrastructure for O→D messaging
+**Bridge Adapters**: Protocol-specific bridges for D→O return (Base, Arbitrum, Optimism)
+**Fee Codecs**: Encoding/decoding for complex multi-chain fee structures
+**Receiver Contracts**: Ethereum contracts handling staking and return bridging
 
 ## Pool Mechanics
 
@@ -312,6 +573,17 @@ const result = await estimateFastStake({
 2. **Pool Sync**: Accumulated WETH is periodically staked on L1 Ethereum to mint new wstETH
 3. **Liquidity**: Pool maintains wstETH reserves for instant swaps
 4. **Fees**: Currently 0% for Lido pools (configurable per pool)
+
+## Cross-Chain Mechanics (Slow Stake)
+
+1. **Origin → Destination (O→D)**: ETH/WETH sent to Ethereum via Chainlink CCIP (~10-20 min)
+2. **L1 Staking**: On Ethereum, ETH is staked with Lido to receive stETH, then wrapped to wstETH
+3. **Destination → Origin (D→O)**: wstETH bridged back via canonical bridges (~30-40 min)
+4. **Fee Structure**:
+   - CCIP fees (paid in ETH or LINK)
+   - Bridge fees (usually ETH, varies by destination chain)
+   - No protocol fees for slow staking
+5. **Tracking**: Full transparency via CCIP Explorer and bridge monitoring
 
 ## Oracle Data
 
@@ -329,27 +601,60 @@ const result = await estimateFastStake({
 
 ## Integration Tips
 
+### General Setup
+
 1. **Set up environment**: Create `.env` file with `PRIVATE_KEY=your_private_key_here` for automatic wallet usage
-2. **Choose payment method**: Native ETH for simplicity, WETH for precision and integration
-3. **Check liquidity first**: Use pool balance queries before large transactions
-4. **Verify allowances**: Check TOKEN allowances before wrapped token operations
+2. **Choose staking method**: Fast stake for speed (when liquidity available), slow stake for reliability (always works)
+3. **Test small amounts**: Start with small stakes (0.01 ETH) for testing
+
+### Fast Stake Tips
+
+4. **Check liquidity first**: Use pool balance queries before large transactions
 5. **Monitor pool health**: High WETH ratios indicate pools need sync operations
-6. **Handle rate changes**: Oracle rates update daily and may fluctuate
-7. **Set slippage tolerance**: 1-3% typical for stable conditions, higher during volatility
-8. **Use Base for testing**: Generally has good liquidity and lower gas costs
-9. **Factor gas costs**: Consider L2 transaction costs and approval overhead
-10. **Test small amounts**: Start with small stakes (0.01 ETH) for testing
+6. **Set slippage tolerance**: 1-3% typical for stable conditions, higher during volatility
+7. **Handle rate changes**: Oracle rates update daily and may fluctuate
+
+### Slow Stake Tips
+
+8. **Estimate fees first**: Use slow stake estimation to understand total costs (~3-5x staking amount)
+9. **Choose fee payment method**:
+   - Native ETH + Native ETH: Simplest approach, one token type
+   - Native ETH + LINK: Simple staking, potentially lower CCIP costs
+   - WETH + Native ETH: Precise staking amount, simple fees
+   - WETH + LINK: Maximum precision, potentially lowest costs, most complex
+10. **Track with CCIP Explorer**: Monitor progress at https://ccip.chain.link/msg/{messageId}
+11. **Expect ~50 minute total time**: Plan for 10-20 min O→D + 30-40 min D→O
+12. **Verify allowances**: WETH needs approval for wrapped variants, LINK needs approval for LINK fee payment
+
+### Common to Both
+
+13. **Choose payment method**: Native ETH for simplicity, wrapped tokens for precision
+14. **Use Base for testing**: Generally has good liquidity and lower gas costs
+15. **Factor gas costs**: Consider L2 transaction costs and approval overhead
 
 ## Common Issues
 
+### Fast Stake Issues
+
 **Insufficient liquidity**: Pool may not have enough wstETH for large swaps
 **Stale oracle data**: Check heartbeat to ensure recent price updates
-**Insufficient allowance**: WETH operations require token approval first
 **High slippage**: Transaction fails if actual rate exceeds minAmountOut
+
+### Slow Stake Issues
+
+**High CCIP fees**: Cross-chain fees can be 3-5x the staking amount
+**CCIP message failures**: Check CCIP Explorer if transaction doesn't appear
+**Bridge delays**: D→O return can take longer during network congestion
+**Insufficient LINK**: Ensure adequate LINK balance for CCIP fee payments
+**Multiple allowances needed**: Both WETH and LINK require approvals
+
+### General Issues
+
+**Insufficient allowance**: Token operations require approval first
 **Gas estimation errors**: Network congestion can cause gas estimation failures
 **Private key missing**: Execution examples require PRIVATE_KEY environment variable
 **RPC rate limits**: Use dedicated RPC providers for production usage
-**Network differences**: Each chain has different pool liquidity levels
+**Network differences**: Each chain has different pool liquidity and fee levels
 
 ## External Resources
 

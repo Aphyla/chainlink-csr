@@ -1,6 +1,11 @@
 import type { SupportedChainId } from '@/types';
 
 /**
+ * CCIP Explorer URL for tracking cross-chain messages
+ */
+export const CCIP_EXPLORER_URL = 'https://ccip.chain.link';
+
+/**
  * CCIP Chain selectors for supported networks
  * These are used for cross-chain messaging via Chainlink CCIP
  */
