@@ -56,10 +56,125 @@ Calculates expected wstETH output for given WETH input amounts.
 **Sample output**:
 
 ```
-Testing Lido Fast Stake Estimation on Base
-Estimating 1.0 WETH...
-Expected Output: 0.829739 wstETH
-Pool Liquidity: ✅ Sufficient
+🔍 Testing Lido Fast Stake Estimation on Base
+Explorer: https://basescan.org
+
+💰 Estimating 0.1 WETH...
+📋 Contract Details:
+  CustomSender: 0x328de900860816d29D1367F6903a24D8ed40C997
+  OraclePool: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  PriceOracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367
+  WNATIVE: 0x4200000000000000000000000000000000000006
+  LINK Token: 0x88Fb150BDc53A65fe94Dea0c9BA0a6dAf8C6e196
+
+🪙 Tokens:
+  TOKEN_IN:  WETH (Wrapped Ether)
+             0x4200000000000000000000000000000000000006
+             Decimals: 18
+  TOKEN_OUT: wstETH (Wrapped liquid staked Ether 2.0)
+             0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452
+             Decimals: 18
+
+💸 Fee Analysis:
+  Fee Rate: 0%
+  Fee Amount: 0.0 WETH
+  Amount After Fee: 0.1 WETH
+
+📈 Pricing:
+  Oracle Price: 1.205291056439143428 (WETH per wstETH)
+  Is Inverse: false
+  Heartbeat: 86400 seconds
+  Effective Rate: 0.82967511843517208 wstETH/WETH
+
+🏊 Pool Liquidity:
+  Available wstETH: 31.432578849217100358
+  Sufficient Liquidity: ✅ Yes
+  Pool Sender: 0x328de900860816d29D1367F6903a24D8ed40C997
+
+🎯 Expected Output:
+  You'll receive: 0.082967511843517208 wstETH
+════════════════════════════════════════════════════════════════════════════════
+
+💰 Estimating 1.0 WETH...
+📋 Contract Details:
+  CustomSender: 0x328de900860816d29D1367F6903a24D8ed40C997
+  OraclePool: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  PriceOracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367
+  WNATIVE: 0x4200000000000000000000000000000000000006
+  LINK Token: 0x88Fb150BDc53A65fe94Dea0c9BA0a6dAf8C6e196
+
+🪙 Tokens:
+  TOKEN_IN:  WETH (Wrapped Ether)
+             0x4200000000000000000000000000000000000006
+             Decimals: 18
+  TOKEN_OUT: wstETH (Wrapped liquid staked Ether 2.0)
+             0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452
+             Decimals: 18
+
+💸 Fee Analysis:
+  Fee Rate: 0%
+  Fee Amount: 0.0 WETH
+  Amount After Fee: 1.0 WETH
+
+📈 Pricing:
+  Oracle Price: 1.205291056439143428 (WETH per wstETH)
+  Is Inverse: false
+  Heartbeat: 86400 seconds
+  Effective Rate: 0.82967511843517208 wstETH/WETH
+
+🏊 Pool Liquidity:
+  Available wstETH: 31.432578849217100358
+  Sufficient Liquidity: ✅ Yes
+  Pool Sender: 0x328de900860816d29D1367F6903a24D8ed40C997
+
+🎯 Expected Output:
+  You'll receive: 0.82967511843517208 wstETH
+════════════════════════════════════════════════════════════════════════════════
+
+💰 Estimating 5.0 WETH...
+📋 Contract Details:
+  CustomSender: 0x328de900860816d29D1367F6903a24D8ed40C997
+  OraclePool: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  PriceOracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367
+  WNATIVE: 0x4200000000000000000000000000000000000006
+  LINK Token: 0x88Fb150BDc53A65fe94Dea0c9BA0a6dAf8C6e196
+
+🪙 Tokens:
+  TOKEN_IN:  WETH (Wrapped Ether)
+             0x4200000000000000000000000000000000000006
+             Decimals: 18
+  TOKEN_OUT: wstETH (Wrapped liquid staked Ether 2.0)
+             0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452
+             Decimals: 18
+
+💸 Fee Analysis:
+  Fee Rate: 0%
+  Fee Amount: 0.0 WETH
+  Amount After Fee: 5.0 WETH
+
+📈 Pricing:
+  Oracle Price: 1.205291056439143428 (WETH per wstETH)
+  Is Inverse: false
+  Heartbeat: 86400 seconds
+  Effective Rate: 0.82967511843517208 wstETH/WETH
+
+🏊 Pool Liquidity:
+  Available wstETH: 31.432578849217100358
+  Sufficient Liquidity: ✅ Yes
+  Pool Sender: 0x328de900860816d29D1367F6903a24D8ed40C997
+
+🎯 Expected Output:
+  You'll receive: 4.148375592175860402 wstETH
+════════════════════════════════════════════════════════════════════════════════
+
+💡 Understanding the Calculation:
+   1. Fee Deduction: amountAfterFee = amountIn - (amountIn * feeRate / 1e18)
+   2. Price Conversion: amountOut = amountAfterFee * 1e18 / oraclePrice
+   3. Liquidity Check: amountOut <= availableBalance
+
+🔗 The oracle price represents the cost in TOKEN_IN to buy 1 TOKEN_OUT.
+   For Lido: How much WETH it costs to buy 1 wstETH (currently ~1.205 WETH)
+   Therefore: 1 WETH buys 1/oraclePrice wstETH (currently ~0.829 wstETH)
 ```
 
 ### 2. Pool Balance Monitoring (`poolBalanceExample.ts`)
@@ -78,12 +193,84 @@ Checks current token balances in Lido pools across all supported networks.
 **Sample output**:
 
 ```
-Lido Pool Balance Query
-Checking Base (Chain ID: 8453)
-WETH: 0.151001 WETH
-wstETH: 31.433574 wstETH
-Balance Ratio: 208.168 wstETH/WETH
-Status: ✅ Pool appears healthy
+🏊 Lido Pool Balance Query
+════════════════════════════════════════════════════════════
+
+🔍 Found 3 chains with Lido protocol support
+
+🔍 Checking Optimism (Chain ID: 10)
+Explorer: https://optimistic.etherscan.io
+
+📋 Contract Info:
+  Pool Address: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  Sender Address: 0x328de900860816d29D1367F6903a24D8ed40C997
+
+💰 WETH (Wrapped Ether):
+  Address: 0x4200000000000000000000000000000000000006
+  Balance: 2.123188824861682765 WETH
+  Decimals: 18
+
+🪙 wstETH (Wrapped liquid staked Ether 2.0):
+  Address: 0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb
+  Balance: 29.765011924524077668 wstETH
+  Decimals: 18
+
+📊 Pool Composition:
+  Balance Ratio: 14.019 wstETH/WETH
+  Status: ✅ Pool appears healthy
+════════════════════════════════════════════════════════════
+
+🔍 Checking Arbitrum One (Chain ID: 42161)
+Explorer: https://arbiscan.io
+
+📋 Contract Info:
+  Pool Address: 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace
+  Sender Address: 0x72229141D4B016682d3618ECe47c046f30Da4AD1
+
+💰 WETH (Wrapped Ether):
+  Address: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1
+  Balance: 0.510057435046545512 WETH
+  Decimals: 18
+
+🪙 wstETH (Wrapped liquid staked Ether 2.0):
+  Address: 0x5979D7b546E38E414F7E9822514be443A4800529
+  Balance: 31.133239681269691727 wstETH
+  Decimals: 18
+
+📊 Pool Composition:
+  Balance Ratio: 61.039 wstETH/WETH
+  Status: ✅ Pool appears healthy
+════════════════════════════════════════════════════════════
+
+🔍 Checking Base (Chain ID: 8453)
+Explorer: https://basescan.org
+
+📋 Contract Info:
+  Pool Address: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  Sender Address: 0x328de900860816d29D1367F6903a24D8ed40C997
+
+💰 WETH (Wrapped Ether):
+  Address: 0x4200000000000000000000000000000000000006
+  Balance: 0.152201 WETH
+  Decimals: 18
+
+🪙 wstETH (Wrapped liquid staked Ether 2.0):
+  Address: 0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452
+  Balance: 31.432578849217100358 wstETH
+  Decimals: 18
+
+📊 Pool Composition:
+  Balance Ratio: 206.520 wstETH/WETH
+  Status: ✅ Pool appears healthy
+════════════════════════════════════════════════════════════
+
+💡 Understanding Pool Balances:
+   • TOKEN_IN (WETH): Accumulates from user fast stakes
+   • TOKEN_OUT (wstETH): Available for immediate swaps
+   • High TOKEN_IN balance indicates need for sync operation
+   • Low TOKEN_OUT balance may cause fast stake failures
+
+🔄 The sync operation moves TOKEN_IN to L1 for staking and refills TOKEN_OUT
 ```
 
 ### 3. Trading Rate Analysis (`tradingRateExample.ts`)
@@ -102,10 +289,115 @@ Analyzes current exchange rates and fee structures.
 **Sample output**:
 
 ```
-Lido Trading Rate Query
-Trading Pair: WETH → wstETH
-Oracle Rate: 1 WETH = 1.205197 wstETH
-Effective Rate: 1 WETH = 1.205197 wstETH (0% fee)
+💱 Lido Trading Rate Query
+════════════════════════════════════════════════════════════
+
+🔍 Found 3 chains with Lido protocol support
+
+🔍 Checking Optimism (Chain ID: 10)
+Explorer: https://optimistic.etherscan.io
+
+📋 Contract Info:
+  Pool: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  Sender: 0x328de900860816d29D1367F6903a24D8ed40C997
+  Oracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367
+
+🔄 Trading Pair: WETH → wstETH
+
+🔮 Oracle Information:
+  Oracle Price: 1.205291056439143428 (WETH per wstETH)
+  Heartbeat: 86400 seconds (1 day)
+  Decimals: 18
+
+💰 Fee Information:
+  Fee Rate: 0.00%
+  Fee (raw): 0 (1e18 scale)
+
+📊 Exchange Rates:
+  Oracle Rate: 1 wstETH = 1.205291056439143428 WETH
+  Effective Rate: 1 WETH = 0.82967511843517208 wstETH
+  Impact: After 0.00% fee
+
+📖 Example (1 WETH):
+  Input: 1.000000 WETH
+  Fee: 0.000000 WETH (0.00%)
+  After fee: 1.000000 WETH
+  Final output: 0.829675 wstETH
+  ✅ Matches effective rate: 0.829675
+════════════════════════════════════════════════════════════
+
+🔍 Checking Arbitrum One (Chain ID: 42161)
+Explorer: https://arbiscan.io
+
+📋 Contract Info:
+  Pool: 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace
+  Sender: 0x72229141D4B016682d3618ECe47c046f30Da4AD1
+  Oracle: 0x328de900860816d29D1367F6903a24D8ed40C997
+
+🔄 Trading Pair: WETH → wstETH
+
+🔮 Oracle Information:
+  Oracle Price: 1.205291056439143428 (WETH per wstETH)
+  Heartbeat: 86400 seconds (1 day)
+  Decimals: 18
+
+💰 Fee Information:
+  Fee Rate: 0.00%
+  Fee (raw): 0 (1e18 scale)
+
+📊 Exchange Rates:
+  Oracle Rate: 1 wstETH = 1.205291056439143428 WETH
+  Effective Rate: 1 WETH = 0.82967511843517208 wstETH
+  Impact: After 0.00% fee
+
+📖 Example (1 WETH):
+  Input: 1.000000 WETH
+  Fee: 0.000000 WETH (0.00%)
+  After fee: 1.000000 WETH
+  Final output: 0.829675 wstETH
+  ✅ Matches effective rate: 0.829675
+════════════════════════════════════════════════════════════
+
+🔍 Checking Base (Chain ID: 8453)
+Explorer: https://basescan.org
+
+📋 Contract Info:
+  Pool: 0x6F357d53d6bE3238180316BA5F8f11467e164588
+  Sender: 0x328de900860816d29D1367F6903a24D8ed40C997
+  Oracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367
+
+🔄 Trading Pair: WETH → wstETH
+
+🔮 Oracle Information:
+  Oracle Price: 1.205291056439143428 (WETH per wstETH)
+  Heartbeat: 86400 seconds (1 day)
+  Decimals: 18
+
+💰 Fee Information:
+  Fee Rate: 0.00%
+  Fee (raw): 0 (1e18 scale)
+
+📊 Exchange Rates:
+  Oracle Rate: 1 wstETH = 1.205291056439143428 WETH
+  Effective Rate: 1 WETH = 0.82967511843517208 wstETH
+  Impact: After 0.00% fee
+
+📖 Example (1 WETH):
+  Input: 1.000000 WETH
+  Fee: 0.000000 WETH (0.00%)
+  After fee: 1.000000 WETH
+  Final output: 0.829675 wstETH
+  ✅ Matches effective rate: 0.829675
+════════════════════════════════════════════════════════════
+
+💡 Understanding Trading Rates:
+   • Oracle Rate: Market price from price oracle
+   • Pool Fee: Small percentage taken by the pool
+   • Effective Rate: What you actually receive after fees
+   • Heartbeat: How often oracle updates (freshness)
+
+🔄 This rate applies to fast staking operations only
+💰 Slow staking bypasses pool and has different rates
 ```
 
 ### 4. TOKEN Allowance Checking (`allowanceExample.ts`)
@@ -314,18 +606,167 @@ Calculates cross-chain fees and requirements for slow stake operations.
 **Sample output**:
 
 ```
-🐌 Slow Stake Fee Estimation for Lido on Base
+🔍 SlowStake Fee Estimation Example - Lido Protocol
+==================================================
+
+🌐 SlowStake is supported on 3 chains:
+  • Optimism
+  • Arbitrum One
+  • Base
+
+📋 Configuration:
+  Protocol: lido
+  Amount: 0.01 ETH
+  Payment Method: native
+
+🔄 Comparing CCIP Fee Payment Methods:
+
+💰 CCIP Fees Paid in Native Tokens (ETH)
+==================================================
+
+🌐 Multi-Chain Fee Comparison (CCIP fees in NATIVE)
+=================================================================
+
+📋 Testing slowStake on 3 supported chains:
+  • Optimism
+  • Arbitrum One
+  • Base
+
+
+🔍 Estimating fees for Optimism...
+✅ Fee estimation completed!
 
 💸 Fee Breakdown:
-  Staking Amount: 0.001 ETH
-  CCIP Fee (O→D): 0.003055091568389173 ETH
+  Staking Amount: 0.01 ETH
+  CCIP Fee (O→D): 0.003660546697577025 ETH
   Bridge Fee (D→O): 0.0 ETH
-  Total ETH Required: 0.004055091568389173 ETH
 
-⏰ Timing Expectations:
-  Origin → Destination: 10-20 minutes
-  Destination → Origin: 30-40 minutes
-  Total Round Trip: ~50 minutes
+💰 Requirements:
+  ETH Required: 0.013660546697577025 ETH
+
+⚙️ Configuration:
+  Payment Method: native
+  CCIP Fee Payment: native
+  Gas Limit: 975 000
+
+
+🔍 Estimating fees for Arbitrum One...
+✅ Fee estimation completed!
+
+💸 Fee Breakdown:
+  Staking Amount: 0.01 ETH
+  CCIP Fee (O→D): 0.003718601628171026 ETH
+  Bridge Fee (D→O): 0.0145 ETH
+
+💰 Requirements:
+  ETH Required: 0.028218601628171026 ETH
+
+⚙️ Configuration:
+  Payment Method: native
+  CCIP Fee Payment: native
+  Gas Limit: 975 000
+
+
+🔍 Estimating fees for Base...
+✅ Fee estimation completed!
+
+💸 Fee Breakdown:
+  Staking Amount: 0.01 ETH
+  CCIP Fee (O→D): 0.003116936361252889 ETH
+  Bridge Fee (D→O): 0.0 ETH
+
+💰 Requirements:
+  ETH Required: 0.013116936361252889 ETH
+
+⚙️ Configuration:
+  Payment Method: native
+  CCIP Fee Payment: native
+  Gas Limit: 975 000
+
+📊 Comparison Summary:
+Chain          ETH Required        CCIP Fee (ETH)      Bridge Fee
+---------------------------------------------------------------------------
+Optimism       0.013660546697577025 ETH0.003660546697577025 ETH0.0 ETH
+Arbitrum One   0.028218601628171026 ETH0.003718601628171026 ETH0.0145 ETH
+Base           0.013116936361252889 ETH0.003116936361252889 ETH0.0 ETH
+
+💡 Most economical: Base (0.013116936361252889 ETH)
+
+
+🔗 CCIP Fees Paid in LINK Tokens
+==================================================
+
+🌐 Multi-Chain Fee Comparison (CCIP fees in LINK)
+=================================================================
+
+📋 Testing slowStake on 3 supported chains:
+  • Optimism
+  • Arbitrum One
+  • Base
+
+
+🔍 Estimating fees for Optimism...
+✅ Fee estimation completed!
+
+💸 Fee Breakdown:
+  Staking Amount: 0.01 ETH
+  CCIP Fee (O→D): 0.693741349896691656 LINK
+  Bridge Fee (D→O): 0.0 ETH
+
+💰 Requirements:
+  ETH Required: 0.01 ETH
+  LINK Required: 0.693741349896691656 LINK
+
+⚙️ Configuration:
+  Payment Method: native
+  CCIP Fee Payment: link
+  Gas Limit: 975 000
+
+
+🔍 Estimating fees for Arbitrum One...
+✅ Fee estimation completed!
+
+💸 Fee Breakdown:
+  Staking Amount: 0.01 ETH
+  CCIP Fee (O→D): 0.705431202830892154 LINK
+  Bridge Fee (D→O): 0.0145 ETH
+
+💰 Requirements:
+  ETH Required: 0.0245 ETH
+  LINK Required: 0.705431202830892154 LINK
+
+⚙️ Configuration:
+  Payment Method: native
+  CCIP Fee Payment: link
+  Gas Limit: 975 000
+
+
+🔍 Estimating fees for Base...
+✅ Fee estimation completed!
+
+💸 Fee Breakdown:
+  Staking Amount: 0.01 ETH
+  CCIP Fee (O→D): 0.589477753193449312 LINK
+  Bridge Fee (D→O): 0.0 ETH
+
+💰 Requirements:
+  ETH Required: 0.01 ETH
+  LINK Required: 0.589477753193449312 LINK
+
+⚙️ Configuration:
+  Payment Method: native
+  CCIP Fee Payment: link
+  Gas Limit: 975 000
+
+📊 Comparison Summary:
+Chain          ETH Required        CCIP Fee (LINK)     Bridge Fee
+---------------------------------------------------------------------------
+Optimism       0.01 ETH            0.693741349896691656 LINK0.0 ETH
+Arbitrum One   0.0245 ETH          0.705431202830892154 LINK0.0145 ETH
+Base           0.01 ETH            0.589477753193449312 LINK0.0 ETH
+
+💡 Most economical: Base (0.01 ETH + 0.589477753193449312 LINK)
+✅ Fee estimation completed successfully!
 ```
 
 ### 8. Slow Stake Execution - Native ETH (`slowStakeNativeExample.ts`)

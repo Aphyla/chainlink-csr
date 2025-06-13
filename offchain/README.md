@@ -46,12 +46,24 @@ Currently supports Lido (WETH → wstETH) on Optimism, Arbitrum One, and Base ne
    yarn example:lido:estimate-slowstake   # SlowStake fee estimation (multi-chain)
    ```
 
-## Examples
+## Documentation
+
+### **Examples & Tutorials**
 
 See [`src/examples/`](src/examples/) for complete examples organized by protocol:
 
 - **Lido examples**: [`src/examples/lido/`](src/examples/lido/)
 - **Documentation**: Each protocol directory contains detailed usage guides
+
+### **API Reference**
+
+See [`src/useCases/`](src/useCases/) for systematic function documentation:
+
+- **[API Overview](src/useCases/README.md)** - Architecture and common patterns
+- **[Fast Stake API](src/useCases/fastStake/README.md)** - Instant swaps via oracle pools
+- **[Slow Stake API](src/useCases/slowStake/README.md)** - Cross-chain operations via CCIP
+- **[Allowance API](src/useCases/allowance/README.md)** - ERC20 token management
+- **[Pool API](src/useCases/pool/README.md)** - Pool monitoring and rates
 
 ## Library Usage
 
@@ -136,4 +148,4 @@ src/
 
 ## License
 
-MIT License - see LICENSE file for details.
+Apache License, Version 2.0 - see LICENSE file for details.
