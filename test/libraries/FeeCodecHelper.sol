@@ -144,6 +144,18 @@ contract FeeCodecHelper {
         return FeeCodec.decodeFraxFerryL1toL2Memory(feeData);
     }
 
+    function encodeLineaL1toL2() public pure returns (bytes memory) {
+        return FeeCodec.encodeLineaL1toL2();
+    }
+
+    function decodeLineaL1toL2(bytes calldata feeData) public pure returns (uint256 feeAmount, bool payInLink) {
+        return FeeCodec.decodeLineaL1toL2(feeData);
+    }
+
+    function decodeLineaL1toL2Memory(bytes memory feeData) public pure returns (uint256 feeAmount, bool payInLink) {
+        return FeeCodec.decodeLineaL1toL2Memory(feeData);
+    }
+
     // Force foundry to ignore this contract from coverage
     function test() public pure {}
 }

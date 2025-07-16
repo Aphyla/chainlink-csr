@@ -299,4 +299,36 @@ contract FeeCodecTest is Test {
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
         feeCodecHelper.decodeFraxFerryL1toL2Memory(feeData);
     }
+
+    function test_EncodeLineaL1toL2() public view {
+        bytes memory feeData = feeCodecHelper.encodeLineaL1toL2();
+
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeLineaL1toL2(feeData);
+
+            assertEq(decodedFeeAmount, 0, "test_EncodeLineaL1toL2::1");
+            assertEq(false, decodedPayInLink, "test_EncodeLineaL1toL2::2");
+        }
+
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeLineaL1toL2Memory(feeData);
+
+            assertEq(decodedFeeAmount, 0, "test_EncodeLineaL1toL2::3");
+            assertEq(false, decodedPayInLink, "test_EncodeLineaL1toL2::4");
+        }
+    }
+
+    function test_Revert_DecodeLineaL1toL2(bytes memory feeData) public {
+        uint256 length = feeData.length > 16 ? 16 : feeData.length;
+
+        assembly {
+            mstore(feeData, length)
+        }
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        feeCodecHelper.decodeLineaL1toL2(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        feeCodecHelper.decodeLineaL1toL2Memory(feeData);
+    }
 }

@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../../../script/lido/LidoUpgradeL2ToCustomSenderReferral.s.sol";
 import "../../../contracts/senders/CustomSender.sol";
+import "../../../script/lido/LidoUpgradeL2ToCustomSenderReferral.s.sol";
 
 contract fork_LidoUpgradeL2ToCustomSenderReferralScriptTest is Test, LidoParameters {
     LidoUpgradeL2ToCustomSenderReferral public script;

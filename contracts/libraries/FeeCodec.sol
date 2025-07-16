@@ -375,4 +375,43 @@ library FeeCodec {
         feeAmount = uint128(bytes16(value));
         payInLink = uint8(uint256(value) >> 120) != 0;
     }
+
+    /**
+     * @dev Encodes the fee data for a Linea L1-to-L2 transfer.
+     */
+    function encodeLineaL1toL2() internal pure returns (bytes memory) {
+        return abi.encodePacked(uint136(0));
+    }
+
+    /**
+     * @dev Decodes the fee data for a Linea L1-to-L2 transfer.
+     * Returns the `feeAmount`.
+     * The `feeAmount` is the fee amount for the transfer.
+     *
+     * Requirements:
+     *
+     * - `feeData` must have a length of 17 bytes.
+     */
+    function decodeLineaL1toL2(bytes calldata feeData) internal pure returns (uint128 feeAmount, bool payInLink) {
+        if (feeData.length != 17) revert FeeCodecInvalidDataLength(feeData.length, 17);
+        feeAmount = uint128(bytes16(feeData[0:16]));
+        payInLink = feeData[16] != 0;
+    }
+
+    /**
+     * @dev Decodes the fee data for a Linea L1-to-L2 transfer.
+     * Returns the `feeAmount`.
+     * The `feeAmount` is the fee amount for the transfer.
+     *
+     * Requirements:
+     *
+     * - `feeData` must have a length of 17 bytes.
+     */
+    function decodeLineaL1toL2Memory(bytes memory feeData) internal pure returns (uint128 feeAmount, bool payInLink) {
+        if (feeData.length != 17) revert FeeCodecInvalidDataLength(feeData.length, 17);
+        bytes32 value = bytes32(feeData);
+
+        feeAmount = uint128(bytes16(value));
+        payInLink = uint8(uint256(value) >> 120) != 0;
+    }
 }
