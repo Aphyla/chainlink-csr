@@ -9,7 +9,7 @@ import "../../contracts/adapters/LineaAdapterL1toL2.sol";
 import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
 import "../../contracts/automations/SyncAutomation.sol";
 import "../../contracts/receivers/LidoCustomReceiver.sol";
-import "../../contracts/senders/CustomSender.sol";
+import "../../contracts/senders/CustomSenderReferral.sol";
 import "../../contracts/utils/PausableImmutableOraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 import "../ScriptHelper.sol";
@@ -139,7 +139,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             );
 
             arbContracts.sender.implementation = address(
-                new CustomSender(
+                new CustomSenderReferral(
                     ARBITRUM_WETH_TOKEN,
                     ARBITRUM_WETH_TOKEN,
                     ARBITRUM_LINK_TOKEN,
@@ -190,7 +190,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             );
 
             optContracts.sender.implementation = address(
-                new CustomSender(
+                new CustomSenderReferral(
                     OPTIMISM_WETH_TOKEN,
                     OPTIMISM_WETH_TOKEN,
                     OPTIMISM_LINK_TOKEN,
@@ -241,7 +241,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             );
 
             baseContracts.sender.implementation = address(
-                new CustomSender(
+                new CustomSenderReferral(
                     BASE_WETH_TOKEN, BASE_WETH_TOKEN, BASE_LINK_TOKEN, BASE_CCIP_ROUTER, DEAD_ADDRESS, DEAD_ADDRESS
                 )
             );
@@ -287,7 +287,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             );
 
             lineaContracts.sender.implementation = address(
-                new CustomSender(
+                new CustomSenderReferral(
                     LINEA_WETH_TOKEN, LINEA_WETH_TOKEN, LINEA_LINK_TOKEN, LINEA_CCIP_ROUTER, DEAD_ADDRESS, DEAD_ADDRESS
                 )
             );
@@ -338,7 +338,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.selectFork(arbitrumForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            CustomSender sender = CustomSender(arbContracts.sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(arbContracts.sender.proxy);
             ISyncAutomation syncAutomation = ISyncAutomation(arbContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
@@ -375,7 +375,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.selectFork(optimismForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            CustomSender sender = CustomSender(optContracts.sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(optContracts.sender.proxy);
             ISyncAutomation syncAutomation = ISyncAutomation(optContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
@@ -408,7 +408,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.selectFork(baseForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            CustomSender sender = CustomSender(baseContracts.sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(baseContracts.sender.proxy);
             ISyncAutomation syncAutomation = ISyncAutomation(baseContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
@@ -440,7 +440,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             vm.selectFork(lineaForkId);
             vm.startBroadcast(deployerPrivateKey);
 
-            CustomSender sender = CustomSender(lineaContracts.sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(lineaContracts.sender.proxy);
             ISyncAutomation syncAutomation = ISyncAutomation(lineaContracts.syncAutomation);
 
             sender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(l1Contracts.receiver.proxy));
@@ -582,7 +582,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             require(oraclePool.getFee() == ARBITRUM_ORACLE_POOL_FEE, "_verifyDeployments::38");
             _checkOwner(address(oraclePool), deployer, ARBITRUM_OWNER, "_verifyDeployments::39");
 
-            CustomSender sender = CustomSender(l2Contracts[0].sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(l2Contracts[0].sender.proxy);
 
             require(sender.WNATIVE() == ARBITRUM_WETH_TOKEN, "_verifyDeployments::40");
             require(sender.LINK_TOKEN() == ARBITRUM_LINK_TOKEN, "_verifyDeployments::41");
@@ -657,7 +657,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             require(oraclePool.getFee() == OPTIMISM_ORACLE_POOL_FEE, "_verifyDeployments::68");
             _checkOwner(address(oraclePool), deployer, OPTIMISM_OWNER, "_verifyDeployments::69");
 
-            CustomSender sender = CustomSender(l2Contracts[1].sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(l2Contracts[1].sender.proxy);
 
             require(sender.WNATIVE() == OPTIMISM_WETH_TOKEN, "_verifyDeployments::70");
             require(sender.LINK_TOKEN() == OPTIMISM_LINK_TOKEN, "_verifyDeployments::71");
@@ -728,7 +728,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             require(oraclePool.getFee() == BASE_ORACLE_POOL_FEE, "_verifyDeployments::98");
             _checkOwner(address(oraclePool), deployer, BASE_OWNER, "_verifyDeployments::99");
 
-            CustomSender sender = CustomSender(l2Contracts[2].sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(l2Contracts[2].sender.proxy);
 
             require(sender.WNATIVE() == BASE_WETH_TOKEN, "_verifyDeployments::100");
             require(sender.LINK_TOKEN() == BASE_LINK_TOKEN, "_verifyDeployments::101");
@@ -798,7 +798,7 @@ contract LidoDeployScript is ScriptHelper, LidoParameters {
             require(oraclePool.getFee() == LINEA_ORACLE_POOL_FEE, "_verifyDeployments::128");
             _checkOwner(address(oraclePool), deployer, LINEA_OWNER, "_verifyDeployments::129");
 
-            CustomSender sender = CustomSender(l2Contracts[3].sender.proxy);
+            CustomSenderReferral sender = CustomSenderReferral(l2Contracts[3].sender.proxy);
 
             require(sender.WNATIVE() == LINEA_WETH_TOKEN, "_verifyDeployments::130");
             require(sender.LINK_TOKEN() == LINEA_LINK_TOKEN, "_verifyDeployments::131");

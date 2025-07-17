@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+/**
+ * l1Contracts: struct LidoDeployScript.L1Contracts L1Contracts({ chainName: "Ethereum", receiver: Proxy({ proxy: 0x6F357d53d6bE3238180316BA5F8f11467e164588, proxyAdmin: 0x88a45d2760b63c1500E3D2E3552b28e5Cdaa37BD, implementation: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367 }), arbitrumAdapter: 0xBf96561e4519182CFA4cebBf95494D9CA5a316f9, optimismAdapter: 0x328de900860816d29D1367F6903a24D8ed40C997, baseAdapter: 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace, lineaAdapter: 0x122beD1eB48DC4679DDF2C8fc159e9c498344397 })
+ * [L2Contracts({ chainName: "Arbitrum", sender: Proxy({ proxy: 0x72229141D4B016682d3618ECe47c046f30Da4AD1, proxyAdmin: 0x5B42aEbFe95247f1d22e282831e2A513bF050217, implementation: 0x220F64A4793Bc8aca7330ceCc4ae4e2F3B5Bc664 }), priceOracle: 0x328de900860816d29D1367F6903a24D8ed40C997, oraclePool: 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace, syncAutomation: 0x7EbD06BF137077fF5EE858ca6368dBd95DB7c66A }),
+ * L2Contracts({ chainName: "Optimism", sender: Proxy({ proxy: 0x328de900860816d29D1367F6903a24D8ed40C997, proxyAdmin: 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192, implementation: 0x65498495DdC07c52E12EEe3c44D3a1166eed8703 }), priceOracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367, oraclePool: 0x6F357d53d6bE3238180316BA5F8f11467e164588, syncAutomation: 0x3776CC14ce997827F7A87091018Daa1739dc2790 }),
+ * L2Contracts({ chainName: "Base", sender: Proxy({ proxy: 0x328de900860816d29D1367F6903a24D8ed40C997, proxyAdmin: 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192, implementation: 0x65498495DdC07c52E12EEe3c44D3a1166eed8703 }), priceOracle: 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367, oraclePool: 0x6F357d53d6bE3238180316BA5F8f11467e164588, syncAutomation: 0x3776CC14ce997827F7A87091018Daa1739dc2790 }),
+ */
 contract LidoParameters {
     uint64 internal constant ETHEREUM_FORK_BLOCK = 22931212;
     uint64 internal constant ETHEREUM_CCIP_CHAIN_SELECTOR = 5009297550715157269;
@@ -117,17 +123,16 @@ contract LidoParameters {
     bool internal constant LINEA_WSTETH_STETH_DATAFEED_IS_INVERSE = false; // If the data feed is inverted, i.e. the price returned is the inverse of the price wanted
     uint32 internal constant LINEA_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours; // The maximum time between data feed updates
     uint96 internal constant LINEA_ORACLE_POOL_FEE = 0; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
-    /* Destination to Origin Fee Parameters */
-    uint128 internal constant LINEA_POSTMAN_FEE_AMOUNT = 0.0001e18; // The fee paid to the postman for delivering the message on the L2
     /* Sync Automation Parameters */
     uint128 internal constant LINEA_MIN_SYNC_AMOUNT = 5e18; // The minimum amount of ETH required to start the sync process by the automation contract
     uint128 internal constant LINEA_MAX_SYNC_AMOUNT = 100e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
     uint48 internal constant LINEA_MIN_SYNC_DELAY = 12 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
     /* Deployment */
-    address internal constant LINEA_SENDER_PROXY = 0x0000000000000000000000000000000000000000;
-    address internal constant LINEA_SENDER_PROXY_ADMIN = 0x0000000000000000000000000000000000000000;
-    address internal constant LINEA_SENDER_IMPLEMENTATION = 0x0000000000000000000000000000000000000000;
-    address internal constant LINEA_PRICE_ORACLE = 0x0000000000000000000000000000000000000000;
-    address internal constant LINEA_ORACLE_POOL = 0x0000000000000000000000000000000000000000;
-    address internal constant LINEA_SYNC_AUTOMATION = 0x0000000000000000000000000000000000000000;
+    address internal constant LINEA_SENDER_PROXY = 0x328de900860816d29D1367F6903a24D8ed40C997;
+    address internal constant LINEA_SENDER_PROXY_ADMIN = 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192;
+    address internal constant LINEA_SENDER_IMPLEMENTATION = 0xBf96561e4519182CFA4cebBf95494D9CA5a316f9;
+    address internal constant LINEA_PRICE_ORACLE = 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367;
+    address internal constant LINEA_ORACLE_POOL = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
+    address internal constant LINEA_SYNC_AUTOMATION = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
+    address internal constant LINEA_GELATO_SYNC_AUTOMATION = 0xFbdDDF18Bc681Ae649991f1Aced55b2252a1acAe;
 }
