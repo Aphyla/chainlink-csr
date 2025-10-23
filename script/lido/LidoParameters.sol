@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 contract LidoParameters {
-    uint64 internal constant ETHEREUM_FORK_BLOCK = 20591103;
+    uint64 internal constant ETHEREUM_FORK_BLOCK = 22931212;
     uint64 internal constant ETHEREUM_CCIP_CHAIN_SELECTOR = 5009297550715157269;
     address internal constant ETHEREUM_CCIP_ROUTER = 0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D;
     address internal constant ETHEREUM_LINK_TOKEN = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
@@ -11,6 +11,7 @@ contract LidoParameters {
     address internal constant ETHEREUM_TO_ARBITRUM_ROUTER = 0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef;
     address internal constant ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE = 0x76943C0D61395d8F2edF9060e1533529cAe05dE6;
     address internal constant ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE = 0x9de443AdC5A411E83F1878Ef24C3F52C61571e72;
+    address internal constant ETHEREUM_TO_LINEA_WSTETH_TOKEN_BRIDGE = 0x051F1D88f0aF5763fB888eC4378b4D8B29ea3319;
     address internal constant ETHEREUM_OWNER = address(0); // If left as address(0), the owner will be the deployer
     /* Origin to Destination Fee Parameters */
     uint128 internal constant ETHEREUM_DESTINATION_MAX_FEE = 0.1e18; // Max fee used by the automation contract when calling sync
@@ -24,7 +25,7 @@ contract LidoParameters {
     address internal constant ETHEREUM_OPTIMISM_ADAPTER = 0x328de900860816d29D1367F6903a24D8ed40C997;
     address internal constant ETHEREUM_BASE_ADAPTER = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
 
-    uint64 internal constant ARBITRUM_FORK_BLOCK = 219083410;
+    uint64 internal constant ARBITRUM_FORK_BLOCK = 317422042;
     uint64 internal constant ARBITRUM_CCIP_CHAIN_SELECTOR = 4949039107694359620;
     address internal constant ARBITRUM_CCIP_ROUTER = 0x141fa059441E0ca23ce184B6A78bafD2A517DdE8;
     address internal constant ARBITRUM_LINK_TOKEN = 0xf97f4df75117a78c1A5a0DBb814Af92458539FB4;
@@ -52,7 +53,7 @@ contract LidoParameters {
     address internal constant ARBITRUM_ORACLE_POOL = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
     address internal constant ARBITRUM_SYNC_AUTOMATION = 0x7EbD06BF137077fF5EE858ca6368dBd95DB7c66A;
 
-    uint64 internal constant OPTIMISM_FORK_BLOCK = 121425199;
+    uint64 internal constant OPTIMISM_FORK_BLOCK = 133406993;
     uint64 internal constant OPTIMISM_CCIP_CHAIN_SELECTOR = 3734403246176062136;
     address internal constant OPTIMISM_CCIP_ROUTER = 0x3206695CaE29952f4b0c22a169725a865bc8Ce0f;
     address internal constant OPTIMISM_LINK_TOKEN = 0x350a791Bfc2C21F9Ed5d10980Dad2e2638ffa7f6;
@@ -78,7 +79,7 @@ contract LidoParameters {
     address internal constant OPTIMISM_ORACLE_POOL = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
     address internal constant OPTIMISM_SYNC_AUTOMATION = 0x3776CC14ce997827F7A87091018Daa1739dc2790;
 
-    uint64 internal constant BASE_FORK_BLOCK = 18811140;
+    uint64 internal constant BASE_FORK_BLOCK = 27811711;
     uint64 internal constant BASE_CCIP_CHAIN_SELECTOR = 15971525489660198786;
     address internal constant BASE_CCIP_ROUTER = 0x881e3A65B4d4a04dD529061dd0071cf975F58bCD;
     address internal constant BASE_LINK_TOKEN = 0x88Fb150BDc53A65fe94Dea0c9BA0a6dAf8C6e196;
@@ -103,4 +104,29 @@ contract LidoParameters {
     address internal constant BASE_PRICE_ORACLE = 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367;
     address internal constant BASE_ORACLE_POOL = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
     address internal constant BASE_SYNC_AUTOMATION = 0x3776CC14ce997827F7A87091018Daa1739dc2790;
+
+    uint64 internal constant LINEA_FORK_BLOCK = 20923076;
+    uint64 internal constant LINEA_CCIP_CHAIN_SELECTOR = 4627098889531055414;
+    address internal constant LINEA_CCIP_ROUTER = 0x549FEB73F2348F6cD99b9fc8c69252034897f06C;
+    address internal constant LINEA_LINK_TOKEN = 0xa18152629128738a5c081eb226335FEd4B9C95e9;
+    address internal constant LINEA_WETH_TOKEN = 0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f;
+    address internal constant LINEA_WSTETH_TOKEN = 0xB5beDd42000b71FddE22D3eE8a79Bd49A568fC8F;
+    address internal constant LINEA_WSTETH_STETH_DATAFEED = 0x3C8A95F2264bB3b52156c766b738357008d87cB7;
+    address internal constant LINEA_OWNER = address(0); // If left as address(0), the owner will be the deployer
+    /* Data feed parameters */
+    bool internal constant LINEA_WSTETH_STETH_DATAFEED_IS_INVERSE = false; // If the data feed is inverted, i.e. the price returned is the inverse of the price wanted
+    uint32 internal constant LINEA_WSTETH_STETH_DATAFEED_HEARTBEAT = 24 hours; // The maximum time between data feed updates
+    uint96 internal constant LINEA_ORACLE_POOL_FEE = 0; // The fee to be applied to each swap (in 1e18 scale). It should be set following the rebase APR to prevent any exploit of a slow data feed update and it should also be used to cover the actual gas cost of the sync automation contract
+    /* Sync Automation Parameters */
+    uint128 internal constant LINEA_MIN_SYNC_AMOUNT = 5e18; // The minimum amount of ETH required to start the sync process by the automation contract
+    uint128 internal constant LINEA_MAX_SYNC_AMOUNT = 100e18; // The maximum amount of ETH that can be bridged in a single transaction by the automation contract, this value needs to be set carefully following the max ETH amount that can be bridged using CCIP and the max ETH fee (as it's also bridged)
+    uint48 internal constant LINEA_MIN_SYNC_DELAY = 12 hours; // The minimum time between syncs by the automation contract, this value should be picked following the time required by the CCIP ETH bucket to refill and the LST/LRT update time
+    /* Deployment */
+    address internal constant LINEA_SENDER_PROXY = 0x328de900860816d29D1367F6903a24D8ed40C997;
+    address internal constant LINEA_SENDER_PROXY_ADMIN = 0x4c8c4A15c1e810e481c412A9B06Be5f79dC02192;
+    address internal constant LINEA_SENDER_IMPLEMENTATION = 0xBf96561e4519182CFA4cebBf95494D9CA5a316f9;
+    address internal constant LINEA_PRICE_ORACLE = 0x301cBCDA894c932E9EDa3Cf8878f78304e69E367;
+    address internal constant LINEA_ORACLE_POOL = 0x6F357d53d6bE3238180316BA5F8f11467e164588;
+    address internal constant LINEA_SYNC_AUTOMATION = 0x9c27c304cFdf0D9177002ff186A4aE0A5489Aace;
+    address internal constant LINEA_GELATO_SYNC_AUTOMATION = 0xFbdDDF18Bc681Ae649991f1Aced55b2252a1acAe;
 }

@@ -99,14 +99,14 @@ contract OptimismLegacyAdapterL1toL2Test is Test {
 }
 
 contract MockERC20Bridge is ERC20 {
-    address public l1Token;
-    address public l2Token;
+    address public L1_TOKEN_NON_REBASABLE;
+    address public L2_TOKEN_NON_REBASABLE;
 
     bytes public msgData;
 
     constructor(address l1Token_, address l2Token_) ERC20("Mock L2 Token", "ML2T") {
-        l1Token = l1Token_;
-        l2Token = l2Token_;
+        L1_TOKEN_NON_REBASABLE = l1Token_;
+        L2_TOKEN_NON_REBASABLE = l2Token_;
     }
 
     function depositERC20To(address, address, address, uint256, uint32, bytes memory) external {

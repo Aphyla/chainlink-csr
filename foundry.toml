@@ -5,16 +5,22 @@ libs = ["node_modules", "lib"]
 solc-version = "0.8.20"
 evm_version = "paris"
 
+[fmt]
+tab_width = 4
+sort_imports = true
+
 [rpc_endpoints]
 mainnet = "${ETHEREUM_RPC_URL}"
 arbitrum = "${ARBITRUM_RPC_URL}"
 optimism = "${OPTIMISM_RPC_URL}"
 base = "${BASE_RPC_URL}"
+linea = "${LINEA_RPC_URL}"
 
 [etherscan]
 mainnet = { key = "${ETHEREUM_EXPLORER_API_KEY}", url = "${ETHEREUM_EXPLORER_URL}" }
 arbitrum = { key = "${ARBITRUM_EXPLORER_API_KEY}", url = "${ARBITRUM_EXPLORER_URL}" }
 optimism = { key = "${OPTIMISM_EXPLORER_API_KEY}", url = "${OPTIMISM_EXPLORER_URL}" }
 base = { key = "${BASE_EXPLORER_API_KEY}", url = "${BASE_EXPLORER_URL}" }
+linea = { key = "${LINEA_EXPLORER_API_KEY}", url = "${LINEA_EXPLORER_URL}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

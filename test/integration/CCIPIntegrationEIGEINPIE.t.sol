@@ -12,9 +12,8 @@ import "../../contracts/adapters/CCIPAdapter.sol";
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
 
-// Those tests needs to be run with the shangai evm version, orelse they will fail, use:
-// `forge test --match-contract EIGENPIE --evm-version shanghai`
-contract shanghai_fork_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
+/// forge-config: default.evm_version = "shanghai"
+contract fork_CCIPIntegrationEIGENPIETest is Test, EigenpieParameters {
     uint256 ethForkId;
     EigenpieCustomReceiver receiver;
     CCIPAdapter ccipAdapter;

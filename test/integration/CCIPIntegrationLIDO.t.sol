@@ -5,14 +5,17 @@ import "forge-std/Test.sol";
 
 import "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 
-import "../../script/lido/LidoParameters.sol";
-import "../../contracts/senders/CustomSender.sol";
-import "../../contracts/receivers/LidoCustomReceiver.sol";
 import "../../contracts/adapters/ArbitrumLegacyAdapterL1toL2.sol";
-import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
+
 import "../../contracts/adapters/BaseLegacyAdapterL1toL2.sol";
+import "../../contracts/adapters/LineaAdapterL1toL2.sol";
+import "../../contracts/adapters/OptimismLegacyAdapterL1toL2.sol";
+import "../../contracts/receivers/LidoCustomReceiver.sol";
+import "../../contracts/senders/CustomSender.sol";
+
 import "../../contracts/utils/OraclePool.sol";
 import "../../contracts/utils/PriceOracle.sol";
+import "../../script/lido/LidoParameters.sol";
 
 contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
     uint256 ethForkId;
@@ -20,6 +23,7 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
     ArbitrumLegacyAdapterL1toL2 arbAdapter;
     OptimismLegacyAdapterL1toL2 opAdapter;
     BaseLegacyAdapterL1toL2 baseAdapter;
+    LineaAdapterL1toL2 lineaAdapter;
 
     uint256 arbForkId;
     CustomSender arbSender;
@@ -36,6 +40,11 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
     OraclePool baseOraclePool;
     PriceOracle basePriceOracle;
 
+    uint256 lineaForkId;
+    CustomSender lineaSender;
+    OraclePool lineaOraclePool;
+    PriceOracle lineaPriceOracle;
+
     address alice = makeAddr("alice");
 
     function setUp() public {
@@ -43,6 +52,7 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
         arbForkId = vm.createFork(vm.rpcUrl("arbitrum"), ARBITRUM_FORK_BLOCK);
         opForkId = vm.createFork(vm.rpcUrl("optimism"), OPTIMISM_FORK_BLOCK);
         baseForkId = vm.createFork(vm.rpcUrl("base"), BASE_FORK_BLOCK);
+        lineaForkId = vm.createFork(vm.rpcUrl("linea"), LINEA_FORK_BLOCK);
 
         // Deployments
         {
@@ -54,6 +64,8 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
                 new ArbitrumLegacyAdapterL1toL2(ETHEREUM_TO_ARBITRUM_ROUTER, ETHEREUM_WSTETH_TOKEN, address(receiver));
             opAdapter = new OptimismLegacyAdapterL1toL2(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE, address(receiver));
             baseAdapter = new BaseLegacyAdapterL1toL2(ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE, address(receiver));
+            lineaAdapter =
+                new LineaAdapterL1toL2(ETHEREUM_TO_LINEA_WSTETH_TOKEN_BRIDGE, ETHEREUM_WSTETH_TOKEN, address(receiver));
 
             vm.label(ETHEREUM_CCIP_ROUTER, "ETH:CCIPRouter");
             vm.label(ETHEREUM_LINK_TOKEN, "ETH:LINK");
@@ -61,6 +73,8 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
             vm.label(ETHEREUM_WSTETH_TOKEN, "ETH:WstETH");
             vm.label(ETHEREUM_TO_ARBITRUM_ROUTER, "ETH:ArbRouter");
             vm.label(ETHEREUM_TO_OPTIMISM_WSTETH_TOKEN_BRIDGE, "ETH:OpWstETHBridge");
+            vm.label(ETHEREUM_TO_BASE_WSTETH_TOKEN_BRIDGE, "ETH:BaseWstETHBridge");
+            vm.label(ETHEREUM_TO_LINEA_WSTETH_TOKEN_BRIDGE, "ETH:LineaWstETHBridge");
         }
 
         {
@@ -147,6 +161,34 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
             vm.label(BASE_WSTETH_STETH_DATAFEED, "BASE:WstETHEthDatafeed");
         }
 
+        {
+            vm.selectFork(lineaForkId);
+
+            lineaPriceOracle = new PriceOracle(LINEA_WSTETH_STETH_DATAFEED, false, 24 hours);
+            lineaOraclePool = new OraclePool(
+                _predictContractAddress(1),
+                LINEA_WETH_TOKEN,
+                LINEA_WSTETH_TOKEN,
+                address(lineaPriceOracle),
+                0,
+                address(this)
+            );
+            lineaSender = new CustomSender(
+                LINEA_WETH_TOKEN,
+                LINEA_WETH_TOKEN,
+                LINEA_LINK_TOKEN,
+                LINEA_CCIP_ROUTER,
+                address(lineaOraclePool),
+                address(this)
+            );
+
+            vm.label(LINEA_CCIP_ROUTER, "LINEA:CCIPRouter");
+            vm.label(LINEA_LINK_TOKEN, "LINEA:LINK");
+            vm.label(LINEA_WETH_TOKEN, "LINEA:WETH");
+            vm.label(LINEA_WSTETH_TOKEN, "LINEA:WstETH");
+            vm.label(LINEA_WSTETH_STETH_DATAFEED, "LINEA:WstETHEthDatafeed");
+        }
+
         // Setup
         {
             vm.selectFork(ethForkId);
@@ -159,6 +201,9 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
 
             receiver.setSender(BASE_CCIP_CHAIN_SELECTOR, abi.encode(address(baseSender)));
             receiver.setAdapter(BASE_CCIP_CHAIN_SELECTOR, address(baseAdapter));
+
+            receiver.setSender(LINEA_CCIP_CHAIN_SELECTOR, abi.encode(address(lineaSender)));
+            receiver.setAdapter(LINEA_CCIP_CHAIN_SELECTOR, address(lineaAdapter));
         }
 
         {
@@ -180,6 +225,13 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
 
             baseSender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(receiver));
             baseSender.grantRole(baseSender.SYNC_ROLE(), address(this));
+        }
+
+        {
+            vm.selectFork(lineaForkId);
+
+            lineaSender.setReceiver(ETHEREUM_CCIP_CHAIN_SELECTOR, abi.encode(receiver));
+            lineaSender.grantRole(lineaSender.SYNC_ROLE(), address(this));
         }
     }
 
@@ -461,6 +513,101 @@ contract fork_CCIPIntegrationLIDOTest is Test, LidoParameters {
         receiver.ccipReceive(message);
 
         assertEq(receiver.getFailedMessageHash(message.messageId), 0, "test_BaseSlowStake::2");
+    }
+
+    /// forge-config: default.evm_version = "cancun"
+    function test_LineaFastStake() public {
+        vm.selectFork(lineaForkId);
+
+        // Fund the oracle pool
+        deal(LINEA_WSTETH_TOKEN, address(lineaOraclePool), 100e18);
+
+        vm.deal(alice, 1e18);
+
+        vm.startPrank(alice);
+        {
+            lineaSender.fastStake{value: 1e18}(address(0), 1e18, 0.8e18);
+            assertGt(IERC20(LINEA_WSTETH_TOKEN).balanceOf(alice), 0.8e18, "test_LineaFastStake::1");
+        }
+        vm.stopPrank();
+
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
+        bytes memory feeDtoO = FeeCodec.encodeLineaL1toL2();
+
+        uint256 amount = IERC20(LINEA_WETH_TOKEN).balanceOf(address(lineaOraclePool));
+        lineaSender.sync{value: 0.1e18}(ETHEREUM_CCIP_CHAIN_SELECTOR, amount, feeOtoD, feeDtoO);
+
+        assertEq(IERC20(LINEA_WETH_TOKEN).balanceOf(address(lineaOraclePool)), 0, "test_LineaFastStake::2");
+
+        vm.selectFork(ethForkId);
+
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
+
+        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+        tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
+
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: keccak256("test"),
+            sourceChainSelector: LINEA_CCIP_CHAIN_SELECTOR,
+            sender: abi.encode(address(lineaSender)),
+            data: FeeCodec.encodePackedDataMemory(address(lineaOraclePool), amount, feeDtoO),
+            destTokenAmounts: tokenAmounts
+        });
+
+        deal(ETHEREUM_WETH_TOKEN, address(receiver), nativeAmountBrigdged);
+
+        vm.prank(ETHEREUM_CCIP_ROUTER);
+        receiver.ccipReceive(message);
+
+        assertEq(receiver.getFailedMessageHash(message.messageId), 0, "test_LineaFastStake::3");
+    }
+
+    /// forge-config: default.evm_version = "cancun"
+    function test_LineaSlowStake() public {
+        vm.selectFork(lineaForkId);
+
+        bytes memory feeOtoD = FeeCodec.encodeCCIP(0.1e18, false, 1_000_000);
+        bytes memory feeDtoO = FeeCodec.encodeLineaL1toL2();
+
+        uint256 amount = 1e18;
+
+        (uint256 nativeFeeOtoD,) = FeeCodec.decodeFeeMemory(feeOtoD);
+        (uint256 nativeFeeDtoO,) = FeeCodec.decodeFeeMemory(feeDtoO);
+
+        uint256 nativeFee = amount + nativeFeeOtoD + nativeFeeDtoO;
+
+        vm.deal(alice, nativeFee);
+
+        vm.startPrank(alice);
+        {
+            lineaSender.slowStake{value: nativeFee}(ETHEREUM_CCIP_CHAIN_SELECTOR, address(0), amount, feeOtoD, feeDtoO);
+        }
+        vm.stopPrank();
+
+        assertLt(alice.balance, nativeFee, "test_LineaSlowStake::1");
+        vm.selectFork(ethForkId);
+
+        (uint256 nativeAmountBrigdged,) = FeeCodec.decodeFeeMemory(feeDtoO);
+        nativeAmountBrigdged += amount;
+
+        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+        tokenAmounts[0] = Client.EVMTokenAmount({token: ETHEREUM_WETH_TOKEN, amount: nativeAmountBrigdged});
+
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: keccak256("test"),
+            sourceChainSelector: LINEA_CCIP_CHAIN_SELECTOR,
+            sender: abi.encode(address(lineaSender)),
+            data: FeeCodec.encodePackedDataMemory(address(lineaOraclePool), amount, feeDtoO),
+            destTokenAmounts: tokenAmounts
+        });
+
+        deal(ETHEREUM_WETH_TOKEN, address(receiver), nativeAmountBrigdged);
+
+        vm.prank(ETHEREUM_CCIP_ROUTER);
+        receiver.ccipReceive(message);
+
+        assertEq(receiver.getFailedMessageHash(message.messageId), 0, "test_LineaSlowStake::2");
     }
 
     function _predictContractAddress(uint256 deltaNonce) private view returns (address) {

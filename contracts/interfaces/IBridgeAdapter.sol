@@ -10,6 +10,7 @@ interface IBridgeAdapter {
     event FraxFerryL1toL2MessageSent();
     event ArbitrumL1toL2MessageSent(bytes32 messageId);
     event CCIPMessageSent(bytes32 messageId);
+    event LineaL1toL2MessageSent();
 
     function sendToken(uint64 destChainSelector, address recipient, uint256 amount, bytes calldata feeData) external;
 }

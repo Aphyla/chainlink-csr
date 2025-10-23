@@ -27,7 +27,7 @@ contract FeeCodecTest is Test {
 
             {
                 (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
-                    FeeCodec.decodePackedDataMemory(packedData);
+                    feeCodecHelper.decodePackedDataMemory(packedData);
 
                 assertEq(recipient, decodedRecipient, "test_Fuzz_EncodePackedData::4");
                 assertEq(amount, decodedAmount, "test_Fuzz_EncodePackedData::5");
@@ -36,7 +36,7 @@ contract FeeCodecTest is Test {
         }
 
         {
-            bytes memory packedData = FeeCodec.encodePackedDataMemory(recipient, amount, feeData);
+            bytes memory packedData = feeCodecHelper.encodePackedDataMemory(recipient, amount, feeData);
 
             {
                 (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
@@ -49,7 +49,7 @@ contract FeeCodecTest is Test {
 
             {
                 (address decodedRecipient, uint256 decodedAmount, bytes memory decodedFeeData) =
-                    FeeCodec.decodePackedDataMemory(packedData);
+                    feeCodecHelper.decodePackedDataMemory(packedData);
 
                 assertEq(recipient, decodedRecipient, "test_Fuzz_EncodePackedData::10");
                 assertEq(amount, decodedAmount, "test_Fuzz_EncodePackedData::11");
@@ -69,7 +69,7 @@ contract FeeCodecTest is Test {
         feeCodecHelper.decodePackedData(feeData);
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 52));
-        FeeCodec.decodePackedDataMemory(feeData);
+        feeCodecHelper.decodePackedDataMemory(feeData);
     }
 
     function test_Fuzz_DecodeFee(uint128 feeAmount, bool payInLink, bytes memory additionalData) public view {
@@ -83,7 +83,7 @@ contract FeeCodecTest is Test {
         }
 
         {
-            (uint128 decodedFeeAmount, bool decodedPayInLink) = FeeCodec.decodeFeeMemory(feeData);
+            (uint128 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeFeeMemory(feeData);
 
             assertEq(feeAmount, decodedFeeAmount, "test_Fuzz_DecodeFee::3");
             assertEq(payInLink, decodedPayInLink, "test_Fuzz_DecodeFee::4");
@@ -101,7 +101,7 @@ contract FeeCodecTest is Test {
         feeCodecHelper.decodeFee(feeData);
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
-        FeeCodec.decodeFeeMemory(feeData);
+        feeCodecHelper.decodeFeeMemory(feeData);
     }
 
     function test_Fuzz_EncodeCCIP(uint128 maxFee, bool payInLink, uint32 gasLimit) public view {
@@ -116,7 +116,8 @@ contract FeeCodecTest is Test {
         }
 
         {
-            (uint256 decodedMaxFee, bool decodedPayInLink, uint256 decodedGasLimit) = FeeCodec.decodeCCIPMemory(feeData);
+            (uint256 decodedMaxFee, bool decodedPayInLink, uint256 decodedGasLimit) =
+                feeCodecHelper.decodeCCIPMemory(feeData);
 
             assertEq(maxFee, decodedMaxFee, "test_Fuzz_EncodeCCIP::4");
             assertEq(payInLink, decodedPayInLink, "test_Fuzz_EncodeCCIP::5");
@@ -135,7 +136,7 @@ contract FeeCodecTest is Test {
         feeCodecHelper.decodeCCIP(feeData);
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
-        FeeCodec.decodeCCIPMemory(feeData);
+        feeCodecHelper.decodeCCIPMemory(feeData);
     }
 
     function test_Fuzz_EncodeArbitrumL1toL2(uint128 maxSubmissionCost, uint32 maxGas, uint64 gasPriceBid) public view {
@@ -169,7 +170,7 @@ contract FeeCodecTest is Test {
                 uint256 decodedMaxSubmissionCost,
                 uint256 decodedMaxGas,
                 uint256 decodedGasPriceBid
-            ) = FeeCodec.decodeArbitrumL1toL2Memory(feeData);
+            ) = feeCodecHelper.decodeArbitrumL1toL2Memory(feeData);
 
             assertEq(
                 maxSubmissionCost + uint128(gasPriceBid) * maxGas, decodedFeeAmount, "test_Fuzz_EncodeArbitrumL1toL2::6"
@@ -192,7 +193,7 @@ contract FeeCodecTest is Test {
         feeCodecHelper.decodeArbitrumL1toL2(feeData);
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 29));
-        FeeCodec.decodeArbitrumL1toL2Memory(feeData);
+        feeCodecHelper.decodeArbitrumL1toL2Memory(feeData);
     }
 
     function test_Fuzz_EncodeOptimismL1toL2(uint32 l2Gas) public view {
@@ -209,7 +210,7 @@ contract FeeCodecTest is Test {
 
         {
             (uint256 decodedFeeAmount, bool decodedPayInLink, uint256 decodedL2Gas) =
-                FeeCodec.decodeOptimismL1toL2Memory(feeData);
+                feeCodecHelper.decodeOptimismL1toL2Memory(feeData);
 
             assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeOptimismL1toL2::4");
             assertEq(false, decodedPayInLink, "test_Fuzz_EncodeOptimismL1toL2::5");
@@ -228,7 +229,7 @@ contract FeeCodecTest is Test {
         feeCodecHelper.decodeOptimismL1toL2(feeData);
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
-        FeeCodec.decodeOptimismL1toL2Memory(feeData);
+        feeCodecHelper.decodeOptimismL1toL2Memory(feeData);
     }
 
     function test_Fuzz_EncodeBaseL1toL2(uint32 l2Gas) public view {
@@ -245,7 +246,7 @@ contract FeeCodecTest is Test {
 
         {
             (uint256 decodedFeeAmount, bool decodedPayInLink, uint256 decodedL2Gas) =
-                FeeCodec.decodeBaseL1toL2Memory(feeData);
+                feeCodecHelper.decodeBaseL1toL2Memory(feeData);
 
             assertEq(0, decodedFeeAmount, "test_Fuzz_EncodeBaseL1toL2::4");
             assertEq(false, decodedPayInLink, "test_Fuzz_EncodeBaseL1toL2::5");
@@ -264,7 +265,7 @@ contract FeeCodecTest is Test {
         feeCodecHelper.decodeBaseL1toL2(feeData);
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 21));
-        FeeCodec.decodeBaseL1toL2Memory(feeData);
+        feeCodecHelper.decodeBaseL1toL2Memory(feeData);
     }
 
     function test_EncodeFraxFerryL1toL2() public view {
@@ -278,7 +279,7 @@ contract FeeCodecTest is Test {
         }
 
         {
-            (uint256 decodedFeeAmount, bool decodedPayInLink) = FeeCodec.decodeFraxFerryL1toL2Memory(feeData);
+            (uint256 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeFraxFerryL1toL2Memory(feeData);
 
             assertEq(0, decodedFeeAmount, "test_EncodeFraxFerryL1toL2::3");
             assertEq(false, decodedPayInLink, "test_EncodeFraxFerryL1toL2::4");
@@ -296,6 +297,38 @@ contract FeeCodecTest is Test {
         feeCodecHelper.decodeFraxFerryL1toL2(feeData);
 
         vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
-        FeeCodec.decodeFraxFerryL1toL2Memory(feeData);
+        feeCodecHelper.decodeFraxFerryL1toL2Memory(feeData);
+    }
+
+    function test_EncodeLineaL1toL2() public view {
+        bytes memory feeData = feeCodecHelper.encodeLineaL1toL2();
+
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeLineaL1toL2(feeData);
+
+            assertEq(decodedFeeAmount, 0, "test_EncodeLineaL1toL2::1");
+            assertEq(false, decodedPayInLink, "test_EncodeLineaL1toL2::2");
+        }
+
+        {
+            (uint256 decodedFeeAmount, bool decodedPayInLink) = feeCodecHelper.decodeLineaL1toL2Memory(feeData);
+
+            assertEq(decodedFeeAmount, 0, "test_EncodeLineaL1toL2::3");
+            assertEq(false, decodedPayInLink, "test_EncodeLineaL1toL2::4");
+        }
+    }
+
+    function test_Revert_DecodeLineaL1toL2(bytes memory feeData) public {
+        uint256 length = feeData.length > 16 ? 16 : feeData.length;
+
+        assembly {
+            mstore(feeData, length)
+        }
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        feeCodecHelper.decodeLineaL1toL2(feeData);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeCodec.FeeCodecInvalidDataLength.selector, length, 17));
+        feeCodecHelper.decodeLineaL1toL2Memory(feeData);
     }
 }
