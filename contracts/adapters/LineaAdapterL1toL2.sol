@@ -10,6 +10,16 @@ import {BridgeAdapter} from "./BridgeAdapter.sol";
 /**
  * @title LineaAdapterL1toL2 Contract
  * @dev A bridge adapter for sending tokens from L1 to L2 on Linea.
+ *
+ * Trust assumptions (not enforced on-chain):
+ * - `TOKEN` is a standard, non-fee-on-transfer ERC-20 that is not registered as a reserved token on the
+ *   Linea Token Bridge; `bridgeToken` reverts for reserved tokens and while the bridge is paused.
+ * - `bridgeToken` is called with a zero postman fee (`msg.value = 0`). Delivery on the L2 therefore relies
+ *   on Linea's off-chain sponsorship of the claim (postman auto-claim); if sponsorship stops, the recipient
+ *   must claim the tokens on the L2 manually.
+ * - If `bridgeToken` reverts, the whole stake-and-bridge operation of the calling receiver reverts; the
+ *   CCIP message is then stored by the defensive receiver and can be retried later via
+ *   {ICCIPDefensiveReceiverUpgradeable-retryFailedMessage}.
  */
 contract LineaAdapterL1toL2 is BridgeAdapter {
     using SafeERC20 for IERC20;

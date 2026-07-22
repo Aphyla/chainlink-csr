@@ -106,6 +106,11 @@ abstract contract CustomReceiver is CCIPDefensiveReceiverUpgradeable, ICustomRec
      * @dev Processes the CCIP message.
      * Withdraws the native token, deposits the native token, and initiates the token cross-chain transfer using the adapter.
      *
+     * The staking and the bridge send are performed synchronously: if either reverts (e.g. the destination
+     * bridge is paused), the whole message processing reverts. The message is then stored as failed by
+     * {CCIPDefensiveReceiverUpgradeable-ccipReceive} and can be replayed later via
+     * {CCIPDefensiveReceiverUpgradeable-retryFailedMessage} once the bridge is available again.
+     *
      * Requirements:
      *
      * - The message must contain exactly one destination token amount.

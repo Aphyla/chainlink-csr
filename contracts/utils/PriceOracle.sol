@@ -19,11 +19,15 @@ contract PriceOracle is IPriceOracle {
     uint32 public immutable HEARTBEAT;
 
     /**
-     * immutable values for {AGGREGATOR}, {IS_INVERSE}, {DECIMALS} and {HEARTBEAT}.
+     * @dev Sets the immutable values for {AGGREGATOR}, {IS_INVERSE}, {DECIMALS} and {HEARTBEAT}.
      *
      * The `aggregator` address is the address of the Chainlink Aggregator contract.
      * The `isInverse` flag is true if the price is inverted (1 / price).
      * The `heartbeat` is the time in seconds after which the price is considered stale.
+     *
+     * Accepted assumption: {DECIMALS} is read from the aggregator once, at deployment. If the aggregator
+     * proxy is ever migrated to an implementation reporting different decimals, this oracle would mis-scale
+     * prices and must be redeployed (and the consuming pool repointed via its oracle setter).
      */
     constructor(address aggregator, bool isInverse, uint32 heartbeat) {
         if (aggregator == address(0)) revert PriceOracleInvalidParameters();

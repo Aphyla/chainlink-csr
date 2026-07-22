@@ -9,11 +9,16 @@ import {IPriceConverterOracle} from "../interfaces/IPriceConverterOracle.sol";
  * @dev A contract that allows to convert the price of a token from a base token to a quote token
  * using two price oracles.
  * It is expected that the price oracles return the price in 1e18 scale (18 decimals).
- * It is expected that the base price oracle returns the price of the base token in the quote token and
- * that the quote price oracle returns the price of the quote token in the base token. (A:B and B:C oracles)
- * For example, BTC:EUR and EUR:USD to get the price of BTC:USD.
+ * It is expected that the base price oracle returns the price of the base token denominated in an
+ * intermediate token (A:B) and that the quote price oracle returns the price of that intermediate token
+ * denominated in the quote token (B:C).
+ * For example, BTC:EUR (base) and EUR:USD (quote) to get the price of BTC:USD.
  * The price returned is always in 1e18 scale (18 decimals) and is calculated as:
  * `price = basePriceOracle.getLatestAnswer() * quotePriceOracle.getLatestAnswer() / 1e18`
+ *
+ * Accepted assumption: the two oracle answers are read independently and their update timestamps are not
+ * reconciled. Each leg only enforces its own heartbeat, so the combined price may mix prices observed at
+ * different points in time, bounded by the heartbeat of each leg.
  */
 contract PriceConverterOracle is IPriceConverterOracle {
     uint256 private constant PRECISION = 1e18;

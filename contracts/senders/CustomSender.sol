@@ -89,7 +89,8 @@ contract CustomSender is CCIPTrustedSenderUpgradeable, ICustomSender {
 
     /**
      * @dev Sets the address of the oracle pool.
-     * It also approves the maximum amount of WNative to the oracle pool and revokes the approval from the previous oracle pool.
+     * No token approval is granted or revoked here; the approval to the oracle pool is granted per-call in
+     * {fastStake}.
      *
      * Requirements:
      *
