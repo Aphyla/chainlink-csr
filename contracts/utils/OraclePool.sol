@@ -95,7 +95,8 @@ contract OraclePool is Ownable, IOraclePool {
 
     /**
      * @dev Swaps `amountIn` of `TOKEN_IN` for at least `minAmountOut` of `TOKEN_OUT` and sends them to `recipient`.
-     * It uses the oracle to get the price of `TOKEN_IN` in `TOKEN_OUT`. A fee is applied to the amount of tokens to be swapped.
+     * It uses the oracle to get the price of `TOKEN_OUT` denominated in `TOKEN_IN`, and calculates the output amount
+     * as `(amountIn - feeAmount) * 1e18 / price`. A fee is applied to the amount of tokens to be swapped.
      * The fee is kept in this contract and will be used to pay for the gas price and the potential exchange rate deviation when the
      * `TOKEN_IN` is exchanged for `TOKEN_OUT` by the sender.
      *

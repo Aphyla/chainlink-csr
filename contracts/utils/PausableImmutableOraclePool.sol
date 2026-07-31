@@ -78,14 +78,14 @@ contract PausableImmutableOraclePool is OraclePool, Pausable {
     }
 
     /**
-     * @dev Sweeps `amount` of `token` from the contract and sends them to `recipient`.
+     * @dev Swaps `amountIn` of `TOKEN_IN` for at least `minAmountOut` of `TOKEN_OUT` and sends them to `recipient`.
      * Can only be called when the contract is not paused.
      *
      * Requirements:
      *
-     * - `msg.sender` must be the owner.
+     * - `msg.sender` must be the `SENDER` account.
      *
-     * Emits a {Sweep} event.
+     * Emits a {Swap} event.
      */
     function swap(address recipient, uint256 amountIn, uint256 minAmountOut)
         public
